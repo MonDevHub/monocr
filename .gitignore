@@ -74,3 +74,16 @@ feedback-service
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Editor Files
+*.swp
+*.swo
+*~
+.elixir_ls/
+.project
+.settings/
+.classpath
+.factorypath
+.pnpm-store/
+.npm/
+.yarn/

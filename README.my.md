@@ -62,7 +62,7 @@ MonOCR သည် ပလက်ဖောင်းအားလုံးတွင်
 
 ## လူမှုကွန်ရက်နှင့် အကူအညီများ (Community and Support)
 
-Maintained by: [Janakh Pon](https://github.com/janakhpon) • [Oung Seik Nyan](https://github.com/Oungseik) • [MonDevHub](https://github.com/MonDevHub)
+[Janakh Pon](https://github.com/janakhpon) • [Oung Seik Nyan](https://github.com/Oungseik) • [MonDevHub](https://github.com/MonDevHub)
 
 - **အကြံပြုချက်များ**: [GitHub Issues](https://github.com/MonDevHub/monocr/issues) တွင် အသိပေးနိုင်ပါသည်။
 - **ဘာသာပြန်ချက်များ**: ကျွန်ုပ်တို့၏ [ဘာသာပြန်စာရင်း](https://docs.google.com/spreadsheets/d/1sr8WtiMEyDuDd1amI-wzAz5d2acZlVC7zOZMqixOADQ/edit?usp=sharing) တွင် ပါဝင်ကူညီနိုင်ပါသည်။
