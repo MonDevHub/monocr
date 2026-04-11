@@ -1,0 +1,20 @@
+# Package Managers
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+bun.lockb
+
+# Miscellaneous
+/static/
+.svelte-kit/
+build/
+dist/
+coverage/
+.paraglide/
+ocr-engine/target/
+node_modules/
+static/wasm/**
+static/**/*.mjs
+static/charset.txt
+src/lib/paraglide/*

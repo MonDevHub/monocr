@@ -1,0 +1,24 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[\"web_spin_lock\"]",
+	"target": 12465439074827573786,
+	"profile": 2241668132362809309,
+	"path": 2242650689496950348,
+	"deps": [
+		[3746573929696391749, "build_script_build", false, 11711166266278742012],
+		[4468123440088164316, "crossbeam_utils", false, 13704105657088683737],
+		[17472578983440242455, "crossbeam_deque", false, 15877271084416579021]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/debug/.fingerprint/rayon-core-3da696f9ee1bfd50/dep-lib-rayon_core",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

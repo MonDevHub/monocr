@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"const-generics\", \"default\", \"std\"]",
+	"declared_features": "[\"const-generics\", \"default\", \"nightly\", \"std\"]",
+	"target": 13480744403352105069,
+	"profile": 2241668132362809309,
+	"path": 3367089676947151121,
+	"deps": [],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/debug/.fingerprint/simd-adler32-7bbbf91d11e15dcb/dep-lib-simd_adler32",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

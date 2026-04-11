@@ -1,0 +1,23 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"default\", \"std\"]",
+	"declared_features": "[\"default\", \"std\"]",
+	"target": 13586076721141200315,
+	"profile": 2241668132362809309,
+	"path": 2262380043529525776,
+	"deps": [
+		[2448563160050429386, "build_script_build", false, 15072465880727545119],
+		[10353313219209519794, "thiserror_impl", false, 15077795467103484936]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/debug/.fingerprint/thiserror-0ccb1cc77af0a3ef/dep-lib-thiserror",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

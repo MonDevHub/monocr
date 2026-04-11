@@ -1,0 +1,1 @@
+{"rustc":16243257175721966122,"features":"[]","declared_features":"[\"avx512\"]","target":6164516981256831995,"profile":5315175899535638438,"path":16933870578014850095,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/rten-simd-696f3e42b2d50050/dep-lib-rten_simd","checksum":false}}],"rustflags":[],"config":2069994364910194474,"compile_kind":0}

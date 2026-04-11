@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - services/*
+  - shared/*
+
+onlyBuiltDependencies:
+  - '@swc/core'
+  - esbuild
+  - protobufjs
+  - sharp
+  - workerd

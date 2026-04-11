@@ -1,0 +1,25 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[\"serde\"]",
+	"target": 11920636880666231216,
+	"profile": 12919789523008547927,
+	"path": 16594513562849020027,
+	"deps": [
+		[3666196340704888985, "smallvec", false, 10133858580999154042],
+		[12577891043770133318, "rten_base", false, 10148818963164263178],
+		[14807177696891839338, "rayon", false, 8168018806080072566],
+		[15068722234341947584, "typeid", false, 2386811115902329383]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/rten-tensor-1c2f6fc79f2b6370/dep-lib-rten_tensor",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

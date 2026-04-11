@@ -1,0 +1,152 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+}
+
+@Suppress("UnstableApiUsage", "DEPRECATION")
+android {
+    namespace = "dev.janakhpon.monocr"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "dev.janakhpon.monocr"
+        minSdk = 31
+        targetSdk = 36
+        versionCode = 2
+        versionName = "1.0.1"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            val localProperties = Properties()
+            val localPropertiesFile = rootProject.file("local.properties")
+            if (localPropertiesFile.exists()) {
+                FileInputStream(localPropertiesFile).use { localProperties.load(it) }
+            }
+
+            storeFile = file("/Users/zinmin/Documents/ocrandroid.jks")
+            storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD") ?: System.getenv("RELEASE_STORE_PASSWORD")
+            keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS") ?: System.getenv("RELEASE_KEY_ALIAS")
+            keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD") ?: System.getenv("RELEASE_KEY_PASSWORD")
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
+            ndk.debugSymbolLevel = "FULL"
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+        
+        // Custom build type for sharing with testers (Production quality, Debug signed)
+        create("staging") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            useLegacyPackaging = false
+            keepDebugSymbols += "**/*.so"
+        }
+    }
+
+    androidResources {
+        noCompress += listOf("onnx", "ort")
+        localeFilters += listOf("en", "my", "mnw")
+    }
+
+    // Explicitly link KSP generated directories since AGP 9 blocks auto-injection
+    sourceSets {
+        getByName("main") {
+            java.srcDirs(
+                "build/generated/ksp/main/kotlin",
+                "build/generated/ksp/main/java"
+            )
+        }
+        getByName("debug") {
+            java.srcDirs(
+                "build/generated/ksp/debug/kotlin",
+                "build/generated/ksp/debug/java"
+            )
+        }
+        getByName("release") {
+            java.srcDirs(
+                "build/generated/ksp/release/kotlin",
+                "build/generated/ksp/release/java"
+            )
+        }
+    }
+}
+
+
+dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.exifinterface)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.foundation)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.material)
+    implementation(libs.androidx.core.splashscreen)
+
+    implementation(libs.onnxruntime.android)
+    implementation(libs.coil.compose)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.kotlinx.coroutines.android)
+    
+    // Observability (Uncomment below to integrate)
+    // implementation(libs.sentry.android)
+    // implementation(platform(libs.firebase.bom))
+    // implementation("com.google.firebase:firebase-crashlytics-ktx")
+
+    // Room
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
+}

@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[\"serde\"]",
+	"target": 11920636880666231216,
+	"profile": 5364900064320131260,
+	"path": 10009918284198312230,
+	"deps": [[3666196340704888985, "smallvec", false, 14888993614426814322]],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/rten-tensor-d5cc3ffda80d1ee9/dep-lib-rten_tensor",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

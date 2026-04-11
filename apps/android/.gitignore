@@ -1,0 +1,37 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+build/
+app/build/
+app/release/
+.gradle/
+/captures
+.externalNativeBuild
+.cxx
+
+# Project specific
+local.properties
+.kotlin
+*.main.kts
+
+# OS specific
+.DS_Store
+
+# Large Files / Models
+# Commit if needed, otherwise use Git LFS
+# app/src/main/assets/monocr.onnx
+
+# Gradle wrapper
+# gradle/wrapper/
+# Agent related
+.gemini/
+.agents/
+.agent/
+_agents/
+_agent/
+brain/
+
+docs
+google_play_testers.csv

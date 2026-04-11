@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"default\"]",
+	"declared_features": "[\"allocator-api2\", \"allocator_api\", \"bench_allocator_api\", \"boxed\", \"collections\", \"default\", \"serde\", \"std\"]",
+	"target": 10625613344215589528,
+	"profile": 17257705230225558938,
+	"path": 18210342182198722297,
+	"deps": [],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "release/.fingerprint/bumpalo-451692b9b34763e5/dep-lib-bumpalo",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 0
+}

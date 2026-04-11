@@ -1,0 +1,31 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[]",
+	"target": 3303430106745287804,
+	"profile": 7235818421332744607,
+	"path": 10763286916239946207,
+	"deps": [
+		[1907134530323253414, "ocrs", false, 9171931721995313673],
+		[3343776694362270772, "rten_tensor", false, 13924412796979312498],
+		[3964565789809445020, "js_sys", false, 3236880111630990023],
+		[6916836217856212698, "console_error_panic_hook", false, 10510132483625582239],
+		[7619863262462580754, "rten", false, 7258982796348516050],
+		[9682866116018649119, "rten_imageproc", false, 18112306132676447311],
+		[10681258086952200236, "image", false, 3465449261136784684],
+		[10782246454719507279, "wasm_bindgen", false, 13095010051326331883],
+		[12873631326246480134, "anyhow", false, 8181688439874463887],
+		[13901165609643233848, "web_sys", false, 7378154945890278439]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/ocr-engine-248a73bc1b4ee2ca/dep-lib-ocr_engine",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

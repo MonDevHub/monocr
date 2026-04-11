@@ -1,0 +1,9 @@
+{
+  "name": "@monocr/locales",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "sync": "node sync.mjs",
+    "translate": "pnpm run sync"
+  }
+}

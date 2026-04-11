@@ -1,0 +1,23 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"avx\", \"default\", \"neon\", \"sse\"]",
+	"declared_features": "[\"avx\", \"avx512\", \"default\", \"neon\", \"options\", \"sse\"]",
+	"target": 1899818886110770890,
+	"profile": 2241668132362809309,
+	"path": 12317417126863693170,
+	"deps": [
+		[4689693944998817781, "pxfm", false, 10501303134575046824],
+		[5157631553186200874, "num_traits", false, 4224926791870765393]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/debug/.fingerprint/moxcms-857a01cd9f4b1a3e/dep-lib-moxcms",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

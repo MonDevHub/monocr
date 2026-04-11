@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[\"avx512\"]",
+	"target": 11312734740736331953,
+	"profile": 8782877646746411710,
+	"path": 16301602960688493417,
+	"deps": [[5249526409118013276, "rten_simd", false, 12726410674424523501]],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/debug/.fingerprint/rten-vecmath-3db09ba21771fe46/dep-lib-rten_vecmath",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

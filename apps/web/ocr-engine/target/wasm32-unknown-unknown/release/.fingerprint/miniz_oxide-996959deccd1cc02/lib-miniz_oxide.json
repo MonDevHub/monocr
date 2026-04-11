@@ -1,0 +1,23 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"default\", \"simd\", \"simd-adler32\", \"with-alloc\"]",
+	"declared_features": "[\"alloc\", \"block-boundary\", \"core\", \"default\", \"rustc-dep-of-std\", \"serde\", \"simd\", \"simd-adler32\", \"std\", \"with-alloc\"]",
+	"target": 8661567070972402511,
+	"profile": 13737525324383887562,
+	"path": 7370574649363406633,
+	"deps": [
+		[5982862185909702272, "simd_adler32", false, 494320220230045654],
+		[7911289239703230891, "adler2", false, 1331314015557917079]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/miniz_oxide-996959deccd1cc02/dep-lib-miniz_oxide",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

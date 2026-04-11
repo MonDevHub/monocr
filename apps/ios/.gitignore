@@ -1,0 +1,44 @@
+# Xcode
+#
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.playground
+
+# User settings
+#
+xcuserdata/
+
+# Swift Package Manager
+#
+.build/
+Packages/
+Package.resolved
+Package.pins
+
+# CocoaPods
+#
+Pods/
+Podfile.lock
+
+# Carthage
+#
+Carthage/Build/
+
+# OS X
+#
+.DS_Store
+
+# Large Files / Models (ML package structure)
+# monocr.mlpackage/
+
+# Agent related
+.gemini/
+.agents/
+.agent/
+_agents/
+_agent/
+brain/
+
+docs

@@ -1,0 +1,23 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"default\", \"std\"]",
+	"declared_features": "[\"default\", \"serde\", \"serialize\", \"std\"]",
+	"target": 1967355011655770476,
+	"profile": 7235818421332744607,
+	"path": 7243841623983682070,
+	"deps": [
+		[10435729446543529114, "bitflags", false, 16547409405394484474],
+		[17630662046745764240, "build_script_build", false, 13252117590740857941]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/flatbuffers-a5c7ce03dc0b9cc2/dep-lib-flatbuffers",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

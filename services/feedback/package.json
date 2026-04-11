@@ -1,0 +1,11 @@
+{
+  "name": "@monocr/feedback",
+  "version": "1.0.2",
+  "private": true,
+  "scripts": {
+    "build": "go build -o bin/api ./cmd/api",
+    "dev": "go run ./cmd/api",
+    "test": "go test ./...",
+    "lint": "go vet ./..."
+  }
+}

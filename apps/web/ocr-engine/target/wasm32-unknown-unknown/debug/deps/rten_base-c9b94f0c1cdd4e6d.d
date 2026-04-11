@@ -1,0 +1,10 @@
+/home/janakh/Documents/SIDEQUESTS/monocr-web/ocr-engine/target/wasm32-unknown-unknown/debug/deps/rten_base-c9b94f0c1cdd4e6d.d: /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/lib.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/byte_cast.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/iter.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/iter/range.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/num.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/unroll.rs
+
+/home/janakh/Documents/SIDEQUESTS/monocr-web/ocr-engine/target/wasm32-unknown-unknown/debug/deps/librten_base-c9b94f0c1cdd4e6d.rmeta: /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/lib.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/byte_cast.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/iter.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/iter/range.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/num.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/unroll.rs
+
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/lib.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/byte_cast.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/iter.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/iter/range.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/num.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rten-base-0.21.0/src/unroll.rs:

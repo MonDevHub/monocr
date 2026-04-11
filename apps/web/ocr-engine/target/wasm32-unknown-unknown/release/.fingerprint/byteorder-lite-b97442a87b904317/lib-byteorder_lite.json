@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"default\", \"std\"]",
+	"declared_features": "[\"default\", \"std\"]",
+	"target": 13691508551864173732,
+	"profile": 7235818421332744607,
+	"path": 13590156578317109469,
+	"deps": [],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/byteorder-lite-b97442a87b904317/dep-lib-byteorder_lite",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

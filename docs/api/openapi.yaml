@@ -1,0 +1,117 @@
+openapi: 3.0.3
+info:
+  title: MonOCR Feedback API
+  description: |
+    Production-grade feedback and contribution service for the MonOCR platform.
+    This service facilitates the secure upload of character recognition feedback and 
+    dataset contributions to Cloudflare R2 storage.
+  version: 1.0.0
+  contact:
+    name: MonDevHub Support
+    url: https://github.com/MonDevHub/monocr
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/v1
+    description: Local Development Server
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /feedback:
+    post:
+      summary: Upload User Feedback
+      description: Securely upload image feedback or corrections to Cloudflare R2 storage.
+      tags:
+        - Feedback
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The image or PDF file showing the feedback/correction.
+                record_id:
+                  type: string
+                  description: The recognition record UUID from the client session.
+                original_name:
+                  type: string
+                  description: The original filename on the user terminal.
+      responses:
+        '200':
+          description: Upload successful and archived to R2.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '400':
+          description: Invalid input (e.g., missing file or unsupported MIME type).
+        '401':
+          description: Unauthorized (invalid or missing API key).
+        '500':
+          description: Internal server error (storage provider failure).
+
+  /contribution:
+    post:
+      summary: Upload Dataset Contribution
+      description: Securely upload high-quality Mon script samples for future AI model training.
+      tags:
+        - Contribution
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The contribution sample file.
+                original_name:
+                  type: string
+                  description: The original filename on the user terminal.
+      responses:
+        '200':
+          description: Contribution successful and archived to R2.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '401':
+          description: Unauthorized.
+
+components:
+  schemas:
+    UploadResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Successfully archived to R2
+        key:
+          type: string
+          description: The remote object key in S3/R2 storage.
+          example: feedback/2026-04/150405-sample.jpg
+        request_id:
+          type: string
+          description: UUID for tracking this request in server logs.
+          example: 550e8400-e29b-41d4-a716-446655440000

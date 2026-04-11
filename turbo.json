@@ -1,0 +1,31 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "build/**", ".svelte-kit/**"]
+    },
+    "translate": {
+      "cache": false,
+      "dependsOn": ["^build"]
+    },
+    "sync": {
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "inputs": ["src/**", "internal/**", "cmd/**", "*.go", "*.ts", "*.js", "*.json"],
+      "outputs": []
+    },
+    "test": {
+      "inputs": ["src/**", "internal/**", "cmd/**", "*.go", "*.ts", "*.js", "*.json"],
+      "outputs": []
+    },
+    "format": {
+      "cache": false
+    }
+  }
+}

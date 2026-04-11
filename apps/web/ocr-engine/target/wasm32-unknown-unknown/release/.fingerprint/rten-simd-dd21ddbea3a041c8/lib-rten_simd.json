@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[\"avx512\"]",
+	"target": 6164516981256831995,
+	"profile": 5364900064320131260,
+	"path": 9863483551660782944,
+	"deps": [],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/rten-simd-dd21ddbea3a041c8/dep-lib-rten_simd",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

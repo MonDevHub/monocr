@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[]",
+	"target": 3969741579377267933,
+	"profile": 2241668132362809309,
+	"path": 3485803771560805935,
+	"deps": [[5157631553186200874, "num_traits", false, 4224926791870765393]],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/debug/.fingerprint/pxfm-6bf23d3a9ee465f9/dep-lib-pxfm",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

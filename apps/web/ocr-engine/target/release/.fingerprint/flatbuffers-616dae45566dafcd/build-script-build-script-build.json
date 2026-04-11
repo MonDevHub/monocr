@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"default\", \"std\"]",
+	"declared_features": "[\"default\", \"serde\", \"serialize\", \"std\"]",
+	"target": 17883862002600103897,
+	"profile": 1369601567987815722,
+	"path": 13525114356661493835,
+	"deps": [[8576480473721236041, "rustc_version", false, 1646388006697030154]],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "release/.fingerprint/flatbuffers-616dae45566dafcd/dep-build-script-build-script-build",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 0
+}

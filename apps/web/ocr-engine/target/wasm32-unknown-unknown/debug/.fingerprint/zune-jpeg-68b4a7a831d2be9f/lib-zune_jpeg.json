@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"default\", \"neon\", \"std\", \"x86\"]",
+	"declared_features": "[\"default\", \"log\", \"neon\", \"portable_simd\", \"std\", \"x86\"]",
+	"target": 15181827877683783474,
+	"profile": 14166219718623142490,
+	"path": 11629664554085969432,
+	"deps": [[15925061612136079409, "zune_core", false, 17229931825154587652]],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/debug/.fingerprint/zune-jpeg-68b4a7a831d2be9f/dep-lib-zune_jpeg",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

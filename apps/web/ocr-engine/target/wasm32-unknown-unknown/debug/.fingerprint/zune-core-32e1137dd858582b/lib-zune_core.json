@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"std\"]",
+	"declared_features": "[\"log\", \"serde\", \"std\"]",
+	"target": 17007696718089767579,
+	"profile": 2241668132362809309,
+	"path": 17490577881706166816,
+	"deps": [],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/debug/.fingerprint/zune-core-32e1137dd858582b/dep-lib-zune_core",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

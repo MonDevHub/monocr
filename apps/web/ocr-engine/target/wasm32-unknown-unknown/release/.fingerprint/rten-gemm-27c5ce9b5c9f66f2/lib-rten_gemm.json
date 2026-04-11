@@ -1,0 +1,25 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[\"avx512\"]",
+	"target": 16329990067835830447,
+	"profile": 15973153953340479489,
+	"path": 8804522656703939191,
+	"deps": [
+		[3343776694362270772, "rten_tensor", false, 13924412796979312498],
+		[5249526409118013276, "rten_simd", false, 156233233920074540],
+		[12577891043770133318, "rten_base", false, 10148818963164263178],
+		[14807177696891839338, "rayon", false, 8168018806080072566]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/rten-gemm-27c5ce9b5c9f66f2/dep-lib-rten_gemm",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

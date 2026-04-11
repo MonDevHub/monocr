@@ -1,0 +1,45 @@
+{
+	"name": "MonOCR",
+	"short_name": "MonOCR",
+	"description": "Private Mon Language OCR. Optimized for high-accuracy archival digitization, running entirely in your browser.",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#fcfbf9",
+	"theme_color": "#7a1b1b",
+	"orientation": "portrait-primary",
+	"lang": "en",
+	"dir": "ltr",
+	"categories": ["ocr", "mon", "language-preservation"],
+	"icons": [
+		{
+			"src": "/favicon-96x96.png",
+			"sizes": "96x96",
+			"type": "image/png"
+		},
+		{
+			"src": "/apple-touch-icon.png",
+			"sizes": "180x180",
+			"type": "image/png"
+		},
+		{
+			"src": "/web-app-manifest-192x192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/web-app-manifest-512x512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	],
+	"screenshots": [
+		{
+			"src": "/og-image.jpg",
+			"sizes": "1200x630",
+			"type": "image/jpeg",
+			"form_factor": "wide"
+		}
+	]
+}

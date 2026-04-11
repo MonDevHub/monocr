@@ -1,0 +1,12 @@
+{
+  "name": "@monocr/android",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "prebuild": "chmod +x gradlew",
+    "build": "./gradlew assembleDebug",
+    "clean": "./gradlew clean",
+    "test": "./gradlew test",
+    "lint": "./gradlew lint"
+  }
+}

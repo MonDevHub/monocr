@@ -1,0 +1,28 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[\"avx512\"]",
+	"target": 17459034635698059146,
+	"profile": 7235818421332744607,
+	"path": 2311062808387751384,
+	"deps": [
+		[2448563160050429386, "thiserror", false, 6740159147227235088],
+		[3343776694362270772, "rten_tensor", false, 13924412796979312498],
+		[7619863262462580754, "rten", false, 7258982796348516050],
+		[9682866116018649119, "rten_imageproc", false, 18112306132676447311],
+		[10782246454719507279, "wasm_bindgen", false, 13095010051326331883],
+		[12873631326246480134, "anyhow", false, 8181688439874463887],
+		[14807177696891839338, "rayon", false, 8168018806080072566]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/ocrs-0571c90a650f3992/dep-lib-ocrs",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

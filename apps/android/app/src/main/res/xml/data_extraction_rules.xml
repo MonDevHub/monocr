@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <!-- Allow history transfer between devices -->
+        <include domain="root" />
+    </device-transfer>
+</data-extraction-rules>

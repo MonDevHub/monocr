@@ -1,0 +1,280 @@
+/* Google Fonts - loaded in +layout.svelte */
+
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* Configure dark mode */
+@variant dark (&:is(.dark *));
+
+@layer base {
+	/* ☀️ LIGHT MODE - Professional Paper */
+	:root {
+		/* Spacing Scale (4/8px rhythm) - Consistent Engineering Reality */
+		--space-1: 0.25rem; /* 4px */
+		--space-2: 0.5rem; /* 8px */
+		--space-3: 0.75rem; /* 12px */
+		--space-4: 1rem; /* 16px */
+		--space-6: 1.5rem; /* 24px */
+		--space-8: 2rem; /* 32px */
+		--space-10: 2.5rem; /* 40px */
+		--space-12: 3rem; /* 48px */
+
+		/* Backgrounds - Calm Paper-like */
+		--bg-canvas: #fcfbf9;
+		--bg-canvas-subtle: #f5f4f0;
+		--bg-border: #e8e6e1;
+
+		/* Professional Productivity Palette - Neutral & Utilitarian */
+		--primary: #1a1a1a; /* Pure, deep professional gray/black */
+		--accent-gold: #b2940a;
+		--background-light: #ffffff;
+		--background-dark: #0a0a0a;
+		--color-border-raw: 224, 224, 224; /* RGB for --bg-border */
+
+		/* Text Hierarchy - Softered for Eye Comfort */
+		--fg-primary: #2a2a2b; /* Soft Deep Gray */
+		--fg-secondary: #5c5c5e; /* Muted Zinc */
+		--fg-muted: #8a8a8c; /* Zinc 500 equivalent */
+		--fg-accent: #3a3a3c; /* Zinc 900 equivalent */
+
+		/* Buttons/Interactive */
+		--btn-bg: #f5f4f0;
+		--btn-border: #e8e6e1;
+		--btn-hover: #e8e6e1;
+
+		/* Text on Primary Background */
+		--fg-on-primary: #ffffff;
+	}
+
+	/* 🌑 DARK MODE - Dim Studio */
+	.dark {
+		--bg-canvas: #151517;
+		--bg-canvas-subtle: #1c1c1e;
+		--bg-border: #2c2c2e;
+		--fg-primary: #d1d1d6;
+		--fg-secondary: #8e8e93;
+		--fg-muted: #8e8e93; /* Bumped from #636366 for readability */
+		--fg-accent: #f4f4f5;
+		--btn-bg: #1c1c1e;
+		--btn-border: #2c2c2e;
+		--btn-hover: #3a3a3c;
+		--fg-on-primary: #151517; /* Dark text on light button in dark mode */
+		/* Pure professional neutral in dark */
+		--primary-action: #f4f4f5;
+		--color-border-raw: 39, 39, 42; /* RGB for --bg-border (zinc-800) */
+	}
+}
+
+@theme {
+	--color-canvas: var(--bg-canvas);
+	--color-canvas-subtle: var(--bg-canvas-subtle);
+	--color-border: var(--bg-border);
+	--color-fg-primary: var(--fg-primary);
+	--color-fg-secondary: var(--fg-secondary);
+	--color-fg-muted: var(--fg-muted);
+	--color-fg-accent: var(--fg-accent);
+	--color-btn-bg: var(--btn-bg);
+	--color-btn-border: var(--btn-border);
+	--color-btn-hover: var(--btn-hover);
+	--color-fg-on-primary: var(--fg-on-primary);
+	--color-primary-action: var(--primary-action, var(--primary));
+
+	--color-primary: var(--primary);
+	--color-accent-gold: var(--accent-gold);
+
+	--font-display: 'Inter', system-ui, sans-serif;
+	--font-public-sans: 'Public Sans', system-ui, sans-serif;
+
+	--color-background: var(--bg-canvas);
+	--color-foreground: var(--fg-primary);
+	--color-card: var(--bg-canvas-subtle);
+	--color-card-foreground: var(--fg-primary);
+	--color-muted-foreground: var(--fg-secondary);
+	--color-input: var(--bg-border);
+	--color-ring: var(--primary);
+
+	/* Radius standardization - Refined & Mature (consistent 4px) */
+	--radius-sm: 2px;
+	--radius-md: 4px; /* Standardized */
+	--radius-lg: 4px; /* Standardized */
+	--radius-xl: 4px; /* Standardized */
+	--radius-2xl: 6px;
+	--radius-huge: 8px; /* Sharper & More Compact */
+
+	/* Transition tokens - "Immediate but invisible" */
+	--transition-fast: 100ms;
+	--transition-base: 150ms;
+
+	/* Typography Constitution (20, 14, 13, 12, 11) - Ultra-Compact & Efficient */
+	--text-title: 1.25rem; /* 20px */
+	--text-section: 0.875rem; /* 14px */
+	--text-body: 0.8125rem; /* 13px */
+	--text-secondary: 0.75rem; /* 12px */
+	--text-meta: 0.6875rem; /* 11px */
+}
+
+@layer utilities {
+	.btn-primary {
+		@apply bg-primary-action text-fg-on-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] px-5 py-1.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.98];
+	}
+
+	.btn-secondary {
+		@apply border-border bg-btn-bg text-fg-secondary dark:text-fg-primary hover:bg-btn-hover hover:text-fg-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] border px-4 py-1.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out active:scale-[0.98];
+	}
+}
+
+:root {
+	font-family: var(--font-display);
+	background-color: var(--bg-canvas);
+	color: var(--fg-primary);
+	line-height: 1.5;
+	font-size: 15px;
+	font-feature-settings: 'cv11', 'ss01', 'cv08', 'tnum';
+	-webkit-tap-highlight-color: transparent;
+	text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	letter-spacing: -0.015em; /* Refined for better legibility */
+	font-weight: 500; /* Maintain semibold-like feel but with Inter's precision */
+	color: var(--fg-primary);
+}
+
+html {
+	scroll-behavior: smooth;
+	background-color: var(--bg-canvas);
+	color: var(--fg-primary);
+	transition:
+		background-color 0.3s,
+		color 0.3s;
+}
+
+body {
+	background-color: var(--bg-canvas);
+	color: var(--fg-primary);
+	font-family: var(--font-display);
+	transition:
+		background-color 0.2s,
+		color 0.2s;
+	min-height: 100vh;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+	background-color: var(--primary);
+	color: #ffffff;
+}
+
+.tap-highlight-none {
+	-webkit-tap-highlight-color: transparent;
+}
+
+.section-label {
+	@apply mb-4 block text-[9px] font-bold tracking-[0.3em] text-slate-400 uppercase dark:text-slate-400;
+}
+
+* {
+	transition-property: background-color, border-color, color, opacity;
+	transition-duration: 200ms;
+	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button,
+a,
+[role='button'],
+label {
+	cursor: pointer;
+	touch-action: manipulation; /* Prevent 300ms delay and accidental zoom on Safari */
+}
+
+@media screen and (max-width: 768px) {
+	input,
+	textarea,
+	select,
+	input:focus,
+	textarea:focus,
+	select:focus {
+		/* Stop iOS Safari automatic zoom by ensuring font-size is at least 16px */
+		font-size: 16px !important;
+		/* Prevent layout shift during font scaling if any */
+		line-height: normal !important;
+	}
+}
+
+/* Custom Slim Scrollbar - Universal for all elements */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: color-mix(in srgb, var(--primary) 50%, transparent) transparent;
+}
+
+/* Chrome, Edge, Safari */
+*::-webkit-scrollbar {
+	width: 1px !important;
+	height: 1px !important;
+}
+
+*::-webkit-scrollbar-track {
+	background: transparent !important;
+}
+
+*::-webkit-scrollbar-thumb {
+	background: linear-gradient(
+		180deg,
+		color-mix(in srgb, var(--primary) 60%, transparent) 0%,
+		color-mix(in srgb, var(--primary) 30%, transparent) 100%
+	) !important;
+	border-radius: 10px !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+	background: color-mix(in srgb, var(--primary) 80%, transparent) !important;
+} /* Performance: Premium Shimmer Effect */
+@keyframes shimmer {
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
+}
+
+.shimmer {
+	background: linear-gradient(
+		90deg,
+		rgba(var(--color-border-raw), 0.1) 25%,
+		rgba(var(--color-border-raw), 0.4) 37%,
+		rgba(var(--color-border-raw), 0.1) 63%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.5s infinite linear;
+	will-change: background-position;
+}
+
+@keyframes spin-slow {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.animate-spin-slow {
+	animation: spin-slow 3s linear infinite;
+}
+
+/* Material Symbols - Minimalist & Elegant */
+.material-symbols-outlined {
+	font-variation-settings:
+		'FILL' 0,
+		'wght' 300,
+		'GRAD' 0,
+		'opsz' 20 !important;
+	display: inline-block;
+}

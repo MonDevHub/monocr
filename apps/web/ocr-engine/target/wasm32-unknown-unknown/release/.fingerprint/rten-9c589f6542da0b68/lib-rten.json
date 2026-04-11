@@ -1,0 +1,30 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[\"avx512\", \"mmap\", \"random\", \"wasm_api\"]",
+	"target": 5892018179196370469,
+	"profile": 2065604316611207399,
+	"path": 2636872587162006388,
+	"deps": [
+		[2357570525450087091, "num_cpus", false, 7306400291554290414],
+		[3666196340704888985, "smallvec", false, 14888993614426814322],
+		[5882669581444098700, "rten_simd", false, 2214938126687437975],
+		[8265234011837852990, "rten_vecmath", false, 2728449901479843401],
+		[10782246454719507279, "wasm_bindgen", false, 1176250878396120428],
+		[13992938874704501042, "rten_tensor", false, 4152205130225152000],
+		[14807177696891839338, "rayon", false, 6530045924622298511],
+		[17630662046745764240, "flatbuffers", false, 18126965402773589605],
+		[18335655851112826545, "rustc_hash", false, 4432478386556289631]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/rten-9c589f6542da0b68/dep-lib-rten",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

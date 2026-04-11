@@ -1,0 +1,23 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"default\", \"std\"]",
+	"declared_features": "[\"default\", \"std\"]",
+	"target": 4913466754190795764,
+	"profile": 15052485574412368234,
+	"path": 8381891879031453154,
+	"deps": [
+		[3722963349756955755, "once_cell", false, 16507532715011408751],
+		[10782246454719507279, "wasm_bindgen", false, 11764626658654270695]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/debug/.fingerprint/js-sys-7007901ba2beb9f3/dep-lib-js_sys",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

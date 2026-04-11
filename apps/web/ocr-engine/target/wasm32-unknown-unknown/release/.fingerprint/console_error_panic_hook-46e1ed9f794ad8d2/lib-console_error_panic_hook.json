@@ -1,0 +1,23 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[]",
+	"target": 9676079782213560798,
+	"profile": 7235818421332744607,
+	"path": 1038396305786381387,
+	"deps": [
+		[7667230146095136825, "cfg_if", false, 2066527290881925576],
+		[10782246454719507279, "wasm_bindgen", false, 13095010051326331883]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/console_error_panic_hook-46e1ed9f794ad8d2/dep-lib-console_error_panic_hook",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

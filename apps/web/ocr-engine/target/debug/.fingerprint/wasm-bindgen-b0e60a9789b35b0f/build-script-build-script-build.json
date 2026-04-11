@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"default\", \"std\"]",
+	"declared_features": "[\"default\", \"enable-interning\", \"gg-alloc\", \"msrv\", \"rustversion\", \"serde\", \"serde-serialize\", \"serde_json\", \"spans\", \"std\", \"strict-macro\", \"xxx_debug_only_print_generated_code\"]",
+	"target": 5408242616063297496,
+	"profile": 6553885787648027783,
+	"path": 465781235275966128,
+	"deps": [[14156967978702956262, "rustversion_compat", false, 11545970702630238921]],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "debug/.fingerprint/wasm-bindgen-b0e60a9789b35b0f/dep-build-script-build-script-build",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 0
+}

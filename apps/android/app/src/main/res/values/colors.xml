@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <!-- Zinc Palette from Theme.kt -->
+    <color name="zinc_950">#09090B</color>
+    <color name="zinc_900">#18181B</color>
+    <color name="zinc_200">#E4E4E7</color>
+    <color name="ic_launcher_background">#09090B</color> <!-- Zinc 950 -->
+</resources>

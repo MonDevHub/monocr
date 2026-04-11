@@ -1,0 +1,351 @@
+/**
+ * Performance-Optimized CSS Animations
+ * Using only GPU-accelerated properties (transform, opacity)
+ * No layout shifts, no jank, 60fps smooth
+ */
+
+/* ========================================
+   KEYFRAME DEFINITIONS
+   ======================================== */
+
+/* Fade In Animations */
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes fadeInDown {
+	from {
+		opacity: 0;
+		transform: translateY(-20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Slide Animations */
+@keyframes slideInLeft {
+	from {
+		opacity: 0;
+		transform: translateX(-20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes slideInRight {
+	from {
+		opacity: 0;
+		transform: translateX(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+/* Scale Animations */
+@keyframes scaleIn {
+	from {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+/* Rotate + Fade (for profile image) */
+@keyframes rotateScaleIn {
+	from {
+		opacity: 0;
+		transform: scale(0.9) rotate(-5deg);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1) rotate(0deg);
+	}
+}
+
+/* Draw Line (for timeline) */
+@keyframes drawLine {
+	from {
+		transform: scaleY(0);
+		transform-origin: top;
+	}
+	to {
+		transform: scaleY(1);
+		transform-origin: top;
+	}
+}
+
+/* Pulse (for dots, icons) */
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.8;
+		transform: scale(1.05);
+	}
+}
+
+/* Gradient Shimmer (for premium text effect) */
+@keyframes shimmer {
+	0% {
+		background-position: -200% center;
+	}
+	100% {
+		background-position: 200% center;
+	}
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+/* Entrance Animation Base Classes */
+.animate-fade-in {
+	animation: fadeIn 700ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+.animate-fade-in-up {
+	animation: fadeInUp 800ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+.animate-fade-in-down {
+	animation: fadeInDown 800ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+.animate-slide-in-left {
+	animation: slideInLeft 800ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+.animate-slide-in-right {
+	animation: slideInRight 800ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+.animate-scale-in {
+	animation: scaleIn 800ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+.animate-rotate-scale-in {
+	animation: rotateScaleIn 1000ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+/* Stagger Delay Classes (for sequential animations) */
+.stagger-1 {
+	animation-delay: 50ms;
+}
+.stagger-2 {
+	animation-delay: 100ms;
+}
+.stagger-3 {
+	animation-delay: 150ms;
+}
+.stagger-4 {
+	animation-delay: 200ms;
+}
+.stagger-5 {
+	animation-delay: 250ms;
+}
+.stagger-6 {
+	animation-delay: 300ms;
+}
+.stagger-7 {
+	animation-delay: 350ms;
+}
+.stagger-8 {
+	animation-delay: 400ms;
+}
+.stagger-9 {
+	animation-delay: 450ms;
+}
+.stagger-10 {
+	animation-delay: 500ms;
+}
+
+/* Scroll-Triggered Reveal (added via JS) */
+.reveal {
+	opacity: 0;
+	transform: translateY(20px);
+	transition:
+		opacity 350ms cubic-bezier(0, 0, 0.2, 1),
+		transform 350ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.reveal.is-visible {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+/* ========================================
+   PREMIUM TEXT EFFECTS
+   ======================================== */
+
+/* Gradient Shimmer Effect for Hero Text */
+.text-shimmer {
+	background: linear-gradient(
+		90deg,
+		currentColor 0%,
+		currentColor 40%,
+		rgba(255, 255, 255, 0.8) 50%,
+		currentColor 60%,
+		currentColor 100%
+	);
+	background-size: 200% 100%;
+	background-clip: text;
+	-webkit-background-clip: text;
+	animation: shimmer 2s ease-in-out forwards;
+	animation-delay: 600ms;
+}
+
+/* Subtle shimmer for secondary text */
+.text-shimmer-subtle {
+	background: linear-gradient(
+		90deg,
+		currentColor 0%,
+		currentColor 45%,
+		rgba(255, 255, 255, 0.5) 50%,
+		currentColor 55%,
+		currentColor 100%
+	);
+	background-size: 200% 100%;
+	background-clip: text;
+	-webkit-background-clip: text;
+	animation: shimmer 2.5s ease-in-out forwards;
+	animation-delay: 700ms;
+}
+
+/* ========================================
+   HOVER MICRO-INTERACTIONS
+   ======================================== */
+
+/* Card Lift Effect */
+.hover-lift {
+	transition:
+		transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+		box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+	will-change: transform;
+}
+
+.hover-lift:hover {
+	transform: translateY(-4px);
+}
+
+/* Button Press Effect */
+.press-effect:active {
+	transform: scale(0.98);
+	transition: transform 100ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Smooth Color Transitions */
+.smooth-color {
+	transition:
+		color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+		background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+		border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   NAVIGATION ANIMATIONS
+   ======================================== */
+
+/* Animated underline for navigation links */
+.nav-link {
+	position: relative;
+}
+
+.nav-link::after {
+	content: '';
+	position: absolute;
+	bottom: -2px;
+	left: 0;
+	width: 100%;
+	height: 2px;
+	background-color: currentColor;
+	transform: scaleX(0);
+	transform-origin: left;
+	transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+	transform: scaleX(1);
+}
+
+/* ========================================
+   ACCESSIBILITY: REDUCED MOTION
+   ======================================== */
+
+/*
+ * Respect user's motion preferences
+ * Disable all animations if user has reduced-motion enabled
+ */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+
+	.reveal {
+		opacity: 1;
+		transform: none;
+	}
+
+	/* Disable shimmer effects */
+	.text-shimmer,
+	.text-shimmer-subtle {
+		background: none;
+		animation: none;
+	}
+
+	/* Disable navigation underline animation */
+	.nav-link::after {
+		transition: none;
+	}
+}
+
+/* ========================================
+   PERFORMANCE HINTS
+   ======================================== */
+
+/*
+ * GPU Acceleration Hints
+ * Tell browser to promote these elements to their own layer
+ * Use sparingly - only for elements that animate frequently
+ */
+.will-animate {
+	will-change: transform, opacity;
+}
+
+/* Remove will-change after animation completes to free resources */
+.will-animate:not(:hover):not(:focus):not(.is-animating) {
+	will-change: auto;
+}

@@ -1,0 +1,11 @@
+/home/janakh/Documents/SIDEQUESTS/monocr-web/ocr-engine/target/wasm32-unknown-unknown/release/deps/crc32fast-2d2903bb945e9c3f.d: /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/lib.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/baseline.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/combine.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/specialized/mod.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/table.rs
+
+/home/janakh/Documents/SIDEQUESTS/monocr-web/ocr-engine/target/wasm32-unknown-unknown/release/deps/libcrc32fast-2d2903bb945e9c3f.rlib: /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/lib.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/baseline.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/combine.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/specialized/mod.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/table.rs
+
+/home/janakh/Documents/SIDEQUESTS/monocr-web/ocr-engine/target/wasm32-unknown-unknown/release/deps/libcrc32fast-2d2903bb945e9c3f.rmeta: /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/lib.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/baseline.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/combine.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/specialized/mod.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/table.rs
+
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/lib.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/baseline.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/combine.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/specialized/mod.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.0/src/table.rs:

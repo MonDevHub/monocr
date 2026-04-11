@@ -1,0 +1,20 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[]",
+	"declared_features": "[\"serde\", \"serde_traits\"]",
+	"target": 6735464477739724556,
+	"profile": 12437147815975667284,
+	"path": 9693910957010382545,
+	"deps": [[3343776694362270772, "rten_tensor", false, 10900610694548812567]],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/debug/.fingerprint/rten-imageproc-fd6fde7740d642b3/dep-lib-rten_imageproc",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}

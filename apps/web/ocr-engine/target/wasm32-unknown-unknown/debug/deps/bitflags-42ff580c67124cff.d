@@ -1,0 +1,11 @@
+/home/janakh/Documents/SIDEQUESTS/monocr-web/ocr-engine/target/wasm32-unknown-unknown/debug/deps/bitflags-42ff580c67124cff.d: /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/lib.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/iter.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/parser.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/traits.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/public.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/internal.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/external.rs
+
+/home/janakh/Documents/SIDEQUESTS/monocr-web/ocr-engine/target/wasm32-unknown-unknown/debug/deps/libbitflags-42ff580c67124cff.rmeta: /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/lib.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/iter.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/parser.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/traits.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/public.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/internal.rs /home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/external.rs
+
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/lib.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/iter.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/parser.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/traits.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/public.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/internal.rs:
+/home/janakh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.11.0/src/external.rs:

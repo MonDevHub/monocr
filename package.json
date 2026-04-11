@@ -1,0 +1,43 @@
+{
+  "name": "monocr",
+  "private": true,
+  "packageManager": "pnpm@10.25.0",
+  "scripts": {
+    "predev": "node scripts/validate-env.mjs",
+    "dev": "turbo run dev",
+    "dev:all": "turbo run dev --parallel",
+    "prebuild": "node scripts/validate-env.mjs",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "lint:all": "turbo run lint",
+    "test": "turbo run test",
+    "test:all": "turbo run test",
+    "format": "turbo run format",
+    "clean": "turbo clean && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
+    "translate": "node shared/locales/sync.mjs"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "esbuild",
+      "workerd",
+      "sharp"
+    ],
+    "overrides": {
+      "seroval": "^1.4.1",
+      "cookie": "^0.7.0",
+      "sha.js": "^2.4.12",
+      "solid-js": "^1.9.4",
+      "devalue": "^5.3.2",
+      "axios": "^1.13.5"
+    },
+    "ignoredBuiltDependencies": [
+      "protobufjs"
+    ]
+  },
+  "devDependencies": {
+    "turbo": "^2.1.2",
+    "googleapis": "^144.0.0",
+    "dotenv": "^16.4.5"
+  }
+}

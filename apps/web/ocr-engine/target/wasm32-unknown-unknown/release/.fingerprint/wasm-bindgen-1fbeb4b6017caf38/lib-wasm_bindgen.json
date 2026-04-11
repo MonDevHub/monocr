@@ -1,0 +1,26 @@
+{
+	"rustc": 11410426090777951712,
+	"features": "[\"default\", \"std\"]",
+	"declared_features": "[\"default\", \"enable-interning\", \"gg-alloc\", \"msrv\", \"rustversion\", \"serde\", \"serde-serialize\", \"serde_json\", \"spans\", \"std\", \"strict-macro\", \"xxx_debug_only_print_generated_code\"]",
+	"target": 4070942113156591848,
+	"profile": 8805674148808658381,
+	"path": 2066753901349841401,
+	"deps": [
+		[3722963349756955755, "once_cell", false, 17470810846794720572],
+		[7667230146095136825, "cfg_if", false, 6581812055610575387],
+		[8386604047834792235, "wasm_bindgen_macro", false, 12575081127490663320],
+		[9166542761925590510, "wasm_bindgen_shared", false, 17550546689920381348],
+		[10782246454719507279, "build_script_build", false, 10414345122030200008]
+	],
+	"local": [
+		{
+			"CheckDepInfo": {
+				"dep_info": "wasm32-unknown-unknown/release/.fingerprint/wasm-bindgen-1fbeb4b6017caf38/dep-lib-wasm_bindgen",
+				"checksum": false
+			}
+		}
+	],
+	"rustflags": [],
+	"config": 2069994364910194474,
+	"compile_kind": 14682669768258224367
+}
