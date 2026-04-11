@@ -62,7 +62,10 @@ MonOCR သည် ပလက်ဖောင်းအားလုံးတွင်
 
 ## လူမှုကွန်ရက်နှင့် အကူအညီများ (Community and Support)
 
-MonOCR သည် မွန်စာမူများကို ထိန်းသိမ်းရန်အတွက် [Janakh Pon](https://github.com/janakhpon)၊ [Oung Seik Nyan](https://github.com/Oungseik) နှင့် MonDevHub အဖွဲ့ဝင်များမှ ပူးပေါင်းလုပ်ဆောင်နေသော ပရောဂျက်တစ်ခုဖြစ်သည်။
+MonOCR သည် မွန်စာမူများကို ထိန်းသိမ်းရန်အတွက် အောက်ပါပုဂ္ဂိုလ်များမှ ပူးပေါင်းလုပ်ဆောင်နေသော ပရောဂျက်တစ်ခုဖြစ်သည်-
+- [Janakh Pon](https://github.com/janakhpon)
+- [Oung Seik Nyan](https://github.com/Oungseik)
+- [MonDevHub Community](https://github.com/MonDevHub)
 
 - **အကြံပြုချက်များ**: [GitHub Issues](https://github.com/MonDevHub/monocr/issues) တွင် အသိပေးနိုင်ပါသည်။
 - **ဘာသာပြန်ချက်များ**: ကျွန်ုပ်တို့၏ [ဘာသာပြန်စာရင်း](https://docs.google.com/spreadsheets/d/1sr8WtiMEyDuDd1amI-wzAz5d2acZlVC7zOZMqixOADQ/edit?usp=sharing) တွင် ပါဝင်ကူညီနိုင်ပါသည်။
