@@ -73,10 +73,7 @@ All technical documentation, architectural decisions, and setup guides are centr
 
 ## Community and Support
 
-MonOCR is a collaborative linguistic preservation project maintained by:
-- [Janakh Pon](https://github.com/janakhpon)
-- [Oung Seik Nyan](https://github.com/Oungseik)
-- [MonDevHub Community](https://github.com/MonDevHub)
+Maintained by: [Janakh Pon](https://github.com/janakhpon) • [Oung Seik Nyan](https://github.com/Oungseik) • [MonDevHub](https://github.com/MonDevHub)
 
 - **Feedback**: Report technical bugs via [GitHub Issues](https://github.com/MonDevHub/monocr/issues).
 - **Linguistic Assets**: Audit our [shared translation sheet](https://docs.google.com/spreadsheets/d/1sr8WtiMEyDuDd1amI-wzAz5d2acZlVC7zOZMqixOADQ/edit?usp=sharing).

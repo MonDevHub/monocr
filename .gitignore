@@ -4,12 +4,17 @@ node_modules
 
 # build artifacts
 dist
+target
 .svelte-kit
 .next
-out
 build
 bin
 obj
+out
+coverage
+*.tmp
+*.temp
+.cache
 
 # turbo
 .turbo

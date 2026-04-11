@@ -62,10 +62,7 @@ MonOCR ဝွံ သွက်ဂွံဒှ်အဆင့်အတိုင်
 
 ## Community and Support (ဂၠံင်တရဴ ပရဝ်ဂျေသူ)
 
-MonOCR သွက်ဂွံမင်မွဲအာ လိခ်မန်ဝွံ ဒှ်ပရဝ်ဂျေသူ မကၠောန်ကမၠောန်အကြာ-
-- [Janakh Pon](https://github.com/janakhpon)
-- [Oung Seik Nyan](https://github.com/Oungseik)
-- [MonDevHub Community](https://github.com/MonDevHub)
+Maintained by: [Janakh Pon](https://github.com/janakhpon) • [Oung Seik Nyan](https://github.com/Oungseik) • [MonDevHub](https://github.com/MonDevHub)
 
 - **တင်တုံ့ပြန်**: သွက်တင်ဂရင် နဲကဲဂှ် စကာညိ [GitHub Issues](https://github.com/MonDevHub/monocr/issues) ရ။
 - **ဘာသာပြန်တအ်**: ဗိုင်ရီုညိ ပ္ဍဲကဵု [ဘာသာပြန်စာရင်း](https://docs.google.com/spreadsheets/d/1sr8WtiMEyDuDd1amI-wzAz5d2acZlVC7zOZMqixOADQ/edit?usp=sharing) ရ။

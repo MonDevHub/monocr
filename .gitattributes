@@ -1,0 +1,8 @@
+# GitHub Linguist configuration
+# Mark large assets as vendored so they don't count towards language statistics
+
+*.onnx linguist-vendored=true
+*.mlpackage/* linguist-vendored=true
+*.bin linguist-vendored=true
+*.wasm linguist-vendored=true
+shared/locales/*.csv linguist-vendored=true
