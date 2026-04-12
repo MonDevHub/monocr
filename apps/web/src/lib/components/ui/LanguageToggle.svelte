@@ -85,7 +85,7 @@
 <div class="relative" bind:this={dropdownElement}>
 	<button
 		onclick={() => !disabled && (isOpen = !isOpen)}
-		class="text-fg-secondary hover:bg-canvas-subtle hover:text-fg-primary focus:bg-canvas-subtle flex h-10 min-w-[48px] cursor-pointer items-center justify-center gap-1.5 rounded-md px-2.5 text-[13px] font-bold transition-all focus:outline-none"
+		class="text-fg-secondary hover:bg-canvas-subtle hover:text-fg-primary focus:bg-canvas-subtle focus-ring flex h-11 min-w-[48px] cursor-pointer items-center justify-center gap-1.5 rounded-md px-2.5 text-[13px] font-bold transition-all"
 		aria-label="Select language (Current: {currentLangInfo.full})"
 		aria-expanded={isOpen}
 		aria-haspopup="listbox"

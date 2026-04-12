@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { SEO, HistorySection, SuccessModal } from '$lib/components';
+	import { m } from '$lib/paraglide/messages';
+	import { SEO, HistorySection, SuccessModal, ActionBox } from '$lib/components';
 	import { saveRecord } from '$lib/storage/db';
 
 	let transcription = $state('');
@@ -50,28 +51,19 @@
 />
 
 <div class="font-display flex flex-col">
-	<!-- Header removed to use global Header -->
-
-	<main id="main-content" class="flex-1 overflow-y-auto pb-6">
-		<div class="mx-auto max-w-2xl px-6 py-0.5">
-			<header class="mb-4 text-center">
-				<h2 class="text-fg-primary mb-1 font-semibold tracking-tight text-[var(--text-section)]">
-					Preserve Our Heritage
-				</h2>
-				<p class="text-fg-muted font-medium tracking-wide text-[var(--text-meta)]">
-					Contribute Mon documents to improve recognition accuracy.
+	<main id="main-content" class="flex-1 overflow-y-auto">
+		<div class="mx-auto max-w-2xl px-6 py-12 md:py-20">
+			<section class="mb-16 space-y-3">
+				<h1 class="text-fg-primary text-3xl font-bold tracking-tight md:text-4xl">
+					{m.nav_contribute()}
+				</h1>
+				<p class="text-fg-secondary max-w-lg leading-relaxed text-[var(--text-body)]">
+					{m.about_effort()}
 				</p>
-			</header>
-
+			</section>
 			<!-- Section 1: Upload -->
-			<section class="mb-3">
-				<div
-					class="hover:bg-canvas-subtle group border-border relative flex cursor-pointer flex-col items-center justify-center rounded-[var(--radius-lg)] border py-4 transition-all duration-150"
-					onclick={() => fileInput.click()}
-					onkeydown={(e) => e.key === 'Enter' && fileInput.click()}
-					role="button"
-					tabindex="0"
-				>
+			<section class="mb-12">
+				<ActionBox onclick={() => fileInput.click()} label={m.action_upload_docs()}>
 					<input
 						type="file"
 						bind:this={fileInput}
@@ -91,40 +83,42 @@
 						</div>
 						<div class="space-y-1">
 							<h3 class="text-fg-primary font-semibold tracking-tight text-[var(--text-secondary)]">
-								{sourceFile ? sourceFile.name : 'Upload Mon Documents'}
+								{sourceFile ? sourceFile.name : m.action_upload_docs()}
 							</h3>
 						</div>
 					</div>
-				</div>
+				</ActionBox>
 			</section>
 
 			<!-- Divider -->
-			<div class="relative mx-auto mb-1 flex max-w-xs items-center py-1 opacity-20">
+			<div class="relative mx-auto mb-10 flex max-w-xs items-center py-4 opacity-30">
 				<div class="border-border flex-grow border-t"></div>
-				<span class="text-fg-muted mx-3 flex-shrink text-[9px] font-bold tracking-[0.2em] uppercase"
+				<span
+					class="text-fg-muted mx-4 flex-shrink text-[10px] font-bold tracking-[0.3em] uppercase"
 					>OR</span
 				>
 				<div class="border-border flex-grow border-t"></div>
 			</div>
 
 			<!-- Section 2: Textarea -->
-			<section class="mb-3">
-				<h3 class="section-label mb-2">Type Mon Script</h3>
+			<section class="mb-16">
+				<h3 class="zen-label mb-6">Type Mon Script</h3>
 				<div class="relative">
 					<textarea
 						bind:value={transcription}
-						class="focus:ring-primary/5 focus:border-primary/20 font-mon border-border bg-canvas placeholder:text-fg-muted/30 w-full resize-y rounded-md border p-3 leading-relaxed text-[var(--text-body)] transition-all duration-150 placeholder:text-[var(--text-meta)] focus:ring-4"
+						class="focus-ring font-mon border-border bg-canvas placeholder:text-fg-muted/30 w-full resize-y rounded-xl border p-5 leading-relaxed text-[var(--text-body)] transition-all duration-150 placeholder:text-[var(--text-meta)]"
+						rows="6"
 						placeholder="Example: မန်ဒိုင် (Type or paste the Mon script here)..."
 					></textarea>
 				</div>
 			</section>
 
 			<!-- Submit Action -->
-			<div class="mx-auto mb-4 w-full max-w-md">
+			<div class="mx-auto mb-20 w-full max-w-md">
 				<button
 					onclick={handleSubmit}
 					disabled={(!transcription && !sourceFile) || loading}
-					class="btn-primary w-full shadow-sm"
+					class="btn-primary w-full"
 				>
 					{loading ? 'Submitting...' : 'Submit Contribution'}
 				</button>

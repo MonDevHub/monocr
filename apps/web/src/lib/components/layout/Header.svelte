@@ -109,7 +109,7 @@
 		<button
 			bind:this={triggerButton}
 			onclick={toggleSidebar}
-			class="text-fg-secondary hover:bg-canvas-subtle hover:text-fg-primary flex min-h-[40px] min-w-[40px] touch-manipulation items-center justify-center rounded-md p-2 transition-all focus:outline-none md:hidden"
+			class="text-fg-secondary hover:bg-canvas-subtle hover:text-fg-primary focus-ring flex min-h-[44px] min-w-[44px] touch-manipulation items-center justify-center rounded-md p-2 transition-all md:hidden"
 			aria-label="Toggle navigation menu"
 			aria-expanded={isSidebarOpen}
 			type="button"
@@ -125,10 +125,18 @@
 			/>
 		</button>
 
+		<!-- Desktop Logo -->
+		<a
+			href="/"
+			class="text-fg-primary focus-ring -ml-1 hidden rounded-sm px-1 text-xl font-bold tracking-tight md:block"
+		>
+			MonOCR
+		</a>
+
 		<!-- Desktop Nav -->
-		<nav class="ml-auto hidden items-center space-x-4 md:flex" aria-label="Main navigation">
+		<nav class="ml-auto hidden items-center space-x-6 md:flex" aria-label="Main navigation">
 			<a
-				class="text-[14px] font-medium transition-all duration-200 focus:outline-none active:scale-95 {$page
+				class="focus-ring text-[14px] font-medium transition-all duration-200 active:scale-95 {$page
 					.url.pathname === '/'
 					? 'text-fg-primary'
 					: 'text-fg-secondary hover:text-fg-primary'}"
@@ -137,7 +145,7 @@
 				{m.nav_home()}
 			</a>
 			<a
-				class="text-[14px] font-medium transition-all duration-200 focus:outline-none active:scale-95 {$page
+				class="focus-ring text-[14px] font-medium transition-all duration-200 active:scale-95 {$page
 					.url.pathname === '/docs'
 					? 'text-fg-primary'
 					: 'text-fg-secondary hover:text-fg-primary'}"
@@ -146,7 +154,7 @@
 				{m.nav_docs()}
 			</a>
 			<a
-				class="text-[14px] font-medium transition-all duration-200 focus:outline-none active:scale-95 {$page
+				class="focus-ring text-[14px] font-medium transition-all duration-200 active:scale-95 {$page
 					.url.pathname === '/report'
 					? 'text-fg-primary'
 					: 'text-fg-secondary hover:text-fg-primary'}"
@@ -155,7 +163,7 @@
 				{m.nav_feedback()}
 			</a>
 			<a
-				class="text-[14px] font-medium transition-all duration-200 focus:outline-none active:scale-95 {$page
+				class="focus-ring text-[14px] font-medium transition-all duration-200 active:scale-95 {$page
 					.url.pathname === '/contribute'
 					? 'text-fg-primary'
 					: 'text-fg-secondary hover:text-fg-primary'}"
@@ -164,7 +172,7 @@
 				{m.nav_contribute()}
 			</a>
 			<a
-				class="text-[14px] font-medium transition-all duration-200 focus:outline-none active:scale-95 {$page
+				class="focus-ring text-[14px] font-medium transition-all duration-200 active:scale-95 {$page
 					.url.pathname === '/privacy'
 					? 'text-fg-primary'
 					: 'text-fg-secondary hover:text-fg-primary'}"
@@ -203,8 +211,12 @@
 	inert={!isSidebarOpen}
 >
 	<div class="flex h-full flex-col p-6">
-		<div class="mb-4 flex flex-col px-4 pt-4">
-			<span class="text-fg-primary text-xl font-bold tracking-tight">MonOCR</span>
+		<div class="mb-6 flex flex-col px-4 pt-4">
+			<a
+				href="/"
+				class="text-fg-primary focus-ring -ml-1 rounded-sm px-1 text-xl font-bold tracking-tight"
+				>MonOCR</a
+			>
 			<span class="text-fg-secondary text-[10px] font-medium opacity-60">Version 1.0.0</span>
 		</div>
 

@@ -5,6 +5,7 @@
 	const dispatch = createEventDispatcher();
 	let isDragging = false;
 	let inputElement: HTMLInputElement;
+	let dropzoneElement: HTMLElement;
 
 	function handleDragOver(e: DragEvent) {
 		e.preventDefault();
@@ -44,10 +45,12 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <label
-	class="border-border bg-canvas group relative flex min-h-[100px] cursor-pointer flex-col items-center justify-center rounded-[var(--radius-huge)] border-2 border-dashed p-4 text-center transition-all duration-150 ease-in-out
-           {isDragging
-		? 'border-primary-action bg-canvas-subtle scale-[1.01]'
-		: 'hover:bg-canvas-subtle hover:border-fg-secondary'}"
+	id="file-drop-label"
+	class="bg-canvas-subtle/20 group relative flex flex-col items-center justify-center rounded-2xl py-24 transition-all duration-300 ease-out {isDragging
+		? 'bg-canvas-subtle/60 scale-[1.01]'
+		: ''}"
+	bind:this={dropzoneElement}
+	aria-label="File Upload Dropzone"
 	on:dragover={handleDragOver}
 	on:dragleave={handleDragLeave}
 	on:drop={handleDrop}
@@ -58,6 +61,8 @@
 		bind:this={inputElement}
 		type="file"
 		class="sr-only"
+		id="file-upload-input"
+		aria-describedby="file-drop-label"
 		accept="image/png, image/jpeg, image/webp, application/pdf"
 		on:change={handleFileInput}
 	/>

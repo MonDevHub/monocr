@@ -105,22 +105,45 @@
 	--transition-fast: 100ms;
 	--transition-base: 150ms;
 
-	/* Typography Constitution (20, 14, 13, 12, 11) - Ultra-Compact & Efficient */
+	/* Typography Constitution (20, 14, 13, 12, 12) - Ultra-Compact & Efficient */
 	--text-title: 1.25rem; /* 20px */
 	--text-section: 0.875rem; /* 14px */
 	--text-body: 0.8125rem; /* 13px */
 	--text-secondary: 0.75rem; /* 12px */
-	--text-meta: 0.6875rem; /* 11px */
+	--text-meta: 0.75rem; /* 12px - Upgraded from 11px for readability */
 }
 
 @layer utilities {
+	/* Standardized Focus Ring - Pure CSS for build stability */
+	.focus-ring {
+		outline: none;
+		transition-property: box-shadow, transform, opacity;
+		transition-duration: 150ms;
+	}
+
+	.focus-ring:focus-visible {
+		box-shadow:
+			0 0 0 2px var(--bg-canvas),
+			0 0 0 4px color-mix(in srgb, var(--primary) 40%, transparent);
+	}
+
 	.btn-primary {
-		@apply bg-primary-action text-fg-on-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] px-5 py-1.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.98];
+		@apply bg-primary-action text-fg-on-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] px-5 py-2.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.98];
 	}
 
 	.btn-secondary {
-		@apply border-border bg-btn-bg text-fg-secondary dark:text-fg-primary hover:bg-btn-hover hover:text-fg-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] border px-4 py-1.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out active:scale-[0.98];
+		@apply border-border bg-btn-bg text-fg-secondary dark:text-fg-primary hover:bg-btn-hover hover:text-fg-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] border px-4 py-2.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out active:scale-[0.98];
 	}
+}
+
+/* Global focus safety for all interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role='button']:focus-visible {
+	@apply ring-primary/40 ring-offset-canvas ring-2 ring-offset-2 outline-none;
 }
 
 :root {
@@ -128,7 +151,7 @@
 	background-color: var(--bg-canvas);
 	color: var(--fg-primary);
 	line-height: 1.5;
-	font-size: 15px;
+	font-size: 16px; /* Optimized for mobile accessibility & auto-zoom prevention */
 	font-feature-settings: 'cv11', 'ss01', 'cv08', 'tnum';
 	-webkit-tap-highlight-color: transparent;
 	text-rendering: optimizeLegibility;
@@ -177,6 +200,26 @@ body {
 
 .section-label {
 	@apply mb-4 block text-[9px] font-bold tracking-[0.3em] text-slate-400 uppercase dark:text-slate-400;
+}
+
+.zen-label {
+	@apply text-fg-muted/50 text-[10px] font-bold tracking-[0.2em] uppercase;
+}
+
+.zen-code-block {
+	@apply bg-canvas-subtle/50 rounded-xl px-8 py-6 font-mono text-[12px] leading-relaxed;
+}
+
+.zen-code-comment {
+	@apply text-fg-muted/60 italic;
+}
+
+.zen-code-keyword {
+	@apply text-fg-primary font-bold;
+}
+
+.zen-code-string {
+	@apply text-fg-secondary;
 }
 
 * {

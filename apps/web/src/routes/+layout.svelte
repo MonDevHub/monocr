@@ -103,6 +103,13 @@
 	<!-- load manifest async -->
 </svelte:head>
 
+<a
+	href="#main-content"
+	class="focus:text-bg-canvas focus:bg-fg-primary sr-only transition-all duration-200 focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-sm focus:px-4 focus:py-2"
+>
+	Skip to main content
+</a>
+
 <Header />
 
 <div
@@ -112,12 +119,6 @@
 	<div
 		class="mx-auto flex min-h-screen flex-col px-4 pt-12 pb-8 sm:px-6 sm:pt-16 md:pb-12 lg:px-8 lg:pb-16"
 	>
-		<a
-			href="#main-content"
-			class="focus:text-bg-canvas focus:bg-fg-primary sr-only transition-all duration-200 focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-sm focus:px-4 focus:py-2"
-		>
-			Skip to main content
-		</a>
 		<SEO />
 		<div class="flex-1" id="main-content">
 			{@render children?.()}

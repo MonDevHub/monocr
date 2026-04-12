@@ -268,8 +268,8 @@
 </script>
 
 <div class="mx-auto w-full max-w-3xl">
-	<!-- Header -->
-	<header class="mb-6 space-y-2 text-center md:mb-10 md:space-y-4">
+	<!-- Intro Section -->
+	<div class="mb-6 space-y-2 text-center md:mb-10 md:space-y-4">
 		<p
 			class="text-fg-primary mx-auto mt-2 max-w-xl text-[18px] leading-snug font-medium tracking-tight text-balance sm:text-[20px] md:text-[var(--text-title)]"
 		>
@@ -279,7 +279,7 @@
 		<div class="flex justify-center pt-2">
 			{#if !engineReady && !error}
 				<div
-					class="border-border bg-canvas-subtle text-fg-muted inline-flex items-center gap-2 rounded-md border px-3 py-1 text-[11px] font-semibold tracking-wider uppercase"
+					class="bg-canvas-subtle/60 text-fg-muted inline-flex items-center gap-2 rounded-md px-3 py-1 text-[11px] font-semibold tracking-wider uppercase"
 				>
 					<div class="bg-fg-muted h-1 w-1 animate-pulse rounded-full"></div>
 					{m.main_loading_model()}
@@ -301,7 +301,7 @@
 				</div>
 			{:else}
 				<div
-					class="border-border bg-canvas-subtle text-fg-muted inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-[11px] font-semibold tracking-wider uppercase"
+					class="bg-canvas-subtle/60 text-fg-muted inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-[11px] font-semibold tracking-wider uppercase"
 					in:fade
 				>
 					<div
@@ -311,7 +311,7 @@
 				</div>
 			{/if}
 		</div>
-	</header>
+	</div>
 
 	<!-- Main Content -->
 	<main id="main-content" class="space-y-12 sm:space-y-16">

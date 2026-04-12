@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
+	import { focusTrap } from '$lib/actions/focus-trap';
+	import { m } from '$lib/paraglide/messages';
 
 	interface Props {
 		isOpen: boolean;
@@ -10,8 +12,8 @@
 
 	let {
 		isOpen,
-		title = 'Success!',
-		message = 'Operation completed successfully.',
+		title = m.modal_success_title(),
+		message = m.modal_success_msg(),
 		onClose
 	}: Props = $props();
 </script>
@@ -31,23 +33,26 @@
 		></div>
 
 		<div
-			class="bg-canvas border-border shadow-huge relative flex w-full max-w-[320px] flex-col overflow-hidden rounded-[var(--radius-huge)] border p-5 text-center"
+			use:focusTrap
+			class="bg-canvas border-border shadow-huge focus-ring relative flex w-full max-w-[320px] flex-col overflow-hidden rounded-[var(--radius-huge)] border p-8 text-center"
 			in:fly={{ y: 15, duration: 250, delay: 50 }}
 		>
-			<div class="mb-2 flex flex-col items-center">
-				<div class="bg-primary/5 mb-3 flex h-11 w-11 items-center justify-center rounded-full">
-					<span class="material-symbols-outlined text-primary text-[22px]">check_circle</span>
+			<div class="mb-4 flex flex-col items-center">
+				<div class="bg-primary/5 mb-4 flex h-12 w-12 items-center justify-center rounded-full">
+					<span class="material-symbols-outlined text-primary text-[24px]">check_circle</span>
 				</div>
-				<h2 class="text-fg-primary text-base font-semibold tracking-tight">
+				<h2 class="text-fg-primary text-lg font-bold tracking-tight">
 					{title}
 				</h2>
 			</div>
 
-			<p class="text-fg-secondary mb-5 text-[13px] leading-relaxed">
+			<p class="text-fg-secondary mb-8 leading-relaxed text-[var(--text-body)]">
 				{message}
 			</p>
 
-			<button class="btn-primary w-full py-2 text-[11px]" onclick={onClose}> Done </button>
+			<button class="btn-primary w-full" onclick={onClose}>
+				{m.history_done()}
+			</button>
 		</div>
 	</div>
 {/if}

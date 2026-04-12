@@ -13,15 +13,14 @@
     "test": "turbo run test",
     "test:all": "turbo run test",
     "format": "turbo run format",
-    "clean": "turbo clean && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
+    "clean": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
     "translate": "node shared/locales/sync.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "@swc/core",
       "esbuild",
-      "workerd",
-      "sharp"
+      "workerd"
     ],
     "overrides": {
       "seroval": "^1.4.1",

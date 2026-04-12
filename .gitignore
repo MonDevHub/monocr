@@ -87,3 +87,6 @@ Thumbs.db
 .pnpm-store/
 .npm/
 .yarn/
+
+
+.agents

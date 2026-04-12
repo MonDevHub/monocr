@@ -1,6 +1,9 @@
 export { default as Button } from './ui/Button.svelte';
 export { default as ThemeToggle } from './ui/ThemeToggle.svelte';
 export { default as SEO } from './ui/SEO.svelte';
+export { default as Breadcrumb } from './ui/Breadcrumb.svelte';
+export { default as Badge } from './ui/Badge.svelte';
+export { default as ActionBox } from './ui/ActionBox.svelte';
 
 // Layout Components
 export { default as Header } from './layout/Header.svelte';

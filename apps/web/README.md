@@ -1,6 +1,6 @@
 # MonOCR Web
 
-MonOCR Web provides high-performance, privacy-first optical character recognition for the Mon script directly in the browser. 
+MonOCR Web provides high-performance, privacy-first optical character recognition for the Mon script directly in the browser.
 
 For mission context, community guidelines, and cross-platform information, please refer to the **[MonOCR Root Documentation](../../README.md)**.
 
