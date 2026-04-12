@@ -11,9 +11,12 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
@@ -21,31 +24,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.outlined.Feedback
-import androidx.compose.material.icons.outlined.Handshake
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Translate
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -89,6 +83,7 @@ import kotlinx.coroutines.withContext
 fun HomeScreen(
     uiState: UiState,
     viewModel: MainViewModel,
+    onMenuClick: () -> Unit,
     onNavigateToAbout: () -> Unit,
     onNavigateToDocs: () -> Unit,
     onNavigateToContribute: (String) -> Unit,
@@ -151,211 +146,129 @@ fun HomeScreen(
     val scanHistory by viewModel.scanHistory.collectAsState()
     val scrollState = rememberScrollState()
     val showHistoryResultDialogState = remember { mutableStateOf<HistoryRecord?>(null) }
-    var showLanguagePicker by remember { mutableStateOf(false) }
     
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-
-    if (showLanguagePicker) {
-        LanguagePickerDialog(onDismiss = { showLanguagePicker = false })
-    }
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    Text(
-                        "MonOCR",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        "Version ${dev.janakhpon.monocr.BuildConfig.VERSION_NAME}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
-                NavigationDrawerItem(
-                    label = { Text(stringResource(R.string.nav_language)) },
-                    selected = false,
-                    onClick = { 
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        showLanguagePicker = true
-                        scope.launch { drawerState.close() }
-                    },
-                    icon = { Icon(Icons.Outlined.Translate, contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp, horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-                NavigationDrawerItem(
-                    label = { Text(stringResource(R.string.nav_docs)) },
-                    selected = false,
-                    onClick = { 
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onNavigateToDocs()
-                        scope.launch { drawerState.close() }
-                    },
-                    icon = { Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-                NavigationDrawerItem(
-                    label = { Text(stringResource(R.string.nav_contribute)) },
-                    selected = false,
-                    onClick = { 
-                        onNavigateToContribute("")
-                        scope.launch { drawerState.close() }
-                    },
-                    icon = { Icon(Icons.Outlined.Handshake, contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-                NavigationDrawerItem(
-                    label = { Text(stringResource(R.string.nav_feedback)) },
-                    selected = false,
-                    onClick = { 
-                        onNavigateToFeedback("", null)
-                        scope.launch { drawerState.close() }
-                    },
-                    icon = { Icon(Icons.Outlined.Feedback, contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-                NavigationDrawerItem(
-                    label = { Text(stringResource(R.string.nav_privacy)) },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onNavigateToPrivacy()
-                    },
-                    icon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-                NavigationDrawerItem(
-                    label = { Text(stringResource(R.string.nav_about)) },
-                    selected = false,
-                    onClick = { 
-                        onNavigateToAbout()
-                        scope.launch { drawerState.close() }
-                    },
-                    icon = { Icon(Icons.Outlined.Info, contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-            }
+    Scaffold(
+        topBar = {
+            dev.janakhpon.monocr.ui.components.MonTopAppBar(
+                title = "MonOCR",
+                onMenuClick = onMenuClick
+            )
         }
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+    ) { innerPadding ->
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp, vertical = 12.dp), // Reduced from 24/16
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-            // Hero header
-            if (uiState !is UiState.Success && uiState !is UiState.OcrError) {
-                HeroHeader(uiState = uiState, onMenuClick = { scope.launch { drawerState.open() } })
-                Spacer(modifier = Modifier.height(12.dp)) // Reduced from 28
-            }
+                // Hero header
+                if (uiState !is UiState.Success && uiState !is UiState.OcrError) {
+                    HeroHeader(uiState = uiState)
+                }
 
-        // ─── Main content area ─────────────────────────────────────────
-        AnimatedContent(
-            targetState = uiState,
-            transitionSpec = {
-                (fadeIn(tween(250)) + slideInVertically { it / 12 }) togetherWith
-                        fadeOut(tween(180))
-            },
-            label = "main_content"
-        ) { state ->
-            when (state) {
-                is UiState.Initializing -> InitializingView()
-                is UiState.InitError    -> InitErrorView(state.message)
-                is UiState.Ready        -> PickerView(
-                    onGallery = { galleryLauncher.launch(arrayOf("image/*")) },
-                    onPdf = { pdfLauncher.launch(arrayOf("application/pdf")) },
-                    onCamera = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                            val uri = createCameraUri(context)
-                            cameraUri = uri
-                            cameraLauncher.launch(uri)
-                        } else {
-                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                // ── Main content area ─────────────────────────────────────────
+                AnimatedContent(
+                    targetState = uiState,
+                    transitionSpec = {
+                        (fadeIn(tween(250)) + slideInVertically { it / 12 }) togetherWith
+                                fadeOut(tween(180))
+                    },
+                    label = "main_content",
+                    modifier = Modifier.fillMaxWidth()
+                ) { state ->
+                    when (state) {
+                        is UiState.Initializing -> InitializingView()
+                        is UiState.InitError    -> InitErrorView(state.message)
+                        is UiState.Ready        -> PickerView(
+                            onGallery = { galleryLauncher.launch(arrayOf("image/*")) },
+                            onPdf = { pdfLauncher.launch(arrayOf("application/pdf")) },
+                            onCamera = {
+                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                    val uri = createCameraUri(context)
+                                    cameraUri = uri
+                                    cameraLauncher.launch(uri)
+                                } else {
+                                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            }
+                        )
+                        is UiState.Processing   -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                                ProcessingView(imageUri = state.imageUri)
+                                SkeletonResultCard()
+                            }
                         }
-                    }
-                )
-                is UiState.Processing   -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ProcessingView(imageUri = state.imageUri)
-                        SkeletonResultCard()
+                        is UiState.Success      -> ResultView(
+                            imageUri  = state.imageUri,
+                            result    = state.result,
+                            originalUri = state.originalUri,
+                            fileType = state.fileType,
+                            onNavigateToFeedback = onNavigateToFeedback
+                        )
+                        is UiState.OcrError     -> OcrErrorView(
+                            imageUri = state.imageUri,
+                            message  = state.message,
+                            onReset  = viewModel::reset,
+                            onViewDocs = onNavigateToDocs
+                        )
                     }
                 }
-                is UiState.Success      -> ResultView(
-                    imageUri  = state.imageUri,
-                    result    = state.result,
-                    originalUri = state.originalUri,
-                    fileType = state.fileType,
-                    onNavigateToFeedback = onNavigateToFeedback
+
+                // History Section
+                HistorySection(
+                    title = stringResource(R.string.history_title),
+                    history = scanHistory,
+                    onDelete = { viewModel.deleteHistoryRecord(it) },
+                    onClearAll = { viewModel.clearHistory("ocr-scan") },
+                    onItemClick = { record ->
+                        showHistoryResultDialogState.value = record
+                    }
                 )
-                is UiState.OcrError     -> OcrErrorView(
-                    imageUri = state.imageUri,
-                    message  = state.message,
-                    onReset  = viewModel::reset,
-                    onViewDocs = onNavigateToDocs
+                
+                Spacer(modifier = Modifier.height(64.dp)) // Bottom spacing for FAB
+            }
+
+            showHistoryResultDialogState.value?.let { record ->
+                HistoryResultDialog(
+                    record = record,
+                    onDismiss = { showHistoryResultDialogState.value = null }
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // History Section
-        Spacer(modifier = Modifier.height(12.dp))
-        HistorySection(
-            title = stringResource(R.string.history_title),
-            history = scanHistory,
-            onDelete = { viewModel.deleteHistoryRecord(it) },
-            onClearAll = { viewModel.clearHistory("ocr-scan") },
-            onItemClick = { record ->
-                showHistoryResultDialogState.value = record
+            // Floating Action Button
+            androidx.compose.animation.AnimatedVisibility(
+                visible = uiState is UiState.Success || uiState is UiState.OcrError,
+                enter = androidx.compose.animation.expandIn(expandFrom = Alignment.Center) + fadeIn(),
+                exit = androidx.compose.animation.shrinkOut(shrinkTowards = Alignment.Center) + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp)
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.reset()
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = MaterialTheme.shapes.large,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Refresh,
+                        contentDescription = stringResource(R.string.process_another),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
-        )
-        Spacer(modifier = Modifier.height(40.dp))
-    }
-
-    showHistoryResultDialogState.value?.let { record ->
-        HistoryResultDialog(
-            record = record,
-            onDismiss = { showHistoryResultDialogState.value = null }
-        )
-    }
-
-
-    // Floating Action Button for Reload — with entry scale transition
-    androidx.compose.animation.AnimatedVisibility(
-        visible = uiState is UiState.Success || uiState is UiState.OcrError,
-        enter = androidx.compose.animation.expandIn(expandFrom = Alignment.Center) + fadeIn(),
-        exit = androidx.compose.animation.shrinkOut(shrinkTowards = Alignment.Center) + fadeOut(),
-        modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .padding(24.dp)
-    ) {
-        FloatingActionButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                viewModel.reset()
-            },
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Refresh,
-                contentDescription = stringResource(R.string.process_another),
-                modifier = Modifier.size(24.dp)
-            )
         }
     }
-    }
-}
 }
 
 // ─── Sub-composables extracted to ui/components/ ─────────────────────────────

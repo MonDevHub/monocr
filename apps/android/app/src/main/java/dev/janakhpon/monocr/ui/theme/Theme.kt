@@ -77,8 +77,9 @@ fun MonOCRTheme(
         colorScheme = colorScheme,
         typography = MonTypography,
         shapes = androidx.compose.material3.Shapes(
-            medium = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-            large = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+            small = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+            medium = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            large = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
         ),
         content = content
     )

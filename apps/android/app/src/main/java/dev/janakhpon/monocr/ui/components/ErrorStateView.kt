@@ -28,7 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 fun InitErrorView(message: String) {
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.errorContainer,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -66,10 +66,10 @@ fun OcrErrorView(imageUri: Uri, message: String, onReset: () -> Unit, onViewDocs
             modifier = Modifier
                 .fillMaxWidth()
                 .height(160.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(16.dp))
         )
         Surface(
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.errorContainer
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -118,7 +118,7 @@ fun OcrErrorView(imageUri: Uri, message: String, onReset: () -> Unit, onViewDocs
             modifier = Modifier
                 .fillMaxWidth()
                 .height(40.dp),
-            shape = RoundedCornerShape(4.dp),
+            shape = RoundedCornerShape(12.dp),
             content = {
                 Text(stringResource(R.string.process_another))
             }

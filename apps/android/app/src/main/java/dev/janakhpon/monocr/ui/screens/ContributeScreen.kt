@@ -42,7 +42,7 @@ import android.content.Intent
 fun ContributeScreen(
     viewModel: ContributeViewModel,
     initialText: String = "",
-    onBack: () -> Unit
+    onMenuClick: () -> Unit
 ) {
     val contributionHistory by viewModel.contributionHistory.collectAsState()
     var transcription by remember { mutableStateOf(initialText) }
@@ -63,13 +63,9 @@ fun ContributeScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.nav_contribute), style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.close))
-                    }
-                }
+            dev.janakhpon.monocr.ui.components.MonTopAppBar(
+                title = stringResource(R.string.nav_contribute),
+                onMenuClick = onMenuClick
             )
         }
     ) { innerPadding ->
@@ -78,9 +74,9 @@ fun ContributeScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(12.dp), // Reduced from 20.dp
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp) // Reduced from 24.dp
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ── Hero Header ───────────────
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -122,10 +118,10 @@ fun ContributeScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(100.dp) // Reduced from 120.dp
-                        .clip(RoundedCornerShape(8.dp)),
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(16.dp)),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
                 ) {
                     val isImage = context.contentResolver.getType(uri)?.startsWith("image/") ?: false
                     if (isImage) {
@@ -172,7 +168,7 @@ fun ContributeScreen(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
                     placeholder = { Text(stringResource(R.string.contribute_type_placeholder), fontSize = 13.sp) },
                     textStyle = monScriptStyle,
-                    shape = RoundedCornerShape(4.dp)
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
 
@@ -188,9 +184,9 @@ fun ContributeScreen(
                     transcription = ""
                     sourceUri = null
                 },
-                modifier = Modifier.fillMaxWidth().height(40.dp), // Reduced from 52.dp
+                modifier = Modifier.fillMaxWidth().height(40.dp),
                 enabled = transcription.isNotBlank() || sourceUri != null,
-                shape = RoundedCornerShape(4.dp) // Reduced from 8.dp
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text(stringResource(R.string.contribute_submit), fontWeight = FontWeight.Bold)
             }

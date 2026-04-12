@@ -14,10 +14,10 @@ android {
 
     defaultConfig {
         applicationId = "dev.janakhpon.monocr"
-        minSdk = 31
+        minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

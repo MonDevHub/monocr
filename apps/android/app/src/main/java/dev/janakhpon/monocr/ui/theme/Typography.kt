@@ -16,34 +16,40 @@ val PyidaungSuFamily = FontFamily(
 
 // Display font for UI chrome — system default sans
 val MonTypography = Typography(
-    // Constitution: Title (20), Section (14), Body (13), Secondary (12), Meta (11)
+    // Constitution: Title (20), Section (15), Body (14), Secondary (12), Meta (11)
     headlineMedium = TextStyle(
         fontWeight = FontWeight.SemiBold,
-        fontSize = 20.sp,
-        lineHeight = 28.sp,
+        fontSize = 22.sp,
+        lineHeight = 30.sp,
+        letterSpacing = (-0.5).sp
+    ),
+    titleLarge = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
         letterSpacing = 0.sp
     ),
     titleMedium = TextStyle(
         fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp, // Reduced from 16
-        lineHeight = 20.sp,
+        fontSize = 15.sp, 
+        lineHeight = 22.sp,
         letterSpacing = 0.sp
     ),
     bodyMedium = TextStyle(
         fontWeight = FontWeight.Normal,
-        fontSize = 13.sp, // Reduced from 14
-        lineHeight = 18.sp,
+        fontSize = 14.sp, 
+        lineHeight = 20.sp,
         letterSpacing = 0.sp
     ),
     labelMedium = TextStyle(
         fontWeight = FontWeight.Medium,
-        fontSize = 12.sp, // Reduced from 13
+        fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.sp
+        letterSpacing = 0.5.sp
     ),
     labelSmall = TextStyle(
         fontWeight = FontWeight.Normal,
-        fontSize = 11.sp, // Reduced from 12
+        fontSize = 11.sp,
         lineHeight = 14.sp,
         letterSpacing = 0.sp
     )

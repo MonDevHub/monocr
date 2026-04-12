@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -61,7 +62,7 @@ fun PdfPreviewList(
                     .padding(bottom = 8.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
                 shape = RoundedCornerShape(20.dp),
-                shadowElevation = 2.dp
+                tonalElevation = 2.dp
             ) {
                 Text(
                     text = "${pagerState.currentPage + 1} / $pageCount",
@@ -90,9 +91,10 @@ private fun PdfPageItem(uri: Uri, pageIndex: Int) {
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .clip(RoundedCornerShape(4.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-        shadowElevation = 1.dp
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(16.dp)),
+        shadowElevation = 0.dp
     ) {
         Box(
             modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp),

@@ -16,12 +16,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
 import dev.janakhpon.monocr.R
 
 @Composable
 fun LanguagePickerDialog(
     onDismiss: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val languages = listOf(
         Triple("en", stringResource(R.string.lang_en), "🇺🇸"),
         Triple("my", stringResource(R.string.lang_my), "🇲🇲"),
@@ -30,7 +34,8 @@ fun LanguagePickerDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.nav_language)) },
+        shape = MaterialTheme.shapes.large,
+        title = { Text(stringResource(R.string.nav_language), fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 languages.forEach { (tag, label, emoji) ->
@@ -38,15 +43,16 @@ fun LanguagePickerDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { 
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 val appLocale: LocaleListCompat = LocaleListCompat.forLanguageTags(tag)
                                 AppCompatDelegate.setApplicationLocales(appLocale)
                                 onDismiss()
                             }
-                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                            .padding(vertical = 12.dp, horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(emoji, modifier = Modifier.padding(end = 12.dp))
-                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                        Text(label, style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }

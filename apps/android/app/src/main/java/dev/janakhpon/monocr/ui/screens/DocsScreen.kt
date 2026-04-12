@@ -27,16 +27,12 @@ import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DocsScreen(onBack: () -> Unit) {
+fun DocsScreen(onMenuClick: () -> Unit) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.nav_docs), style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.close))
-                    }
-                }
+            dev.janakhpon.monocr.ui.components.MonTopAppBar(
+                title = stringResource(R.string.nav_docs),
+                onMenuClick = onMenuClick
             )
         }
     ) { innerPadding ->
@@ -45,8 +41,8 @@ fun DocsScreen(onBack: () -> Unit) {
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(32.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // ── Introduction ────────────────
             Column {
@@ -131,9 +127,9 @@ fun DocsScreen(onBack: () -> Unit) {
 
             // ── Privacy ─────────────────────
             Surface(
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -173,7 +169,7 @@ fun DocsScreen(onBack: () -> Unit) {
                 OutlinedButton(
                     onClick = { /* Open link */ },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(4.dp)
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(stringResource(R.string.docs_visit_hf))
                     Spacer(modifier = Modifier.width(8.dp))
@@ -196,7 +192,7 @@ fun DocSection(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
-                shape = RoundedCornerShape(6.dp),
+                shape = RoundedCornerShape(8.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.size(24.dp)
             ) {
@@ -217,9 +213,9 @@ fun DocSection(
 fun CodeBlock(code: String) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(4.dp),
+        shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
     ) {
         Text(
             text = code,
@@ -234,9 +230,9 @@ fun CodeBlock(code: String) {
 fun QualityCard(icon: ImageVector, title: String, body: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
@@ -253,7 +249,7 @@ fun SdkSwitcher() {
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Surface(
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.fillMaxWidth().padding(1.dp)
         ) {
@@ -265,9 +261,9 @@ fun SdkSwitcher() {
                             .weight(1f)
                             .height(36.dp)
                             .clickable { selectedSdk = sdk },
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                        shadowElevation = if (isSelected) 2.dp else 0.dp
+                        shadowElevation = if (isSelected) 1.dp else 0.dp
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(

@@ -47,8 +47,9 @@ fun HistorySection(
     if (showClearConfirm) {
         AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            title = { Text(stringResource(R.string.history_clear_title)) },
+            title = { Text(stringResource(R.string.history_clear_title), fontWeight = FontWeight.Bold) },
             text = { Text(stringResource(R.string.history_clear_message)) },
+            shape = MaterialTheme.shapes.large, // 24dp Zen standard
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -91,7 +92,7 @@ fun HistorySection(
             
             if (history.isNotEmpty()) {
                 TextButton(onClick = { showClearConfirm = true }) {
-                    Text(stringResource(R.string.history_title), style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.history_delete_all), style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -104,7 +105,7 @@ fun HistorySection(
                     .fillMaxWidth()
                     .height(120.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                    .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
@@ -155,10 +156,10 @@ fun HistoryItem(
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
-            1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+            0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
         ),
         modifier = Modifier
             .fillMaxWidth()
@@ -175,44 +176,39 @@ fun HistoryItem(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Outlined.Description,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
+            // Icon — minimalist, no background
+            Icon(
+                Icons.Outlined.Description,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+            )
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             // Text info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = record.fileName,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
                     Text(
                         text = date,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                     if (record.processingTime > 0) {
                         Text(
                             text = " • ${record.processingTime}ms",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -221,17 +217,17 @@ fun HistoryItem(
                         Icon(
                             imageVector = if (record.isSynced) Icons.Outlined.CloudDone else Icons.Outlined.CloudUpload,
                             contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = if (record.isSynced) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            modifier = Modifier.size(10.dp),
+                            tint = if (record.isSynced) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = if (record.isSynced) stringResource(R.string.status_synced) 
                                    else stringResource(R.string.status_pending),
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = if (record.isSynced) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            color = if (record.isSynced) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                         )
                     }
                 }
@@ -242,8 +238,8 @@ fun HistoryItem(
                 Icon(
                     Icons.Outlined.Delete,
                     contentDescription = stringResource(R.string.action_delete),
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
                 )
             }
         }

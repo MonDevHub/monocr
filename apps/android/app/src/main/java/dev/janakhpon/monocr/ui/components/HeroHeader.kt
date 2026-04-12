@@ -39,42 +39,33 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 
 @Composable
-fun HeroHeader(uiState: UiState, onMenuClick: () -> Unit) {
-    Box(modifier = Modifier.fillMaxWidth()) {
-        IconButton(
-            onClick = onMenuClick,
-            modifier = Modifier.align(Alignment.TopStart)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Menu,
-                contentDescription = stringResource(R.string.drawer_open),
-                tint = MaterialTheme.colorScheme.onBackground
-            )
-        }
-        
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "MonOCR",
-                style = MaterialTheme.typography.displayLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onBackground,
-                letterSpacing = 0.5.sp
-            )
-        Spacer(modifier = Modifier.height(8.dp))
+fun HeroHeader(uiState: UiState) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "MonOCR",
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontSize = 42.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-1).sp
+            ),
+            color = MaterialTheme.colorScheme.onBackground
+        )
         Text(
             text = stringResource(R.string.hero_subtitle),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 2.dp)
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         // Status chip
         EngineStatusChip(uiState)
-        }
     }
 }
 

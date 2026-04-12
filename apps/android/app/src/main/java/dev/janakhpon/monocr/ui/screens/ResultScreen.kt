@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -84,29 +85,35 @@ fun ResultView(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp) // Reduced from 16
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // ── Image/PDF preview ──────────────────────────────────────────────
-        Box(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 200.dp) // Reduced from 240
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .clickable { showFullScreen = true }
+                .heightIn(max = 220.dp)
+                .clickable { showFullScreen = true },
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                0.5.dp, 
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            )
         ) {
-            if (isPdf && originalUri != null) {
-                PdfPreviewList(
-                    uri = originalUri,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                AsyncImage(
-                    model = imageUri,
-                    contentDescription = "Processed image",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
-                )
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (isPdf && originalUri != null) {
+                    PdfPreviewList(
+                        uri = originalUri,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = "Processed image",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize().padding(8.dp)
+                    )
+                }
             }
         }
         
@@ -121,10 +128,9 @@ fun ResultView(
 
         // ── Result card ────────────────────────────────────────────────
         Surface(
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 1.dp,
-            border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
@@ -132,41 +138,40 @@ fun ResultView(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp), // Reduced from 16/12
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         stringResource(R.string.extracted_text),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.Bold,
                         letterSpacing = 0.2.sp
                     )
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val words = result.text.trim().split(Regex("\\s+")).count { it.isNotEmpty() }
                         StatChip(stringResource(R.string.label_words, words))
-                        StatChip(stringResource(R.string.label_chars, result.text.length))
                         StatChip(stringResource(R.string.label_ms, result.durationMs))
                     }
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
 
                 // Mon text content area — Scrollable with constrained height
                 Box(modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 320.dp) // Reduced from 400
+                    .heightIn(max = 360.dp)
                     .verticalScroll(rememberScrollState())
-                    .padding(12.dp) // Reduced from 16
+                    .padding(16.dp)
                 ) {
                     if (result.text.isBlank()) {
                         Text(
                             stringResource(R.string.no_text_extracted),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                     } else {
                         Text(
@@ -177,88 +182,39 @@ fun ResultView(
                     }
                 }
 
-                // FIX F5: Action toolbar replaces bare IconButtons with labeled TextButtons
-                // — much clearer affordance, thumb-reachable, scannable at a glance
+                // Action toolbar
                 if (result.text.isNotBlank()) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 4.dp, vertical = 4.dp), // Tighter toolbar
-                        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End)
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
                     ) {
-                        // Save
-                        TextButton(onClick = { saveTextToFile(context, result.text) }) {
-                            Icon(
-                                Icons.Outlined.Download,
-                                contentDescription = stringResource(R.string.save_text),
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                stringResource(R.string.save_text),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        // Share
-                        TextButton(onClick = { shareText(context, result.text) }) {
-                            Icon(
-                                Icons.Outlined.Share,
-                                contentDescription = "Share",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                stringResource(R.string.share_text),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        // Copy — with visual feedback
-                        TextButton(onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            copyToClipboard(context, result.text)
-                            scope.launch {
-                                copied = true
-                                delay(2000)
-                                copied = false
-                            }
-                        }) {
-                            Icon(
-                                if (copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy,
-                                contentDescription = if (copied) "Copied" else "Copy",
-                                modifier = Modifier.size(16.dp),
-                                tint = if (copied) MaterialTheme.colorScheme.tertiary
-                                       else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                if (copied) stringResource(R.string.copied) else stringResource(R.string.copy_text),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (copied) MaterialTheme.colorScheme.tertiary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        // Report Issue
-                        TextButton(onClick = {
-                            onNavigateToFeedback(result.text, originalUri ?: imageUri)
-                        }) {
-                            Icon(
-                                Icons.Outlined.Info,
-                                contentDescription = "Report",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                stringResource(R.string.action_report),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        ResultActionButton(
+                            onClick = { saveTextToFile(context, result.text) },
+                            icon = Icons.Outlined.Download,
+                            label = stringResource(R.string.save_text)
+                        )
+                        ResultActionButton(
+                            onClick = { shareText(context, result.text) },
+                            icon = Icons.Outlined.Share,
+                            label = stringResource(R.string.share_text)
+                        )
+                        ResultActionButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                copyToClipboard(context, result.text)
+                                scope.launch {
+                                    copied = true
+                                    delay(2000)
+                                    copied = false
+                                }
+                            },
+                            icon = if (copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy,
+                            label = if (copied) stringResource(R.string.copied) else stringResource(R.string.copy_text),
+                            tint = if (copied) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -267,18 +223,45 @@ fun ResultView(
 }
 
 @Composable
+private fun ResultActionButton(
+    onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.height(40.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            modifier = Modifier.size(16.dp),
+            tint = tint
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = tint,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
 private fun StatChip(text: String) {
     Surface(
         shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
         )
     }
 }

@@ -48,7 +48,7 @@ fun DashedUploadBox(
             modifier = Modifier
                 .fillMaxSize()
                 .border(
-                    width = 1.dp,
+                    width = 0.5.dp,
                     color = borderColor.copy(alpha = 0.3f), // Softened for premium feel
                     shape = RoundedCornerShape(16.dp)
                 ),

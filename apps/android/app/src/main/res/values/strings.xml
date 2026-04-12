@@ -7,6 +7,7 @@
     <string name="nav_feedback">Feedback</string>
     <string name="nav_contribute">Contribute</string>
     <string name="nav_privacy">Privacy</string>
+    <string name="nav_intro">Introduction</string>
     <string name="hero_tagline">Preserving Mon Heritage in the Digital Age</string>
     <string name="hero_subtitle">Academic-grade OCR for Mon script. High-performance, private, and localized.</string>
     <string name="engine_initializing">Initializing model…</string>

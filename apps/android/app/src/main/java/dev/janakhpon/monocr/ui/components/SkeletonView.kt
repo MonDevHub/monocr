@@ -2,6 +2,7 @@ package dev.janakhpon.monocr.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +55,11 @@ fun SkeletonResultCard() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
+                .border(
+                    width = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(16.dp)
+                )
                 .background(
                     color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(16.dp)
@@ -68,7 +74,7 @@ fun SkeletonResultCard() {
                     .height(14.dp)
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(8.dp)
                     )
                     .shimmerModifier()
             )
@@ -78,7 +84,7 @@ fun SkeletonResultCard() {
                     .height(14.dp)
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(8.dp)
                     )
                     .shimmerModifier()
             )
@@ -88,7 +94,7 @@ fun SkeletonResultCard() {
                     .height(14.dp)
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
                     .shimmerModifier()
             )

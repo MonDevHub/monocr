@@ -60,7 +60,7 @@ fun FeedbackScreen(
     viewModel: FeedbackViewModel,
     originalText: String = "",
     sourceUriDefault: Uri? = null,
-    onBack: () -> Unit
+    onMenuClick: () -> Unit
 ) {
     val feedbackHistory by viewModel.feedbackHistory.collectAsState()
     var correctedText by remember { mutableStateOf(originalText) }
@@ -83,22 +83,19 @@ fun FeedbackScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.nav_feedback), style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.close))
-                    }
-                }
+            dev.janakhpon.monocr.ui.components.MonTopAppBar(
+                title = stringResource(R.string.nav_feedback),
+                onMenuClick = onMenuClick
             )
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(12.dp), // Reduced from 20.dp
-            verticalArrangement = Arrangement.spacedBy(12.dp) // Reduced from 24.dp
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ── Original Source Section ──────────────────
             SectionHeader(stringResource(R.string.feedback_source_title))
@@ -117,7 +114,7 @@ fun FeedbackScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(100.dp) // Reduced from 120.dp
-                        .clip(RoundedCornerShape(8.dp)),
+                        .clip(RoundedCornerShape(16.dp)),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                     border = borderStroke()
                 ) {
@@ -143,7 +140,7 @@ fun FeedbackScreen(
                 SectionHeader(stringResource(R.string.feedback_original_output))
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     border = borderStroke()
                 ) {
@@ -194,7 +191,7 @@ fun FeedbackScreen(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text(stringResource(R.string.feedback_corrected_placeholder), fontSize = 13.sp) },
                     textStyle = monScriptStyle,
-                    shape = RoundedCornerShape(4.dp)
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
 
@@ -216,7 +213,7 @@ fun FeedbackScreen(
                             selected = selectedType == value,
                             onClick = { selectedType = value },
                             label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(2.dp) // Reduced from 4.dp
+                            shape = RoundedCornerShape(8.dp)
                         )
                     }
                 }
@@ -263,13 +260,13 @@ fun FeedbackScreen(
                     },
                     modifier = Modifier.fillMaxWidth().height(36.dp), // Reduced from 50.dp
                     enabled = correctedText.isNotBlank() && consent,
-                    shape = RoundedCornerShape(4.dp) // Reduced from 8.dp
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(stringResource(R.string.feedback_submit))
                 }
                 
                 TextButton(
-                    onClick = onBack,
+                    onClick = onMenuClick,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.feedback_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -303,5 +300,5 @@ fun FeedbackScreen(
 
 @Composable
 private fun borderStroke() = androidx.compose.foundation.BorderStroke(
-    1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
 )

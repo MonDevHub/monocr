@@ -106,7 +106,7 @@ fun HistoryResultDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(160.dp)
-                                .clip(RoundedCornerShape(12.dp)), // Nested Surface 12dp
+                                .clip(RoundedCornerShape(16.dp)),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         ) {
                             if (isImage) {
@@ -132,10 +132,10 @@ fun HistoryResultDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 400.dp),
-                    shape = RoundedCornerShape(12.dp), // Nested Surface 12dp
+                    shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                     border = androidx.compose.foundation.BorderStroke(
-                        1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+                        0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
                     )
                 ) {
                     Column(
@@ -176,7 +176,7 @@ fun HistoryResultDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
-                        shape = RoundedCornerShape(12.dp) // Optimized for thumb tap
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Icon(
                             if (copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy,

@@ -19,6 +19,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,6 +35,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.janakhpon.monocr.R
 import androidx.compose.ui.res.stringResource
 
@@ -41,7 +43,7 @@ private data class InfoRow(val label: String, val value: String)
 
 @Composable
 fun AboutScreen(
-    onBack: () -> Unit,
+    onMenuClick: () -> Unit,
     onNavigateToDocs: () -> Unit,
     onNavigateToContribute: () -> Unit,
     onNavigateToFeedback: () -> Unit,
@@ -50,119 +52,107 @@ fun AboutScreen(
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        // ── Nav row ───────────────────────────────────────────────────
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(bottom = 8.dp)
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.ArrowBack,
-                    contentDescription = stringResource(R.string.close),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Text(
-                stringResource(R.string.nav_about),
-                style = MaterialTheme.typography.headlineMedium
+    Scaffold(
+        topBar = {
+            dev.janakhpon.monocr.ui.components.MonTopAppBar(
+                title = stringResource(R.string.nav_about),
+                onMenuClick = onMenuClick
             )
         }
-
-        InfoCard(
-            title = stringResource(R.string.about_overview),
-            body  = stringResource(R.string.about_overview_desc)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-        ModelInfoCard()
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        InfoCard(
-            title = stringResource(R.string.about_lang_support),
-            body  = stringResource(R.string.about_lang_support_desc)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // FIX F13: LinksCard now uses clean Row-based links with external icon
-        LinksCard(
-            onLinkClick = { url -> uriHandler.openUri(url) },
-            onPrivacyClick = onNavigateToPrivacy
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Internal app links for consistency
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            TextButton(onClick = onNavigateToDocs) {
-                Text(stringResource(R.string.nav_docs), style = MaterialTheme.typography.labelMedium)
-            }
-            Text(" • ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
-            TextButton(onClick = onNavigateToContribute) {
-                Text(stringResource(R.string.nav_contribute), style = MaterialTheme.typography.labelMedium)
-            }
-            Text(" • ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
-            TextButton(onClick = onNavigateToFeedback) {
-                Text(stringResource(R.string.nav_feedback), style = MaterialTheme.typography.labelMedium)
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            TextButton(
-                onClick = {
-                    val logFile = MonLogger.getLogFile(context)
-                    if (logFile.exists()) {
-                        val uri = FileProvider.getUriForFile(
-                            context,
-                            "${context.packageName}.fileprovider",
-                            logFile
-                        )
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }
-                        context.startActivity(Intent.createChooser(intent, context.getString(R.string.about_export_logs_chooser)))
-                    } else {
-                        android.widget.Toast.makeText(context, context.getString(R.string.about_no_logs), android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
+            InfoCard(
+                title = stringResource(R.string.about_overview),
+                body  = stringResource(R.string.about_overview_desc)
+            )
+
+            ModelInfoCard()
+
+            InfoCard(
+                title = stringResource(R.string.about_lang_support),
+                body  = stringResource(R.string.about_lang_support_desc)
+            )
+
+            // FIX F13: LinksCard now uses clean Row-based links with external icon
+            LinksCard(
+                onLinkClick = { url -> uriHandler.openUri(url) },
+                onPrivacyClick = onNavigateToPrivacy
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Internal app links for consistency
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(R.string.about_export_logs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = onNavigateToDocs) {
+                    Text(stringResource(R.string.nav_docs), style = MaterialTheme.typography.labelMedium)
+                }
+                Text(" • ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                TextButton(onClick = onNavigateToContribute) {
+                    Text(stringResource(R.string.nav_contribute), style = MaterialTheme.typography.labelMedium)
+                }
+                Text(" • ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                TextButton(onClick = onNavigateToFeedback) {
+                    Text(stringResource(R.string.nav_feedback), style = MaterialTheme.typography.labelMedium)
+                }
             }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                TextButton(
+                    onClick = {
+                        val logFile = MonLogger.getLogFile(context)
+                        if (logFile.exists()) {
+                            val uri = FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.fileprovider",
+                                logFile
+                            )
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(intent, context.getString(R.string.about_export_logs_chooser)))
+                        } else {
+                            android.widget.Toast.makeText(context, context.getString(R.string.about_no_logs), android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.about_export_logs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                "MIT License · © 2026 Janakhpon",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(16.dp))
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            "MIT License · © 2026 Janakhpon",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
     }
 }
 
 @Composable
 private fun InfoCard(title: String, body: String) {
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
         modifier = Modifier.fillMaxWidth()
@@ -195,7 +185,7 @@ private fun ModelInfoCard() {
     )
 
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
         modifier = Modifier.fillMaxWidth()
@@ -250,7 +240,7 @@ private fun LinksCard(
     )
 
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
         modifier = Modifier.fillMaxWidth()

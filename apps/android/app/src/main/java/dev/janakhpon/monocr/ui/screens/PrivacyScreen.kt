@@ -24,30 +24,22 @@ import dev.janakhpon.monocr.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PrivacyScreen(onNavigateBack: () -> Unit) {
+fun PrivacyScreen(onMenuClick: () -> Unit) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.privacy_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.close))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
+            dev.janakhpon.monocr.ui.components.MonTopAppBar(
+                title = stringResource(R.string.privacy_title),
+                onMenuClick = onMenuClick
             )
         }
     ) { padding ->
         Column(
             modifier = Modifier
-                .padding(padding)
                 .fillMaxSize()
+                .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Hero Section
             Surface(
