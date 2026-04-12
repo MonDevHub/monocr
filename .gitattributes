@@ -3,6 +3,7 @@
 
 # Exclude compiled, generated, or non-primary web assets
 *.js linguist-detectable=false
+*.mjs linguist-detectable=false
 *.cjs linguist-detectable=false
 *.jsx linguist-detectable=false
 *.html linguist-detectable=false
