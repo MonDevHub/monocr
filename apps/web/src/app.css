@@ -22,10 +22,12 @@
 		/* Backgrounds - Calm Paper-like */
 		--bg-canvas: #fcfbf9;
 		--bg-canvas-subtle: #f5f4f0;
+		--bg-canvas-glass: rgba(252, 251, 249, 0.8);
 		--bg-border: #e8e6e1;
 
 		/* Professional Productivity Palette - Neutral & Utilitarian */
 		--primary: #1a1a1a; /* Pure, deep professional gray/black */
+		--primary-tint: #4338ca; /* Indigo 700 tint for subtle accents */
 		--accent-gold: #b2940a;
 		--background-light: #ffffff;
 		--background-dark: #0a0a0a;
@@ -50,14 +52,16 @@
 	.dark {
 		--bg-canvas: #151517;
 		--bg-canvas-subtle: #1c1c1e;
-		--bg-border: #222224; /* Softened from 2c2c2e */
+		--bg-canvas-glass: rgba(21, 21, 23, 0.8);
+		--bg-border: #222224;
 		--fg-primary: #d1d1d6;
 		--fg-secondary: #8e8e93;
-		--fg-muted: #8e8e93; /* Bumped from #636366 for readability */
+		--fg-muted: #8e8e93;
 		--fg-accent: #f4f4f5;
 		--btn-bg: #1c1c1e;
 		--btn-border: #2c2c2e;
 		--btn-hover: #3a3a3c;
+		--primary-tint: #6366f1; /* Indigo 500 tint */
 		--fg-on-primary: #151517; /* Dark text on light button in dark mode */
 		/* Pure professional neutral in dark */
 		--primary-action: #f4f4f5;
@@ -68,6 +72,7 @@
 @theme {
 	--color-canvas: var(--bg-canvas);
 	--color-canvas-subtle: var(--bg-canvas-subtle);
+	--color-canvas-glass: var(--bg-canvas-glass);
 	--color-border: var(--bg-border);
 	--color-fg-primary: var(--fg-primary);
 	--color-fg-secondary: var(--fg-secondary);
@@ -80,6 +85,7 @@
 	--color-primary-action: var(--primary-action, var(--primary));
 
 	--color-primary: var(--primary);
+	--color-primary-tint: var(--primary-tint);
 	--color-accent-gold: var(--accent-gold);
 
 	--font-display: 'Inter', system-ui, sans-serif;
@@ -222,16 +228,25 @@ body {
 	@apply bg-canvas-subtle/50 rounded-xl px-8 py-6 font-mono text-[12px] leading-relaxed;
 }
 
+/* Improved Syntax Highlighting */
 .zen-code-comment {
-	@apply text-fg-muted/60 italic;
+	@apply text-fg-muted/40 italic;
 }
 
 .zen-code-keyword {
-	@apply text-fg-primary font-bold;
+	@apply text-primary-tint font-bold;
 }
 
 .zen-code-string {
-	@apply text-fg-secondary;
+	@apply text-accent-gold;
+}
+
+.zen-code-func {
+	@apply text-fg-primary font-medium;
+}
+
+.glass {
+	@apply bg-canvas-glass backdrop-blur-md;
 }
 
 * {
