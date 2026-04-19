@@ -132,13 +132,11 @@
 			<!-- Original Output Section -->
 			<section class="mb-12">
 				<h3 class="zen-label mb-6">Original Output</h3>
-				<div class="border-border bg-canvas-subtle/30 overflow-hidden rounded-xl border">
+				<div class="bg-canvas-subtle/20 overflow-hidden rounded-[var(--radius-huge)]">
 					<div class="p-4">
 						<div class="flex flex-col gap-4">
 							{#if previewUrl}
-								<div
-									class="border-border bg-canvas-subtle relative h-[200px] w-full overflow-hidden rounded border"
-								>
+								<div class="bg-canvas-subtle/40 relative h-[200px] w-full overflow-hidden rounded">
 									<img
 										src={previewUrl}
 										alt="Source Scan"
@@ -174,7 +172,7 @@
 				<label class="block">
 					<textarea
 						bind:value={correctedText}
-						class="focus-ring border-border bg-canvas text-fg-primary placeholder:text-fg-muted/40 block w-full resize-y rounded-xl border px-5 py-4 leading-relaxed text-[var(--text-body)] transition-all duration-150 placeholder:text-[var(--text-meta)]"
+						class="focus-ring bg-canvas-subtle/30 hover:bg-canvas-subtle/50 focus:bg-canvas text-fg-primary placeholder:text-fg-muted/40 block w-full resize-y rounded-[var(--radius-huge)] px-5 py-4 leading-relaxed text-[var(--text-body)] transition-all duration-150 outline-none placeholder:text-[var(--text-meta)]"
 						rows="5"
 						placeholder="Corrected Mon script..."
 					></textarea>
@@ -189,10 +187,10 @@
 				{#each ['Spelling', 'Layout', 'Formatting', 'Other'] as type (type)}
 					<button
 						onclick={() => (selectedType = type)}
-						class="border-border hover:border-fg-secondary hover:bg-canvas-subtle focus-ring rounded-lg border px-5 py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all {selectedType ===
+						class="hover:bg-canvas-subtle/60 focus-ring rounded-[var(--radius-lg)] px-5 py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all {selectedType ===
 						type
-							? 'bg-primary border-primary text-white hover:brightness-110'
-							: 'text-fg-muted'}"
+							? 'bg-primary text-white shadow-sm hover:brightness-110'
+							: 'bg-canvas-subtle/30 text-fg-muted'}"
 					>
 						{type}
 					</button>
@@ -201,7 +199,7 @@
 		</section>
 
 		<!-- Consent & Actions -->
-		<section class="border-border mb-20 space-y-10 border-t pt-10">
+		<section class="mb-20 space-y-10 pt-10">
 			<div class="flex items-start gap-4">
 				<div class="flex h-6 items-center">
 					<input

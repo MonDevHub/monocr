@@ -73,7 +73,7 @@ All technical documentation, architectural decisions, and setup guides are centr
 
 ## Community and Support
 
-[Janakh Pon](https://github.com/janakhpon) • [Oung Seik Nyan](https://github.com/Oungseik) • [MonDevHub](https://github.com/MonDevHub)
+<sub>[Janakh Pon](https://github.com/janakhpon) • [Oung Seik Nyan](https://github.com/Oungseik) • [Rajel Da Key](https://www.facebook.com/RJOMDK10) • [MonDevHub](https://github.com/MonDevHub)</sub>
 
 - **Feedback**: Report technical bugs via [GitHub Issues](https://github.com/MonDevHub/monocr/issues).
 - **Linguistic Assets**: Audit our [shared translation sheet](https://docs.google.com/spreadsheets/d/1sr8WtiMEyDuDd1amI-wzAz5d2acZlVC7zOZMqixOADQ/edit?usp=sharing).

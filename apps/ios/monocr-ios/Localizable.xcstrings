@@ -2207,7 +2207,7 @@
         "mnw": {
           "stringUnit": {
             "state": "translated",
-            "value": "ပရူ"
+            "value": "ပရော"
           }
         },
         "my": {
@@ -2230,7 +2230,7 @@
         "mnw": {
           "stringUnit": {
             "state": "translated",
-            "value": "တင်တုံ့ပြန်"
+            "value": "ကမၠေၚ်ကသပ်"
           }
         },
         "my": {
@@ -2391,7 +2391,7 @@
         "mnw": {
           "stringUnit": {
             "state": "translated",
-            "value": "ပဝ်တန်အေစီ"
+            "value": "ပရောပူဂဵု တင်မဒးဂိုင်ဒေပ်ပၞုက်လဝ်"
           }
         },
         "my": {
@@ -3127,7 +3127,7 @@
         "mnw": {
           "stringUnit": {
             "state": "translated",
-            "value": "အင်ဂျင် OCR စကာဟွံဂွံ - {msg}"
+            "value": "အေန်ဂျေၚ် OCR စကာဟွံဂွံ - {msg}"
           }
         },
         "my": {

@@ -31,7 +31,7 @@
     <string name="clipboard_label">MonOCR ရလဒ်</string>
     <string name="share_chooser_title">စာသား မျှဝေရန်</string>
     <string name="open_file_chooser_title">ဖိုင်ဖွင့်ရန်</string>
-    <string name="close">ပိတ်မည်</string>
+    <string name="close">ပိတ််မည်။</string>
     <string name="error_file_large">ဖိုင် အရွယ်အစား ကြီးလွန်းသည် (အများဆုံး {max}MB)</string>
     <string name="error_file_type">ဖိုင်အမျိုးအစား မှားယွင်းနေသည်။ JPG, PNG, WEBP, PDF သာ အသုံးပြုပါ။</string>
     <string name="error_ocr_failed">OCR လုပ်ဆောင်မှု မအောင်မြင်ပါ - {msg}</string>
@@ -45,8 +45,8 @@
     <string name="history_clear_title">မှတ်တမ်းများ ဖျက်မည်</string>
     <string name="history_clear_message">မှတ်တမ်းအားလုံးကို ဖျက်ရန် သေချာပါသလား? ဤလုပ်ဆောင်ချက်ကို ပြန်ပြင်၍မရပါ။</string>
     <string name="history_delete_all">အားလုံးဖျက်မည်</string>
-    <string name="btn_cancel">မလုပ်တော့ပါ</string>
-    <string name="action_delete">ဖျက်မည်</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
     <string name="label_or">သို့မဟုတ်</string>
     <string name="view_cli_guide">CLI လမ်းညွှန်ကို ကြည့်ရန်</string>
     <string name="about_monocr">MonOCR အကြောင်း</string>

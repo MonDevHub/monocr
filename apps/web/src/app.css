@@ -50,7 +50,7 @@
 	.dark {
 		--bg-canvas: #151517;
 		--bg-canvas-subtle: #1c1c1e;
-		--bg-border: #2c2c2e;
+		--bg-border: #222224; /* Softened from 2c2c2e */
 		--fg-primary: #d1d1d6;
 		--fg-secondary: #8e8e93;
 		--fg-muted: #8e8e93; /* Bumped from #636366 for readability */
@@ -99,7 +99,7 @@
 	--radius-lg: 4px; /* Standardized */
 	--radius-xl: 4px; /* Standardized */
 	--radius-2xl: 6px;
-	--radius-huge: 8px; /* Sharper & More Compact */
+	--radius-huge: 6px; /* Ultra-Compact */
 
 	/* Transition tokens - "Immediate but invisible" */
 	--transition-fast: 100ms;
@@ -144,6 +144,18 @@ textarea:focus-visible,
 select:focus-visible,
 [role='button']:focus-visible {
 	@apply ring-primary/40 ring-offset-canvas ring-2 ring-offset-2 outline-none;
+}
+
+/* Ensure proper affordance */
+button,
+label,
+select,
+[role='button'],
+input[type='checkbox'],
+input[type='radio'],
+input[type='file'],
+input[type='submit'] {
+	cursor: pointer;
 }
 
 :root {
