@@ -119,6 +119,40 @@ struct DocsView: View {
                         }
                     }
                 }
+                
+                Section("Contributors") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Link(destination: URL(string: "https://github.com/janakhpon")!) {
+                            HStack {
+                                Text("Janakh Pon")
+                                    .fontWeight(.medium)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        Divider()
+                        Link(destination: URL(string: "https://github.com/Oungseik")!) {
+                            HStack {
+                                Text("Oung Seik Nyan")
+                                    .fontWeight(.medium)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        Divider()
+                        Link(destination: URL(string: "https://www.facebook.com/RJOMDK10")!) {
+                            HStack {
+                                Text("Rajel Da Key")
+                                    .fontWeight(.medium)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                            }
+                            .padding(.vertical, 8)
+                        }
+                    }
+                }
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Documentation")

@@ -177,6 +177,47 @@ fun DocsScreen(onMenuClick: () -> Unit) {
                 }
             }
 
+            // ── Contributors ─────────────────
+            DocSection(
+                number = "6",
+                title = "Contributors",
+                icon = Icons.Outlined.Group
+            ) {
+                val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                val contributors = listOf(
+                    "Janakh Pon" to "https://github.com/janakhpon",
+                    "Oung Seik Nyan" to "https://github.com/Oungseik",
+                    "Rajel Da Key" to "https://www.facebook.com/RJOMDK10"
+                )
+                
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        contributors.forEachIndexed { index, (name, link) ->
+                            TextButton(
+                                onClick = { uriHandler.openUri(link) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(
+                                    Icons.AutoMirrored.Outlined.OpenInNew,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }

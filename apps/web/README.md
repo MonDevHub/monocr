@@ -108,6 +108,12 @@ pnpm build
 - [NPM Package](https://www.npmjs.com/package/monocr)
 - [Help contribute to copy/translations here](https://docs.google.com/spreadsheets/d/1sr8WtiMEyDuDd1amI-wzAz5d2acZlVC7zOZMqixOADQ/edit?usp=sharing)
 
+## Contributors
+
+- [Janakh Pon](https://github.com/janakhpon)
+- [Oung Seik Nyan](https://github.com/Oungseik)
+- [Rajel Da Key](https://www.facebook.com/RJOMDK10)
+
 ## License
 
 MIT

@@ -270,11 +270,11 @@
 <div class="mx-auto w-full max-w-3xl">
 	<!-- Intro Section -->
 	<div class="mb-6 space-y-2 text-center md:mb-10 md:space-y-4">
-		<p
+		<h1
 			class="text-fg-primary mx-auto mt-2 max-w-xl text-[18px] leading-snug font-medium tracking-tight text-balance sm:text-[20px] md:text-[var(--text-title)]"
 		>
 			Digitize Mon texts effortlessly. High-precision OCR running right in your browser.
-		</p>
+		</h1>
 
 		<div class="flex justify-center pt-2">
 			{#if !engineReady && !error}
@@ -318,7 +318,7 @@
 		{#if !file}
 			<div in:fade={{ duration: 150 }}>
 				<div
-					class="border-border bg-canvas hover:bg-canvas-subtle group hover:border-primary/30 relative flex flex-col items-center justify-center rounded-[var(--radius-huge)] border-2 border-dashed py-12 transition-all duration-300 ease-in-out"
+					class="bg-canvas-subtle/40 hover:bg-canvas-subtle group relative flex flex-col items-center justify-center rounded-[var(--radius-huge)] py-16 transition-all duration-300 ease-in-out"
 					ondragover={handleDragOver}
 					ondragleave={handleDragLeave}
 					ondrop={handleDrop}
@@ -340,7 +340,7 @@
 
 					<div class="relative flex flex-col items-center space-y-4 text-center">
 						<div
-							class="bg-canvas-subtle border-border group-hover:border-primary/20 flex h-16 w-16 items-center justify-center rounded-2xl border transition-all duration-300 group-hover:scale-110 group-hover:shadow-sm"
+							class="bg-canvas-subtle flex h-16 w-16 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 group-hover:scale-110"
 						>
 							<span
 								class="material-symbols-outlined text-fg-muted group-hover:text-primary text-3xl font-light transition-colors duration-300"
@@ -364,18 +364,16 @@
 			<div class="mx-auto flex w-full max-w-2xl flex-col gap-6" in:fly={{ y: 20, duration: 400 }}>
 				<!-- Image Preview -->
 				<div
-					class="border-border bg-canvas-subtle relative flex min-h-[120px] items-center justify-center overflow-hidden rounded-lg border p-3 shadow-sm"
+					class="bg-canvas-subtle/30 relative flex min-h-[120px] items-center justify-center overflow-hidden rounded-lg p-3"
 				>
 					<img src={previewUrl} alt="Preview" class="h-auto max-h-[25vh] w-full object-contain" />
 				</div>
 
 				<!-- Result -->
 				<div
-					class="border-border bg-canvas animate-fade-in-up ring-border/20 flex min-h-[250px] flex-col overflow-hidden rounded-xl border shadow-sm ring-1 transition-all duration-300"
+					class="bg-canvas-subtle/20 animate-fade-in-up flex min-h-[250px] flex-col overflow-hidden rounded-[var(--radius-huge)] transition-all duration-300"
 				>
-					<div
-						class="border-border bg-canvas-subtle flex items-center justify-between border-b px-5 py-2.5"
-					>
+					<div class="bg-canvas-subtle/50 flex items-center justify-between px-5 py-3">
 						<div class="flex items-center gap-3">
 							<h2 class="section-label mb-0 tracking-[0.4em] text-[var(--text-meta)]">
 								Extracted Text
@@ -443,9 +441,7 @@
 					</div>
 
 					{#if resultText}
-						<div
-							class="border-border bg-canvas-subtle flex items-center justify-between border-t px-6 py-2.5"
-						>
+						<div class="bg-canvas-subtle/50 flex items-center justify-between px-6 py-3">
 							<div class="flex items-center gap-3">
 								<button
 									class="btn-secondary px-3 py-1"

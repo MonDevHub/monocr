@@ -94,7 +94,7 @@
 		<div class="space-y-2.5">
 			{#each historyRecords as record (record.id)}
 				<div
-					class="border-border/60 bg-canvas-subtle hover:bg-canvas hover:border-border group relative flex items-center justify-between overflow-hidden rounded-[var(--radius-lg)] border px-4 py-3 transition-all duration-200 select-none hover:shadow-sm"
+					class="bg-canvas-subtle/30 hover:bg-canvas-subtle/60 group relative flex cursor-pointer items-center justify-between overflow-hidden rounded-[var(--radius-lg)] px-4 py-3 transition-all duration-200 select-none"
 				>
 					<div class="flex min-w-0 items-center gap-4">
 						<!-- Icon Wrapper (Cleaner, no box) -->
