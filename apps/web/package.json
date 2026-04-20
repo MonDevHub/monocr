@@ -11,7 +11,7 @@
 		"paraglide": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide",
 		"copy-wasm": "node scripts/copy-wasm.mjs",
 		"copy-pdf-worker": "node scripts/copy-pdf-worker.mjs",
-		"build": "vite build --mode production && rm -f .svelte-kit/cloudflare/monocr.onnx",
+		"build": "pnpm run copy-wasm && pnpm run copy-pdf-worker && vite build --mode production && rm -f .svelte-kit/cloudflare/monocr.onnx",
 		"build-local": "pnpm run copy-wasm && pnpm run copy-pdf-worker && vite build && rm -f .svelte-kit/cloudflare/monocr.onnx",
 		"build:analyze": "pnpm run copy-wasm && pnpm run copy-pdf-worker && vite build --mode production --analyze",
 		"build:minimal": "pnpm run copy-wasm && pnpm run copy-pdf-worker && vite build --mode production --minify terser",

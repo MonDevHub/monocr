@@ -19,10 +19,8 @@ export class MonOcrOnnx {
 	 */
 	async initialize(modelPath: string, charsetPath: string): Promise<void> {
 		// Configure ONNX Runtime Wasm paths BEFORE creating session
-		// Senior Tip: Use local wasm in dev for speed, CDN in prod to avoid bundle size issues
-		ort.env.wasm.wasmPaths = import.meta.env.DEV
-			? '/wasm/'
-			: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
+		// Senior Tip: Serving WASM from same-origin is most reliable for COOP/COEP and PWA.
+		ort.env.wasm.wasmPaths = '/wasm/';
 
 		// Explicitly disable multi-threading to avoid conflicts with WebGPU/JSEP
 		// on modern versions of onnxruntime-web (1.24.x)
