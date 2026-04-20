@@ -12,7 +12,6 @@ export class MonOcrOnnx {
 	private charset: string = '';
 	private readonly TARGET_HEIGHT = 128;
 	private readonly TARGET_WIDTH = 1024;
-
 	/**
 	 * Initialize the ONNX Runtime session with model and charset.
 	 * @param modelPath Path to the ONNX model file
@@ -20,7 +19,10 @@ export class MonOcrOnnx {
 	 */
 	async initialize(modelPath: string, charsetPath: string): Promise<void> {
 		// Configure ONNX Runtime Wasm paths BEFORE creating session
-		ort.env.wasm.wasmPaths = '/wasm/';
+		// Senior Tip: Use local wasm in dev for speed, CDN in prod to avoid bundle size issues
+		ort.env.wasm.wasmPaths = import.meta.env.DEV
+			? '/wasm/'
+			: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
 
 		// Explicitly disable multi-threading to avoid conflicts with WebGPU/JSEP
 		// on modern versions of onnxruntime-web (1.24.x)
