@@ -101,6 +101,10 @@ pnpm build
 > [!IMPORTANT]
 > The build script automatically optimizes the `monocr.onnx` model deployment to comply with edge asset limits. In production, models are fetched from the HuggingFace CDN.
 
+## Deployment
+
+use `/app/web` as deployment root directory.
+
 ## Resources
 
 - [HuggingFace Models](https://huggingface.co/janakhpon/monocr) (ONNX, Core ML, TFLite)
