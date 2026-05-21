@@ -6,68 +6,74 @@
 
 ---
 
-## ဘာသာစကားထိန်းသိမ်းခြင်းဆိုင်ရာ ရည်မှန်းချက်များ (Linguistic Preservation Objectives)
+မွန်ဘာသာစကားကို လူဦးရေ တစ်သန်းခန့်က မြန်မာနိုင်ငံနှင့် ထိုင်းနိုင်ငံတို့တွင် ပြောဆိုသုံးစွဲသည်။ [UNESCO မှ ထိန်းသိမ်းရန်လိုအပ်သောဘာသာ](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger) အဖြစ် သတ်မှတ်ထားပြီး ဤပရောဂျက်မတိုင်မီ မွန်ဘာသာစကားအတွက် OCR ကိရိယာဆောင်ရွက်မှုမရှိသေးပါ။
 
-MonOCR သည် **မွန်ဘာသာစကား (mnw)** ကို ဒစ်ဂျစ်တယ်စနစ်ဖြင့် ထိန်းမ်းရန် ရည်ရွယ်သည့် open-source နည်းပညာမူဘောင်တစ်ခုဖြစ်သည်။ [UNESCO](https://www.unesco.org/en) မှ အသုံးပြုသူနည်းလာသော ဘာသာစကားအဖြစ် သတ်မှတ်ထားသော မွန်ဘာသာစကားအတွက် ဤပရောဂျက်သည် **zero-leak privacy** နည်းပညာကို အခြေခံ၍ အော့ဖ်လိုင်း (offline) စာသားဖတ်ယူမှုစနစ်ကို တည်ဆောက်ထားပါသည်။
+MonOCR သည် မွန်အက္ခရာ ပုံရိပ်ကိုယူ၍ စာသားထုတ်ပေးသည်။ Web၊ Android နှင့် iOS တို့တွင် အလုပ်လုပ်သည် — အပြည့်အဝ offline၊ ဒေတာသည် စက်မှထွက်ခွာမည်မဟုတ်ပါ။
 
-### သုတေသန လုပ်ငန်းစဉ်နှင့် အချက်အလက် စုဆောင်းခြင်း (Research Trajectory)
-
-လက်ရှိ အသုံးပြုထားသော inference engine (~6.6M parameters) သည် low-latency ဖြင့် အလုပ်လုပ်နိုင်ရန် အကောင်းဆုံးဖြစ်အောင် ပြုပြင်ထားသော V1 အဆင့်သာ ဖြစ်ပါသည်။ မွန်ဘာသာစကားအတွက် အရည်အသွေးမြင့် ဒစ်ဂျစ်တယ် datasets များ ရှားပါးနေသေးသည့်အတွက် ဤပလက်ဖောင်းသည် **အချက်အလက် စုဆောင်းရေး (data acquisition)** အတွက်ပါ ရည်ရွယ်ပါသည်။ [Feedback Service](services/feedback) မှတစ်ဆင့် စုဆောင်းရရှိလာသော အချက်အလက်များကို အသုံးပြု၍ နောင်တွင် ပိုမိုစွမ်းဆောင်ရည်မြင့်မားသော OCR model များကို ဆက်လက် တည်ဆောက်သွားမည် ဖြစ်ပါသည်။
+မွန်ဖွံ့ဖြိုးရေး လူ့အဖွဲ့အစည်းမှ တည်ဆောက်ထိန်းသိမ်းသည်။
 
 ---
 
-### တိုက်ရိုက်အသုံးပြုရန် (Live Access)
+## Live
 
 - **Web**: [ocr.mondevhub.com](https://ocr.mondevhub.com)
-- **Android**: [Google Play Store](https://play.google.com/store/apps/details?id=dev.janakhpon.monocr)
-- **iOS**: [Apple App Store](https://apps.apple.com/app/monocr) (Coming Soon)
+- **Android**: [Google Play](https://play.google.com/store/apps/details?id=dev.janakhpon.monocr)
+- **iOS**: [App Store](https://apps.apple.com/app/monocr) *(ပြန်လည်စစ်ဆေးဆဲ)*
 
 ---
 
-## ပလက်ဖောင်း နည်းပညာစနစ် (Platform Architecture)
+## Models
 
-MonOCR သည် ပလက်ဖောင်းအားလုံးတွင် တူညီသော **architectural parity** ရရှိရန် တွက်ချက်မှုပုံစံတစ်ခုတည်းကိုသာ အသုံးပြုထားသည်။ သို့သော် ဟာ့ဒ်ဝဲစွမ်းဆောင်ရည် အပြည့်အဝရရှိစေရန်အတွက် ပလက်ဖောင်းအလိုက် အကောင်းဆုံးဖြစ်အောင် ပြောင်းလဲထားသော စနစ်များကို အသုံးပြုထားပါသည်-
+Model နှစ်မျိုးကို တက်ကြွစွာ လေ့ကျင့်ထိန်းသိမ်းနေသည်-
 
-- **Web/Android**: Standardized ONNX weights.
-- **iOS**: Apple Neural Engine အတွက် CoreML (`.mlpackage`).
+| | **v3.5 — Mobile** | **v4 — Server** |
+| :--- | :--- | :--- |
+| ရည်ရွယ်ချက် | On-device / edge | Server-side / စာရွက်စာတမ်း |
+| Architecture | MobileNetV3 + 2×BiLSTM(512) + CTC | Swin-T Encoder + 6-layer Transformer Decoder |
+| Parameters | 11.4M | ~54M |
+| Input | Grayscale, `160px` အမြင့် | RGB, `224×1024px` |
+| Export | ONNX FP32/FP16/INT8 · CoreML | ONNX သာ |
+| Inference (CPU) | ~30ms/line | ~180ms/line |
 
-### Implementation Cross-Reference
+mobile model (v3.5) သည် Web (WASM)၊ Android (NNAPI) နှင့် iOS (Core ML) တို့တွင် on-device လုပ်ဆောင်သည်။ server model (v4) သည် အရောင်ပတ်ဝန်းကျင်နှင့် ရှည်လျားသောစာသားပါဝင်သည့် ရှုပ်ထွေးသောစာရွက်ပုံရိပ်များကို ကိုင်တွယ်သည်။
 
-| Concern                 | Principal Implementation        | Architectural Rationale                 |
-| :---------------------- | :------------------------------ | :-------------------------------------- |
-| **Model (Web/Android)** | `apps/android/.../monocr.onnx`  | Deterministic cross-platform benchmarks |
-| **Model (iOS)**         | `apps/ios/.../monocr.mlpackage` | ANE-optimized hardware utilization      |
-| **Asset Sync**          | `shared/locales/sync.mjs`       | Multi-target linguistic idempotency     |
-| **Ingestion Auth**      | `internal/auth/middleware.go`   | Perimeter security for asset ingestion  |
-| **Native Execution**    | `engine/MonOcrEngine.swift`     | Hardware-bound inference logic          |
-
-- **[Web App](apps/web)**: Browser အခြေပြု SvelteKit PWA.
-- **[Android App](apps/android)**: Native Jetpack Compose (NNAPI).
-- **[iOS App](apps/ios)**: Native SwiftUI (Apple Neural Engine).
-- **[Feedback Service](services/feedback)**: Mobile-focused ingestion API (Go).
-- **[Core Assets](shared)**: အသုံးပြုရန် ONNX model များနှင့် Localization tools များ။
+မွန်ဘာသာ dataset အရည်အသွေးမြင့်များ ရှားပါးသောကြောင့် application ၏ feedback flow မှ validated sample များသည် နောင်လေ့ကျင့်ရေးဆောင်ရွက်မှုများထဲသို့ တိုက်ရိုက်ဝင်ရောက်သည်။
 
 ---
 
-## နည်းပညာဆိုင်ရာ စာရွက်စာတမ်းများ (Documentation Hub)
+## Platform
 
-နည်းပညာဆိုင်ရာ စာရွက်စာတမ်းများ၊ ဗိသုကာစနစ် ဆုံးဖြတ်ချက်များနှင့် တပ်ဆင်နည်းလမ်းညွှန်များကို **[Documentation Hub](docs)** တွင် စုစည်းထားသည်။
+mobile model (v3.5) သည် Web၊ Android နှင့် iOS တို့သို့ တပ်ဆင်သည် — hardware acceleration ဖွင့်ပေးသောပုံစံကို အသီးသီးအသုံးပြုသည်-
 
-- **[ဗိသုကာစနစ် (ADRs)](docs/architecture/adr)**: နည်းပညာဆိုင်ရာ ဆုံးဖြတ်ချက်မှတ်တမ်းများ။
-- **[API Specifications](docs/api)**: OpenAPI ဆိုင်ရာ အချက်အလက်များ။
-- **[HuggingFace Models - ONNX, CoreML, CKPT](https://huggingface.co/janakhpon/monocr)**: OCR ရယူနိုင်သော model များ။
-- **[NPM Package](https://www.npmjs.com/package/monocr)**: Portable SDK.
+| Platform | Format | Acceleration |
+| :--- | :--- | :--- |
+| Web | ONNX | WASM |
+| Android | ONNX | NNAPI |
+| iOS | CoreML `.mlpackage` | Apple Neural Engine |
+
+- **[Web App](apps/web)** — SvelteKit PWA
+- **[Android App](apps/android)** — Jetpack Compose
+- **[iOS App](apps/ios)** — SwiftUI
+- **[Feedback Service](services/feedback)** — Go ingestion API
+- **[Shared Assets](shared)** — model weights, locales, sync scripts
 
 ---
 
-## လူမှုကွန်ရက်နှင့် အကူအညီများ (Community and Support)
+## Resources
 
-<sub>[Janakh Pon](https://github.com/janakhpon) • [Oung Seik Nyan](https://github.com/Oungseik) • [Rajel Da Key](https://www.facebook.com/RJOMDK10) • [MonDevHub](https://github.com/MonDevHub)</sub>
+- **[HuggingFace](https://huggingface.co/janakhpon/monocr)** — ONNX, CoreML နှင့် checkpoint ဖိုင်များ
+- **[npm package](https://www.npmjs.com/package/monocr)** — JavaScript SDK
+- **[Architecture decisions](docs/architecture/adr)** — ADRs
+- **[API specs](docs/api)** — OpenAPI contracts
+- **[Mon Corpus Collection](https://github.com/MonDevHub/MonCorpusCollection)** — training dataset
 
-- **အကြံပြုချက်များ**: [GitHub Issues](https://github.com/MonDevHub/monocr/issues) တွင် အသိပေးနိုင်ပါသည်။
-- **ဘာသာပြန်ချက်များ**: ကျွန်ုပ်တို့၏ [ဘာသာပြန်စာရင်း](https://docs.google.com/spreadsheets/d/1sr8WtiMEyDuDd1amI-wzAz5d2acZlVC7zOZMqixOADQ/edit?usp=sharing) တွင် ပါဝင်ကူညီနိုင်ပါသည်။
-- **အချက်အလက်များ (Datasets)**: Android သို့မဟုတ် iOS အက်ပလီကေးရှင်းများမှတစ်ဆင့် ပေးပို့နိုင်ပါသည်။
-- **နည်းပညာစံနှုန်းများ**: [Contributing Guide](.github/CONTRIBUTING.md) နှင့် [Security Policy](.github/SECURITY.md) တို့ကို ဖတ်ရှုနိုင်ပါသည်။
+---
 
-> [!NOTE]
-> [မွန်ဘာသာစကား](https://en.wikipedia.org/wiki/Mon_language) ကို [UNESCO ၏ ကမ္ဘာ့အန္တရာယ်ရှိဘာသာစကားများ](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger) တွင် "ထိန်းသိမ်းရန်လိုအပ်သော" ဘာသာစကားအဖြစ် သတ်မှတ်ထားသည်။
+## Contributing
+
+- **Bugs**: [GitHub Issues](https://github.com/MonDevHub/monocr/issues)
+- **ဘာသာပြန်ချက်များ**: [Shared translation sheet](https://docs.google.com/spreadsheets/d/1sr8WtiMEyDuDd1amI-wzAz5d2acZlVC7zOZMqixOADQ/edit?usp=sharing)
+- **Script samples**: Android သို့မဟုတ် iOS app မှတစ်ဆင့် ပါဝင်ကူညီပါ သို့မဟုတ် တိုက်ရိုက်ဆက်သွယ်ပါ
+- **Standards**: [Contributing Guide](.github/CONTRIBUTING.md) · [Security Policy](.github/SECURITY.md)
+
+[Janakh Pon](https://github.com/janakhpon) · [Oung Seik Nyan](https://github.com/Oungseik) · [Rajel Da Key](https://www.facebook.com/RJOMDK10) · [MonDevHub](https://github.com/MonDevHub)
