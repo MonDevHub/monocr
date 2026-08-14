@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
+import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { SvelteKitPWA } from '@vite-pwa/sveltekit';
@@ -195,11 +196,15 @@ export default defineConfig({
 				extends: './vite.config.ts',
 				test: {
 					name: 'client',
-					environment: 'browser',
+					// No `environment: 'browser'` here. Vitest 4 rejects it outright —
+					// "use test.browser.enabled instead" — which the block below already
+					// does, so the line only stopped the runner from starting. Nothing
+					// caught it because the repository had no test files at all.
 					browser: {
 						enabled: true,
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
-						provider: 'playwright' as any,
+						// A factory, not the string 'playwright'. Vitest 4 changed this and
+						// the string form now throws at startup rather than warning.
+						provider: playwright(),
 						instances: [{ browser: 'chromium' }]
 					},
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
