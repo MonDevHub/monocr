@@ -1,5 +1,10 @@
 export async function onRequest(context) {
-	const MODEL_URL = 'https://huggingface.co/janakhpon/monocr/resolve/main/onnx/monocr.onnx';
+	// Pinned to a revision, not `main`. The four SDKs in monocr-onnx all pin; this
+	// proxy and src/lib/config.ts were the only consumers tracking a moving branch,
+	// which also made the `immutable` header below a promise this could not keep.
+	// A revision here means a new model reaches users when someone changes this
+	// line, not when someone pushes to the model repository.
+	const MODEL_URL = 'https://huggingface.co/janakhpon/monocr/resolve/a51be11/onnx/monocr.onnx';
 
 	try {
 		// Fetch with redirect following (default behavior)

@@ -1,6 +1,13 @@
 export const CONFIG = {
 	MODELS: {
-		RECOGNITION: 'https://huggingface.co/janakhpon/monocr/resolve/main/onnx/monocr.onnx',
+		// Pinned to a revision. `main` moves whenever the model repository is
+		// pushed to, and the charset below is a local file — so tracking `main`
+		// let the weights change without the table they decode through.
+		// `a51be11` is the same revision the Python, JS, Go and Rust SDKs pin.
+		//
+		// Bumping this is a deliberate change: check the model's class count and
+		// input height against static/charset.txt and TARGET_HEIGHT first.
+		RECOGNITION: 'https://huggingface.co/janakhpon/monocr/resolve/a51be11/onnx/monocr.onnx',
 		CHARSET: '/charset.txt'
 	},
 	WORKER: {
