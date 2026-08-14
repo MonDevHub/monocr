@@ -7,6 +7,21 @@ import { segmentLines } from './segmentation';
  * Supports WebGPU (fastest), WASM with SIMD, and WASM fallback.
  */
 export const MODEL_VERSION = '2026.03.21.v1'; // Constitution Aligned
+
+/**
+ * The model and the charset disagree about what this model is.
+ *
+ * Its own class, because an execution-provider failure is retried on WASM and a
+ * contract failure must not be — retrying would load the model a second time to
+ * fail in the same way, under a message blaming the wrong thing.
+ */
+export class ModelContractError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'ModelContractError';
+	}
+}
+
 export class MonOcrOnnx {
 	private session: ort.InferenceSession | null = null;
 	private charset: string = '';
@@ -71,7 +86,11 @@ export class MonOcrOnnx {
 			// Load charset with caching
 			const charsetBuffer = await this.fetchAsset(charsetPath);
 			const decoder = new TextDecoder('utf-8');
-			this.charset = decoder.decode(charsetBuffer);
+			// Trailing newline stripped, matching the Python and JS SDKs. The file
+			// has none today, and if one is ever added it would shift the character
+			// count by one and trip the contract check below over a byte that is not
+			// part of the alphabet.
+			this.charset = decoder.decode(charsetBuffer).replace(/[\r\n]+$/, '');
 
 			// Load ONNX model with Caching strategy
 			const modelBuffer = await this.fetchAsset(modelPath);
@@ -79,9 +98,15 @@ export class MonOcrOnnx {
 			// Init session with buffer, with automatic fallback mapping
 			try {
 				this.session = await ort.InferenceSession.create(modelBuffer, sessionOptions);
+				this.assertModelContract();
 				// Warm-up inference to JIT-compile kernels
 				await this.warmup();
 			} catch (epError: unknown) {
+				// A contract mismatch is not an execution-provider problem. Falling
+				// back to WASM would download nothing new, fail identically, and
+				// report it as a WebGPU issue.
+				if (epError instanceof ModelContractError) throw epError;
+
 				const errorMsg = epError instanceof Error ? epError.message : String(epError);
 				console.warn(
 					`[monocr-onnx] EP Error: ${errorMsg}. Falling back to WASM natively.`,
@@ -153,6 +178,57 @@ export class MonOcrOnnx {
 				);
 			}
 			throw networkError;
+		}
+	}
+
+	/**
+	 * Refuse to run a model that does not match what this app decodes with.
+	 *
+	 * The weights come from HuggingFace and the charset is a file in static/, so
+	 * nothing structurally ties the two together — they agree because someone
+	 * checked, and they stay agreeing because the model URL is pinned.
+	 *
+	 * The failure this prevents is not a crash. A 277-class graph read through a
+	 * 315-character table yields well-formed Mon text that is wrong, with no
+	 * exception and no lookup miss, because every decodable index is in range of
+	 * the larger table. There is no symptom to notice.
+	 */
+	private assertModelContract(): void {
+		const session = this.session!;
+
+		const input = session.inputMetadata[0];
+		if (input?.isTensor) {
+			// Symbolic dims come back as strings; only a concrete number is a claim.
+			const declaredHeight = input.shape[2];
+			if (typeof declaredHeight === 'number' && declaredHeight !== this.TARGET_HEIGHT) {
+				throw new ModelContractError(
+					`Model expects an input height of ${declaredHeight}px; this build preprocesses to ` +
+						`${this.TARGET_HEIGHT}px. The model and this app are different generations.`
+				);
+			}
+		}
+
+		const output = session.outputMetadata[0];
+		if (output?.isTensor) {
+			const numClasses = output.shape[output.shape.length - 1];
+			if (typeof numClasses === 'number') {
+				this.assertClassCount(numClasses);
+			}
+		}
+	}
+
+	/**
+	 * CTC reserves index 0 for the blank, so a model over N characters emits
+	 * N + 1 classes. Anything else means the two files describe different models.
+	 */
+	private assertClassCount(numClasses: number): void {
+		const expected = this.charset.length + 1;
+		if (numClasses !== expected) {
+			throw new ModelContractError(
+				`Model emits ${numClasses} classes, implying ${numClasses - 1} characters; ` +
+					`the bundled charset has ${this.charset.length}, which needs ${expected} ` +
+					`(one CTC blank plus one per character). Refusing to decode.`
+			);
 		}
 	}
 
@@ -298,6 +374,11 @@ export class MonOcrOnnx {
 	private decodePredictions(logits: Float32Array, shape: number[]): string {
 		const [, timeSteps, numClasses] = shape;
 
+		// Re-checked here as well as at load. assertModelContract reads the graph's
+		// declared output shape, which may be symbolic; this is the shape that
+		// actually came back.
+		this.assertClassCount(numClasses);
+
 		// Greedy decoding: argmax along class dimension
 		const predictions: number[] = [];
 		for (let t = 0; t < timeSteps; t++) {
@@ -321,10 +402,21 @@ export class MonOcrOnnx {
 
 		for (const idx of predictions) {
 			if (idx !== 0 && idx !== prevIdx) {
-				// Map index to character (1-indexed)
-				if (idx - 1 < this.charset.length) {
-					decoded.push(this.charset[idx - 1]);
+				// Map index to character (1-indexed; 0 is the CTC blank).
+				//
+				// This used to read `if (idx - 1 < this.charset.length)`, silently
+				// dropping anything past the end. Against a charset larger than the
+				// model that condition is true for every index, so it never fired and
+				// a mismatch decoded as fluent wrong text. Against a smaller one it
+				// dropped characters and returned a shorter answer with no warning.
+				const ch = this.charset[idx - 1];
+				if (ch === undefined) {
+					throw new ModelContractError(
+						`Class index ${idx} falls outside the ${this.charset.length}-character charset. ` +
+							`The model and the charset are not the same generation.`
+					);
 				}
+				decoded.push(ch);
 			}
 			prevIdx = idx;
 		}
