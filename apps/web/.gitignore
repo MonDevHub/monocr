@@ -158,3 +158,10 @@ _agent/
 brain/
 
 docs 
+
+# Local development model. `static/monocr.onnx` is 26.3 MB of weights fetched
+# from Hugging Face; it is an artifact, not source, and committing it would put
+# a second copy of the model under version control where nothing keeps it in
+# step with the revision config.ts pins.
+static/*.onnx
+static/*.onnx.data

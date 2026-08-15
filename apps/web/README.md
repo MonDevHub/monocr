@@ -38,7 +38,7 @@ Image (Canvas/Blob)
 | Precision    | FP32 (ONNX)                    |
 | Parameters   | ~6.6M                          |
 | Input        | 128 × Variable (H × W)         |
-| Asset Size   | ~25 MB                         |
+| Asset Size   | 26.3 MB (downloaded once)      |
 
 ## Project Structure
 
@@ -86,20 +86,40 @@ Copy the pre-built ONNX Runtime WASM files to the static directory:
 pnpm run copy-wasm
 ```
 
-### 3. Local Development
+### 3. The model, locally
+
+Optional, and worth doing. Without it every reload pulls 26.3 MB from Hugging
+Face; with it the model is read off disk.
+
+```bash
+curl -L -o static/monocr.onnx \
+  https://huggingface.co/janakhpon/monocr/resolve/a51be11/onnx/monocr.onnx
+```
+
+`static/monocr.onnx` is gitignored. `src/lib/config.ts` prefers it in development
+and falls back to the pinned URL when it is missing, printing which one it chose.
+Nothing changes in production, where the local branch is never taken.
+
+The revision in that command is not decoration. `static/charset.txt` is 315
+characters and the app refuses to decode against a model that does not match it,
+so fetching from `main` — or from a different revision — gives you a
+`ModelContractError` at load rather than wrong text. Keep it equal to
+`CONFIG.MODELS.RECOGNITION`.
+
+### 4. Local Development
 
 ```bash
 pnpm dev
 ```
 
-### 4. Production Build
+### 5. Production Build
 
 ```bash
 pnpm build
 ```
 
 > [!IMPORTANT]
-> The build script automatically optimizes the `monocr.onnx` model deployment to comply with edge asset limits. In production, models are fetched from the HuggingFace CDN.
+> In production the model is fetched from Hugging Face at the pinned revision, not bundled — it is far past the edge asset limit.
 
 ## Deployment
 

@@ -1,5 +1,5 @@
 import OcrWorker from './ocr.worker?worker';
-import { CONFIG } from './config';
+import { CONFIG, resolveRecognitionModel } from './config';
 
 // Types
 type WorkerMessageType = 'INIT' | 'RECOGNIZE';
@@ -161,7 +161,7 @@ export async function initializeEngine(): Promise<void> {
 		try {
 			// Pass model paths to worker (worker will fetch them)
 			await request('INIT', {
-				modelPath: CONFIG.MODELS.RECOGNITION,
+				modelPath: await resolveRecognitionModel(),
 				charsetPath: CONFIG.MODELS.CHARSET
 			});
 			// Worker initialized

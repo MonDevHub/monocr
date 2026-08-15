@@ -6,7 +6,15 @@ import { segmentLines } from './segmentation';
  * ONNX Runtime Web-based OCR engine for Mon language.
  * Supports WebGPU (fastest), WASM with SIMD, and WASM fallback.
  */
-export const MODEL_VERSION = '2026.03.21.v1'; // Constitution Aligned
+// The model all three apps ship, identified by the revision it came from rather
+// than by a date. `2026.03.21.v1` was none of: not a model generation, not a
+// Hugging Face revision, and not the date of anything checkable. It was declared
+// in three languages and read by nothing, so it drifted without consequence until
+// someone tried to use it to answer which model was deployed.
+//
+// `a51be11` is the revision the web app pins and the four monocr-onnx SDKs pin.
+// Bump this in the same change that bumps those, or it stops being an answer.
+export const MODEL_VERSION = 'v2@a51be11';
 
 /**
  * The model and the charset disagree about what this model is.
@@ -119,6 +127,12 @@ export class MonOcrOnnx {
 					executionProviders: ['wasm']
 				};
 				this.session = await ort.InferenceSession.create(modelBuffer, fallbackOptions);
+				// Also here, not only on the path above. This is the session that
+				// serves traffic whenever WebGPU fails, and it was unchecked until
+				// 2026-08-15 — a mismatched height would have surfaced as an opaque
+				// ORT shape error from warmup(), which is the failure the check exists
+				// to replace with a named one.
+				this.assertModelContract();
 
 				// Warm-up WASM inference
 				await this.warmup();
@@ -196,11 +210,20 @@ export class MonOcrOnnx {
 	private assertModelContract(): void {
 		const session = this.session!;
 
+		// A dimension the graph declares symbolically comes back as a string, and
+		// cannot be checked here. That is not a pass — it is an unverifiable
+		// contract, so say so out loud rather than returning quietly. A sidecar or
+		// graph missing the fields a check needs is disproportionately likely to be
+		// the one that is wrong.
 		const input = session.inputMetadata[0];
 		if (input?.isTensor) {
-			// Symbolic dims come back as strings; only a concrete number is a claim.
 			const declaredHeight = input.shape[2];
-			if (typeof declaredHeight === 'number' && declaredHeight !== this.TARGET_HEIGHT) {
+			if (typeof declaredHeight !== 'number') {
+				console.warn(
+					`[monocr-onnx] input height is symbolic (${String(declaredHeight)}); ` +
+						`cannot verify it against TARGET_HEIGHT=${this.TARGET_HEIGHT}.`
+				);
+			} else if (declaredHeight !== this.TARGET_HEIGHT) {
 				throw new ModelContractError(
 					`Model expects an input height of ${declaredHeight}px; this build preprocesses to ` +
 						`${this.TARGET_HEIGHT}px. The model and this app are different generations.`
@@ -211,7 +234,14 @@ export class MonOcrOnnx {
 		const output = session.outputMetadata[0];
 		if (output?.isTensor) {
 			const numClasses = output.shape[output.shape.length - 1];
-			if (typeof numClasses === 'number') {
+			if (typeof numClasses !== 'number') {
+				// Recoverable: decodePredictions re-checks against the tensor that
+				// actually comes back, so this one is deferred rather than skipped.
+				console.warn(
+					'[monocr-onnx] output class axis is symbolic; deferring the charset ' +
+						'contract check to the first decode.'
+				);
+			} else {
 				this.assertClassCount(numClasses);
 			}
 		}
