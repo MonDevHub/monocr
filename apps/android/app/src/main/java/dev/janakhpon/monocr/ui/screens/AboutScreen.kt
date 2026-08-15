@@ -181,6 +181,14 @@ private fun ModelInfoCard() {
     // this figure previously read ~25 MB here and 26.3 MB in the web UI, which
     // is the same file measured two ways and reads as a contradiction.
     //
+    // The bundled file is NOT the published one, and the gap is 13,240 bytes.
+    // Hugging Face serves 26,355,440 bytes at revision a51be11 — the size the
+    // web app downloads and the size every monocr-onnx binding pins a sha256
+    // for. This asset predates that revision. Both round to 26.3 MB, so the UI
+    // is honest either way, but anything comparing bytes across the three apps
+    // is comparing two different files. Verified against the Hugging Face API
+    // on 2026-08-15.
+    //
     // Three of these rows were wrong until 2026-08-15. Precision read FP16 and
     // size read ~13 MB, both describing a quantised export this app has never
     // shipped. "Val CER 2.79%" was worse, and it is not an invented number:

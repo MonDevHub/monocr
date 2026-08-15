@@ -7,6 +7,9 @@
 	import ThemeToggle from '../ui/ThemeToggle.svelte';
 	import LanguageToggle from '../ui/LanguageToggle.svelte';
 
+	// Defined in vite.config.ts from package.json, so one number has one source.
+	const APP_VERSION = __APP_VERSION__;
+
 	let isSidebarOpen = $state(false);
 	let isMobile = $state(false);
 	let isScrolled = $state(false);
@@ -217,7 +220,10 @@
 				class="text-fg-primary focus-ring -ml-1 rounded-sm px-1 text-xl font-bold tracking-tight"
 				>MonOCR</a
 			>
-			<span class="text-fg-secondary text-[10px] font-medium opacity-60">Version 1.0.0</span>
+			<!-- Injected from package.json at build time by vite define, not typed in.
+			     This read "Version 1.0.0" against a package version of 0.3.0. -->
+			<span class="text-fg-secondary text-[10px] font-medium opacity-60">Version {APP_VERSION}</span
+			>
 		</div>
 
 		<button

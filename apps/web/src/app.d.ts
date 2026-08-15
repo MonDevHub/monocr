@@ -8,6 +8,9 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	/** Injected by vite.config.ts from package.json, so the UI cannot drift from it. */
+	const __APP_VERSION__: string;
 }
 
 export {};

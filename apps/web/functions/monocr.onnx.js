@@ -22,7 +22,9 @@ export async function onRequest(context) {
 			});
 		}
 
-		// Stream the response body directly (don't buffer the 55MB file)
+		// Stream the response body directly rather than buffering. The file is
+		// 26,355,440 bytes at revision a51be11; this comment read "55MB" until
+		// 2026-08-15, which was the size of an earlier revision.
 		return new Response(response.body, {
 			status: 200,
 			headers: {

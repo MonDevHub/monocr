@@ -49,11 +49,15 @@ fun AppDrawer(
                 color = MaterialTheme.colorScheme.onBackground
             )
             val context = androidx.compose.ui.platform.LocalContext.current
+            // The fallback shows no number rather than a wrong one. It read
+            // "1.0.1" against a versionName of 1.0.3, so on the one path where
+            // the package manager fails this drawer stated a version that was
+            // never shipped.
             val versionName = remember(context) {
-                try { 
-                    context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.1" 
-                } catch (e: Exception) { 
-                    "1.0.1" 
+                try {
+                    context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "—"
+                } catch (e: Exception) {
+                    "—"
                 }
             }
             Text(

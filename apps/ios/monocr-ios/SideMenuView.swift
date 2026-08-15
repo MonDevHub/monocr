@@ -10,7 +10,15 @@ struct SideMenuView: View {
     @Binding var showContribute: Bool
     @Binding var showFeedback: Bool
     @Binding var showPrivacy: Bool
-    
+
+    /// The shipped version, read from the bundle rather than typed in.
+    /// AboutView derives the same string the same way; this screen carried a
+    /// literal "Version 1.0.0" against a MARKETING_VERSION of 1.0.3.
+    private static var versionString: String {
+        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        return "Version \(short)"
+    }
+
     var body: some View {
         ZStack {
             if isShowing {
@@ -30,7 +38,11 @@ struct SideMenuView: View {
                             Text("MonOCR")
                                 .font(MonTheme.Typography.title.bold())
                                 .foregroundColor(.primary)
-                            Text("Version 1.0.0")
+                            // Read from the bundle, never typed in. This said
+                            // "Version 1.0.0" while MARKETING_VERSION was 1.0.3,
+                            // so the two screens of this app disagreed —
+                            // AboutView has always read the bundle.
+                            Text(Self.versionString)
                                 .font(MonTheme.Typography.meta)
                                 .foregroundColor(.secondary)
                         }

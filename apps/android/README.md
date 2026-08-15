@@ -83,7 +83,7 @@ MonOCR is a unified cross-platform ecosystem designed for parity and performance
 
 ## Resources
 
-- [Hugging Face Models](https://huggingface.co/janakhpon/monocr) (ONNX, TFLite, Core ML)
+- [Hugging Face Models](https://huggingface.co/janakhpon/monocr) (ONNX, Core ML; the TFLite export was removed at revision `a51be11`)
 - [Unified SDKs](https://github.com/janakhpon/monocr-onnx) (ONNX Core)
 - [MonOCR Monorepo](https://github.com/MonDevHub/monocr)
 

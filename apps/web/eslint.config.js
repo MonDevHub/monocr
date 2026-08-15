@@ -14,7 +14,10 @@ export default ts.config(
 		languageOptions: {
 			globals: {
 				...globals.browser,
-				...globals.node
+				...globals.node,
+				// Injected by vite.config.ts from package.json so the UI version
+				// has one source. Declared for types in src/app.d.ts.
+				__APP_VERSION__: 'readonly'
 			}
 		}
 	},

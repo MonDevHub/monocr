@@ -127,7 +127,7 @@ use `/app/web` as deployment root directory.
 
 ## Resources
 
-- [HuggingFace Models](https://huggingface.co/janakhpon/monocr) (ONNX, Core ML, TFLite)
+- [HuggingFace Models](https://huggingface.co/janakhpon/monocr) (ONNX, Core ML; the TFLite export was removed at revision `a51be11`)
 - [Unified SDKs](https://github.com/janakhpon/monocr-onnx)
 - [NPM Package](https://www.npmjs.com/package/monocr)
 - [Help contribute to copy/translations here](https://docs.google.com/spreadsheets/d/1sr8WtiMEyDuDd1amI-wzAz5d2acZlVC7zOZMqixOADQ/edit?usp=sharing)

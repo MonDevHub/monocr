@@ -6,8 +6,16 @@ import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import wasm from 'vite-plugin-wasm';
 import topLevelAwait from 'vite-plugin-top-level-await';
+import { readFileSync } from 'node:fs';
+
+// One version, one source. The header used to carry a literal "Version 1.0.0"
+// against a package version of 0.3.0, and nothing could notice the drift.
+const { version: APP_VERSION } = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
 export default defineConfig({
+	define: {
+		__APP_VERSION__: JSON.stringify(APP_VERSION)
+	},
 	plugins: [
 		paraglideVitePlugin({
 			project: './project.inlang',

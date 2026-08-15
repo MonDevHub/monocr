@@ -7,6 +7,7 @@ Details on the polyglot monorepo strategy and platform-specific implementations.
 
 - **[Architecture Decision Records (ADRs)](architecture/adr)**: The "Why" behind our core technical choices.
 - **[Platform Implementation Details](architecture/platform)**: Deep-dives into Android, iOS, and Web specific logic.
+- **[Line segmentation parity](architecture/platform/line-segmentation-parity.md)**: Where the three ports of the segmenter disagree, and why it is recorded rather than unified.
 
 ## API & Contracts
 Machine-readable specifications and integration guides.
