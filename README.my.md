@@ -22,20 +22,26 @@ MonOCR သည် မွန်အက္ခရာ ပုံရိပ်ကို�
 
 ---
 
-## Models
+## Model
 
-Model နှစ်မျိုးကို တက်ကြွစွာ လေ့ကျင့်ထိန်းသိမ်းနေသည်-
+App သုံးခုစလုံးသည် model တစ်ခုတည်းကို သုံးသည်၊ ၎င်းမှာ **v2** ဖြစ်သည်-
 
-| | **v3.5 — Mobile** | **v4 — Server** |
-| :--- | :--- | :--- |
-| ရည်ရွယ်ချက် | On-device / edge | Server-side / စာရွက်စာတမ်း |
-| Architecture | MobileNetV3 + 2×BiLSTM(512) + CTC | Swin-T Encoder + 6-layer Transformer Decoder |
-| Parameters | 11.4M | ~54M |
-| Input | Grayscale, `160px` အမြင့် | RGB, `224×1024px` |
-| Export | ONNX FP32/FP16/INT8 · CoreML | ONNX သာ |
-| Inference (CPU) | ~30ms/line | ~180ms/line |
+| | |
+| :--- | :--- |
+| Architecture | MobileNetV3 + BiLSTM-384 + CTC |
+| Parameters | ~6.6M |
+| Input | Grayscale, `128px` အမြင့် |
+| Charset | စာလုံး 315 လုံး |
+| Precision | FP32 |
+| ထုတ်ဝေထားရာ | [`janakhpon/monocr`](https://huggingface.co/janakhpon/monocr), revision `a51be11` |
 
-mobile model (v3.5) သည် Web (WASM)၊ Android (NNAPI) နှင့် iOS (Core ML) တို့တွင် on-device လုပ်ဆောင်သည်။ server model (v4) သည် အရောင်ပတ်ဝန်းကျင်နှင့် ရှည်လျားသောစာသားပါဝင်သည့် ရှုပ်ထွေးသောစာရွက်ပုံရိပ်များကို ကိုင်တွယ်သည်။
+Android နှင့် iOS သည် ၎င်းကို bundle လုပ်ထားသည် (26.3 MB နှင့် 24.2 MB အသီးသီး)။ Web app သည် pin ထားသော revision မှ ဒေါင်းလုဒ်လုပ်သည်။ app အလိုက်အသေးစိတ်ကို [apps/android](apps/android)၊ [apps/ios](apps/ios) နှင့် [apps/web](apps/web) တွင် ကြည့်ပါ။
+
+**v3.5** model သည် `mon_OCR` တွင် ရှိသည် — parameters 11.5M၊ input 160px၊ စာလုံး 276 လုံး။ ၎င်းကို မထုတ်ဝေရသေးပါ၊ ဤနေရာမှ မည်သည့်အရာမျှ load မလုပ်နိုင်ပါ။ generation နှစ်ခုသည် class အရေအတွက်နှင့် input အမြင့်တွင် ကွဲလွဲသည်၊ web app သည် ယခုအခါ စာသားမှားပြန်ပေးမည့်အစား ထိုကွာဟမှုကို ကျော်၍ decode လုပ်ရန် ငြင်းဆိုသည်။ ၎င်းသို့ ပြောင်းရန်မှာ file တစ်ခုလဲလှယ်ရုံမျှမဟုတ်ဘဲ ညှိနှိုင်းဆောင်ရွက်ရမည့် ပြောင်းလဲမှုဖြစ်သည်။
+
+**v4** server model ကို 2026-08-05 တွင် `mon_OCR` ADR-0011 အရ archive လုပ်ခဲ့သည်၊ လေ့ကျင့်ခြင်းမပြီးမီ။ ၎င်းကို ထိန်းသိမ်းထားခြင်းမရှိပါ။
+
+မည်သည့် platform အတွက်မျှ device latency ကိန်းဂဏန်း မရှိပါ။ ထိုကဲ့သို့ ကိန်းဂဏန်းများသည် 2026-08-15 အထိ ဤနေရာတွင် ပါရှိခဲ့ပြီး၊ architecture ခန့်မှန်းချက်များသာဖြစ်ကာ hardware ပေါ်တွင် တိုင်းတာခဲ့ခြင်း မရှိပါ။
 
 မွန်ဘာသာ dataset အရည်အသွေးမြင့်များ ရှားပါးသောကြောင့် application ၏ feedback flow မှ validated sample များသည် နောင်လေ့ကျင့်ရေးဆောင်ရွက်မှုများထဲသို့ တိုက်ရိုက်ဝင်ရောက်သည်။
 
@@ -43,7 +49,7 @@ mobile model (v3.5) သည် Web (WASM)၊ Android (NNAPI) နှင့် iOS 
 
 ## Platform
 
-mobile model (v3.5) သည် Web၊ Android နှင့် iOS တို့သို့ တပ်ဆင်သည် — hardware acceleration ဖွင့်ပေးသောပုံစံကို အသီးသီးအသုံးပြုသည်-
+Model သည် Web၊ Android နှင့် iOS တို့သို့ တပ်ဆင်သည် — hardware acceleration ဖွင့်ပေးသောပုံစံကို အသီးသီးအသုံးပြုသည်-
 
 | Platform | Format | Acceleration |
 | :--- | :--- | :--- |

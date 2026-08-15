@@ -20,20 +20,26 @@ MonOCR ဝွံ ဒှ်ပရဝ်ဂျေသူ မလ္ပကၠော�
 
 ---
 
-## Models
+## Model
 
-Model ၜါ ဗဒှ်ကဵု train ဒၟံင် ကေုာံ မင်မွဲဒၟံင်ရ-
+App ပိ ဂှ် သုင်စောဲဒၟံင် model မွဲဓဝ်ရ၊ ဂှ်ဒှ် **v2** ရ-
 
-| | **v3.5 — Mobile** | **v4 — Server** |
-| :--- | :--- | :--- |
-| ရည်ရွယ်ချက် | On-device / edge | Server-side / လိခ်ဒြဟ်တ် |
-| Architecture | MobileNetV3 + 2×BiLSTM(512) + CTC | Swin-T Encoder + 6-layer Transformer Decoder |
-| Parameters | 11.4M | ~54M |
-| Input | Grayscale, `160px` အမြင့် | RGB, `224×1024px` |
-| Export | ONNX FP32/FP16/INT8 · CoreML | ONNX ဓဝ် |
-| Inference (CPU) | ~30ms/line | ~180ms/line |
+| | |
+| :--- | :--- |
+| Architecture | MobileNetV3 + BiLSTM-384 + CTC |
+| Parameters | ~6.6M |
+| Input | Grayscale, `128px` အမြင့် |
+| Charset | အက္ခရ် 315 |
+| Precision | FP32 |
+| ပတိတ်လဝ်ပ္ဍဲ | [`janakhpon/monocr`](https://huggingface.co/janakhpon/monocr), revision `a51be11` |
 
-mobile model (v3.5) ဝွံ ဒှ်ကမၠောန် ပ္ဍဲ Web (WASM), Android (NNAPI) ကေုာံ iOS (Core ML) — on-device ရ။ server model (v4) ဝွံ ဒတဴပ္ဍဲ ပွိုင်ဒြဟ်တ် နွံကဵုဇမၞော် ကေုာံ ပ္ဍဲဒြဟ်တ် ကာလဇမၞော်ရ။
+Android ကေုာံ iOS ဂှ် bundle လဝ်ရ (26.3 MB ကေုာံ 24.2 MB)။ Web app ဂှ် နူကဵု revision မပင်လဝ်ဂှ် ဒါန်လုဒ်ရ။ အသေအဓော် app နကဵုမွဲမွဲဂှ် ရံင်ကေတ်ပ္ဍဲ [apps/android](apps/android), [apps/ios](apps/ios) ကေုာံ [apps/web](apps/web) ညိ။
+
+Model **v3.5** ဂှ် နွံပ္ဍဲ `mon_OCR` — parameters 11.5M, input 160px, အက္ခရ် 276။ ဟွံမွဲကဵုပတိတ်ဏီ၊ နူဗွဲမဏံ မွဲမွဲဟီု load ဟွံဂွံရ။ generation ၜါဂှ် ဟွံတုပ်ရေင်သကအ် ပ္ဍဲ class ဗီုပြင် ကေုာံ input အမြင့်ဂှ်ရ၊ web app ဂှ် လၟုဟ် ဟွံပတိတ်ကဵု လိခ်ဒးဟွံမွဲ — ကလေင်ငြင်ဆိုရ။ ပြံင်စဵုကဵု v3.5 ဂှ် ဟွံဒှ် ပြံင်ဖိုင်မွဲဓဝ်၊ ဒှ်ကမၠောန်မဒးဗဒှ်ကဵုတုပ်ပ္ဍဲအလုံအိုတ်ရ။
+
+Model **v4** server ဂှ် ပ္ဍဲ 2026-08-05 နကဵု `mon_OCR` ADR-0011 တုဲ archive လဝ်ရ၊ train ဟွံတုဲဏီ။ ဟွံမင်မွဲရ။
+
+Platform မွဲမွဲအတိုင် device latency ဂၞန် ဟွံမွဲရ။ ဂၞန်ဗီုဂှ် နွံဒၟံင်ပ္ဍဲဏံ စဵုကဵု 2026-08-15၊ ဂှ်ဒှ် architecture ခန့်မှန်းချက်ဓဝ်၊ ပ္ဍဲ hardware ဟွံဒှ်ချူလဝ်ရ။
 
 ဟိုတ်နူ dataset အရေဝ်မန် ရှားပါးဒၟံင်ဂှ်ရ validated sample တအ် နူကဵု feedback flow တုဲ ကဵုဗဒှ် training round မဂတဝ်ရ။
 
@@ -41,7 +47,7 @@ mobile model (v3.5) ဝွံ ဒှ်ကမၠောန် ပ္ဍဲ Web (W
 
 ## Platform
 
-mobile model (v3.5) ဝွံ ဒှ်ကမၠောန် ပ္ဍဲ Web, Android ကေုာံ iOS — hardware acceleration နွံကဵု format မတူကဵုမတူဂှ်ရ-
+Model ဝွံ ဒှ်ကမၠောန် ပ္ဍဲ Web, Android ကေုာံ iOS — hardware acceleration နွံကဵု format မတူကဵုမတူဂှ်ရ-
 
 | Platform | Format | Acceleration |
 | :--- | :--- | :--- |

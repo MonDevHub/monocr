@@ -22,20 +22,35 @@ Built and maintained by the Mon developer community.
 
 ---
 
-## Models
+## The model
 
-Two models are actively trained and maintained:
+All three apps ship one model, and it is **v2**:
 
-| | **v3.5 — Mobile** | **v4 — Server** |
-| :--- | :--- | :--- |
-| Purpose | On-device / edge | Server-side / documents |
-| Architecture | MobileNetV3 + 2×BiLSTM(512) + CTC | Swin-T Encoder + 6-layer Transformer Decoder |
-| Parameters | 11.4M | ~54M |
-| Input | Grayscale, `160px` height | RGB, `224×1024px` |
-| Export | ONNX FP32/FP16/INT8 · CoreML | ONNX only |
-| Inference (CPU) | ~30ms/line | ~180ms/line |
+| | |
+| :--- | :--- |
+| Architecture | MobileNetV3 + BiLSTM-384 + CTC |
+| Parameters | ~6.6M |
+| Input | Grayscale, `128px` height |
+| Charset | 315 characters |
+| Precision | FP32 |
+| Published at | [`janakhpon/monocr`](https://huggingface.co/janakhpon/monocr), revision `a51be11` |
 
-The mobile model (v3.5) runs on-device across Web (WASM), Android (NNAPI), and iOS (Core ML). The server model (v4) handles complex document images with colour backgrounds and longer text sequences.
+Android and iOS bundle it (26.3 MB and 24.2 MB respectively). The web app fetches
+it from that pinned revision. Per-app details are in
+[apps/android](apps/android), [apps/ios](apps/ios) and [apps/web](apps/web).
+
+A **v3.5** model exists upstream in `mon_OCR` — 11.5M parameters, 160px input,
+276 characters. It is not published and nothing here can load it: the two
+generations disagree on class count and input height, and the web app now refuses
+to decode across that gap rather than returning wrong text. Adopting it is a
+coordinated change, not a file swap.
+
+A **v4** server model was archived on 2026-08-05 under `mon_OCR` ADR-0011,
+untrained. It is not maintained.
+
+No device latency number exists for any platform. Figures of that kind appeared
+here until 2026-08-15 and were architectural estimates, never measured on
+hardware.
 
 Because high-quality Mon datasets are scarce, validated samples from the app's feedback flow feed directly into future training rounds.
 
@@ -43,7 +58,7 @@ Because high-quality Mon datasets are scarce, validated samples from the app's f
 
 ## Platform
 
-The mobile model (v3.5) deploys to Web, Android, and iOS — each using the format that enables hardware acceleration:
+The model deploys to Web, Android, and iOS — each using the format that enables hardware acceleration:
 
 | Platform | Format | Acceleration |
 | :--- | :--- | :--- |

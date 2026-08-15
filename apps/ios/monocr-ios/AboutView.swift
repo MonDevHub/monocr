@@ -7,14 +7,25 @@ struct AboutView: View {
     @Binding var showContribute: Bool
     @Binding var showFeedback: Bool
     
+    // Read off the bundled artifact, not off a spec sheet. The Core ML package
+    // carries a 24,173,304-byte weight.bin at FP32, which is also what
+    // README.md says.
+    //
+    // Three of these rows were wrong until 2026-08-15. Precision read FP16 and
+    // size read ~13 MB, both describing a quantised export this app has never
+    // shipped. "Val CER 2.79%" was worse: that figure appears in no repository
+    // in the project, so there was nothing to check it against and no way to say
+    // what it measured. A model number with no source does not belong on a
+    // screen a user reads, and the honest fix is to remove it rather than
+    // substitute the v2 checkpoint's 2.5%, which was measured on a split that
+    // shared its typefaces with training.
     private var modelInfo: [(String, String)] {
         [
             ("Architecture", "MobileNetV3 + BiLSTM-384 + CTC"),
             ("Parameters", "~6.6M"),
             ("Input", "128 × 1024 px"),
-            ("Precision", "FP16 (Core ML ANE)"),
-            ("Val CER", "2.79%"),
-            ("Model Size", "~13 MB"),
+            ("Precision", "FP32 (Core ML)"),
+            ("Model Size", "~23 MB"),
             ("Language", "Mon (mnw)")
         ]
     }

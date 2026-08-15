@@ -175,13 +175,23 @@ private fun InfoCard(title: String, body: String) {
 
 @Composable
 private fun ModelInfoCard() {
+    // Read off the bundled artifact, not off a spec sheet. app/src/main/assets/
+    // monocr.onnx is 26,342,200 bytes of FP32, which is also what README.md says.
+    //
+    // Three of these rows were wrong until 2026-08-15. Precision read FP16 and
+    // size read ~13 MB, both describing a quantised export this app has never
+    // shipped. "Val CER 2.79%" was worse: that figure appears in no repository
+    // in the project, so there was nothing to check it against and no way to say
+    // what it measured. A model number with no source does not belong on a
+    // screen a user reads, and the honest fix is to remove it rather than
+    // substitute the v2 checkpoint's 2.5%, which was measured on a split that
+    // shared its typefaces with training.
     val rows = listOf(
         InfoRow("Architecture", "MobileNetV3 + BiLSTM-384 + CTC"),
         InfoRow("Parameters",   "~6.6M"),
         InfoRow("Input",        "128 × 1024 px"),
-        InfoRow("Precision",    "FP16"),
-        InfoRow("Val CER",      "2.79%"),
-        InfoRow("Model size",   "~13 MB"),
+        InfoRow("Precision",    "FP32"),
+        InfoRow("Model size",   "~25 MB"),
     )
 
     Surface(
