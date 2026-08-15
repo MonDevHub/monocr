@@ -39,7 +39,7 @@ Image (UIImage)
 | Precision    | FP32 (Core ML)                 |
 | Parameters   | ~6.6M                          |
 | Input        | 128 × Variable (H × W)         |
-| Asset Size   | ~23 MB                         |
+| Asset Size   | 24.3 MB                        |
 
 ## Project Structure
 

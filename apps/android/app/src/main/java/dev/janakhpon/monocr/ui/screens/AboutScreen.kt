@@ -176,22 +176,26 @@ private fun InfoCard(title: String, body: String) {
 @Composable
 private fun ModelInfoCard() {
     // Read off the bundled artifact, not off a spec sheet. app/src/main/assets/
-    // monocr.onnx is 26,342,200 bytes of FP32, which is also what README.md says.
+    // monocr.onnx is 26,342,200 bytes of FP32 = 26.3 MB decimal, matching
+    // README.md and the web app's own download string. Decimal MB, not MiB:
+    // this figure previously read ~25 MB here and 26.3 MB in the web UI, which
+    // is the same file measured two ways and reads as a contradiction.
     //
     // Three of these rows were wrong until 2026-08-15. Precision read FP16 and
     // size read ~13 MB, both describing a quantised export this app has never
-    // shipped. "Val CER 2.79%" was worse: that figure appears in no repository
-    // in the project, so there was nothing to check it against and no way to say
-    // what it measured. A model number with no source does not belong on a
-    // screen a user reads, and the honest fix is to remove it rather than
-    // substitute the v2 checkpoint's 2.5%, which was measured on a split that
-    // shared its typefaces with training.
+    // shipped. "Val CER 2.79%" was worse, and it is not an invented number:
+    // mon_OCR's AUDIT-2026-08.md F-07 records it as that repository's own README
+    // figure, reported as a beam-decode column beside 1.52% greedy for a code
+    // path that could not produce two different numbers, because beam silently
+    // ran greedy. It was retracted there and went on shipping here. Removed
+    // rather than replaced with the v2 checkpoint's 2.5%, which was measured on
+    // a split that shared its typefaces with training.
     val rows = listOf(
         InfoRow("Architecture", "MobileNetV3 + BiLSTM-384 + CTC"),
         InfoRow("Parameters",   "~6.6M"),
         InfoRow("Input",        "128 × 1024 px"),
         InfoRow("Precision",    "FP32"),
-        InfoRow("Model size",   "~25 MB"),
+        InfoRow("Model size",   "26.3 MB"),
     )
 
     Surface(

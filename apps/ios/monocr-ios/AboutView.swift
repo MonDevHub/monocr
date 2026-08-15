@@ -7,25 +7,34 @@ struct AboutView: View {
     @Binding var showContribute: Bool
     @Binding var showFeedback: Bool
     
-    // Read off the bundled artifact, not off a spec sheet. The Core ML package
-    // carries a 24,173,304-byte weight.bin at FP32, which is also what
-    // README.md says.
+    // Read off the bundled artifact, not off a spec sheet. monocr.mlpackage is
+    // 24,266,359 bytes on disk = 24.3 MB decimal, of which a 24,173,304-byte
+    // weight.bin at FP32. The package total is the honest figure: it is what
+    // ships. Decimal MB, not MiB, matching README.md and the other two apps.
     //
     // Three of these rows were wrong until 2026-08-15. Precision read FP16 and
     // size read ~13 MB, both describing a quantised export this app has never
-    // shipped. "Val CER 2.79%" was worse: that figure appears in no repository
-    // in the project, so there was nothing to check it against and no way to say
-    // what it measured. A model number with no source does not belong on a
-    // screen a user reads, and the honest fix is to remove it rather than
-    // substitute the v2 checkpoint's 2.5%, which was measured on a split that
-    // shared its typefaces with training.
+    // shipped. "Val CER 2.79%" was worse, and it is not an invented number:
+    // mon_OCR's AUDIT-2026-08.md F-07 records it as that repository's own README
+    // figure, reported as a beam-decode column beside 1.52% greedy for a code
+    // path that could not produce two different numbers, because beam silently
+    // ran greedy. It was retracted there and went on shipping here. Removed
+    // rather than replaced with the v2 checkpoint's 2.5%, which was measured on
+    // a split that shared its typefaces with training.
+    private static var versionString: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "—"
+        let build = info?["CFBundleVersion"] as? String ?? "—"
+        return "Version \(short) (Build \(build))"
+    }
+
     private var modelInfo: [(String, String)] {
         [
             ("Architecture", "MobileNetV3 + BiLSTM-384 + CTC"),
             ("Parameters", "~6.6M"),
             ("Input", "128 × 1024 px"),
             ("Precision", "FP32 (Core ML)"),
-            ("Model Size", "~23 MB"),
+            ("Model Size", "24.3 MB"),
             ("Language", "Mon (mnw)")
         ]
     }
@@ -43,7 +52,11 @@ struct AboutView: View {
                         Text("MonOCR")
                             .font(MonTheme.Typography.title)
                         
-                        Text("Version 1.0.0 (Build 1)")
+                        // Read from the bundle, not typed in. This said
+                        // "Version 1.0.0 (Build 1)" while the project settings
+                        // said MARKETING_VERSION 1.0 — two versions for one app,
+                        // and the one users saw was the one nothing updated.
+                        Text(Self.versionString)
                             .font(MonTheme.Typography.meta)
                             .foregroundColor(.secondary)
                     }

@@ -35,18 +35,19 @@ All three apps ship one model, and it is **v2**:
 | Precision | FP32 |
 | Published at | [`janakhpon/monocr`](https://huggingface.co/janakhpon/monocr), revision `a51be11` |
 
-Android and iOS bundle it (26.3 MB and 24.2 MB respectively). The web app fetches
+Android and iOS bundle it (26.3 MB and 24.3 MB respectively). The web app fetches
 it from that pinned revision. Per-app details are in
 [apps/android](apps/android), [apps/ios](apps/ios) and [apps/web](apps/web).
 
-A **v3.5** model exists upstream in `mon_OCR` — 11.5M parameters, 160px input,
+A **v3.5** model exists upstream in `mon_OCR` — 11,553,437 parameters, 160px input,
 276 characters. It is not published and nothing here can load it: the two
 generations disagree on class count and input height, and the web app now refuses
 to decode across that gap rather than returning wrong text. Adopting it is a
 coordinated change, not a file swap.
 
-A **v4** server model was archived on 2026-08-05 under `mon_OCR` ADR-0011,
-untrained. It is not maintained.
+A **v4** server model was archived on 2026-08-05 under `mon_OCR` ADR-0011. It was
+never trained to convergence, so archiving it was a decision about maintaining a
+second path rather than about measured quality. It is not maintained.
 
 No device latency number exists for any platform. Figures of that kind appeared
 here until 2026-08-15 and were architectural estimates, never measured on

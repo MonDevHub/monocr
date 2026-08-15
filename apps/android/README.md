@@ -38,7 +38,7 @@ Image (Bitmap)
 | Precision    | FP32 (ONNX)                    |
 | Parameters   | ~6.6M                          |
 | Input        | 128 × 1024 px (H × W)          |
-| Asset Size   | ~25 MB                         |
+| Asset Size   | 26.3 MB                        |
 
 ## Project Structure
 
