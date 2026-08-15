@@ -5,7 +5,7 @@ import UIKit
 
 nonisolated enum ImagePreprocessor {
     
-    static let targetHeight = 128
+    static let targetHeight = 160
     static let minTargetWidth = 1024
     
     /// Debug: Store the last processed line image
@@ -27,7 +27,7 @@ nonisolated enum ImagePreprocessor {
         // Match Android logic: squash horizontally if line is wider than targetWidth
         let rawScaledWidth = CGFloat(segment.width) * hScale
         let scaledWidth = min(rawScaledWidth, CGFloat(minTargetWidth))
-        let finalWidth = minTargetWidth // Always produce 1024x128 to match model expectations
+        let finalWidth = minTargetWidth // Always produce 1024x160 to match model expectations
         
         // 2. Assemble the scaled and padded line image using UIKit
         let format = UIGraphicsImageRendererFormat()

@@ -46,7 +46,7 @@ actor MonOcrEngine {
     //
     // `a51be11` is the revision the web app pins and the four monocr-onnx SDKs pin.
     // Bump this in the same change that bumps those, or it stops being an answer.
-    static let MODEL_VERSION = "v2@a51be11"
+    static let MODEL_VERSION = "v3.5@d3d9d5e"
     
     init() {
         // Actor init
@@ -187,8 +187,8 @@ actor MonOcrEngine {
         guard let model = model else { return "" }
         
         do {
-            let width = lineData.count / 128
-            let shape: [NSNumber] = [1, 1, 128, NSNumber(value: width)]
+            let width = lineData.count / 160
+            let shape: [NSNumber] = [1, 1, 160, NSNumber(value: width)]
             
             let inputArray = try MLMultiArray(shape: shape, dataType: .float32)
             inputArray.withUnsafeMutableBufferPointer(ofType: Float.self) { ptr, _ in

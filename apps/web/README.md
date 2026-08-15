@@ -13,7 +13,7 @@ By implementing a **browser-bound execution model**, all OCR processing is restr
 - **On-Device Inference**: Runs entirely in the browser via WebAssembly (Wasm).
 - **Privacy by Design**: Zero data collection; OCR processing is 100% local.
 - **Optional Cloud Sync**: Secure, opt-in synchronization for contributing corrected scans to the open-source Mon language dataset.
-- **High Performance**: Optimized MobileNetV3 + BiLSTM OCR engine (~6.6M parameters).
+- **High Performance**: Optimized MobileNetV3 + BiLSTM OCR engine (11.55M parameters).
 - **Format Support**: Handles PDFs and images up to 50MB.
 - **Script Specialized**: Purpose-built for Mon script recognition, with supplementary support for Burmese and English.
 
@@ -36,9 +36,9 @@ Image (Canvas/Blob)
 | ------------ | ------------------------------ |
 | Architecture | MobileNetV3 + BiLSTM-384 + CTC |
 | Precision    | FP32 (ONNX)                    |
-| Parameters   | ~6.6M                          |
-| Input        | 128 × Variable (H × W)         |
-| Asset Size   | 26.3 MB (downloaded once)      |
+| Parameters   | 11.55M                          |
+| Input        | 160 × 1024 (H × W), both static         |
+| Asset Size   | 46.2 MB (downloaded once)      |
 
 ## Project Structure
 
@@ -88,19 +88,19 @@ pnpm run copy-wasm
 
 ### 3. The model, locally
 
-Optional, and worth doing. Without it every reload pulls 26.3 MB from Hugging
+Optional, and worth doing. Without it every reload pulls 46.2 MB from Hugging
 Face; with it the model is read off disk.
 
 ```bash
 curl -L -o static/monocr.onnx \
-  https://huggingface.co/janakhpon/monocr/resolve/a51be11/onnx/monocr.onnx
+  https://huggingface.co/janakhpon/monocr/resolve/d3d9d5e/onnx/monocr.onnx
 ```
 
 `static/monocr.onnx` is gitignored. `src/lib/config.ts` prefers it in development
 and falls back to the pinned URL when it is missing, printing which one it chose.
 Nothing changes in production, where the local branch is never taken.
 
-The revision in that command is not decoration. `static/charset.txt` is 315
+The revision in that command is not decoration. `static/charset.txt` is 276
 characters and the app refuses to decode against a model that does not match it,
 so fetching from `main` — or from a different revision — gives you a
 `ModelContractError` at load rather than wrong text. Keep it equal to

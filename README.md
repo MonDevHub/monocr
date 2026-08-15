@@ -24,26 +24,31 @@ Built and maintained by the Mon developer community.
 
 ## The model
 
-All three apps ship one model, and it is **v2**:
+All three apps ship one model, and since 2026-08-15 it is **v3.5**:
 
 | | |
 | :--- | :--- |
-| Architecture | MobileNetV3 + BiLSTM-384 + CTC |
-| Parameters | ~6.6M |
-| Input | Grayscale, `128px` height |
-| Charset | 315 characters |
+| Architecture | MobileNetV3-Large + SE + 2×BiLSTM-512 + attention + CTC |
+| Parameters | 11,553,437 |
+| Input | Grayscale, `160px` height, static `1024px` width |
+| Charset | 276 characters, 277 classes |
 | Precision | FP32 |
-| Published at | [`janakhpon/monocr`](https://huggingface.co/janakhpon/monocr), revision `a51be11` |
+| Published at | [`janakhpon/monocr`](https://huggingface.co/janakhpon/monocr), revision `d3d9d5e` |
 
-Android and iOS bundle it (26.3 MB and 24.3 MB respectively). The web app fetches
+Android and iOS bundle it (46.2 MB and 46.3 MB respectively). The web app fetches
 it from that pinned revision. Per-app details are in
 [apps/android](apps/android), [apps/ios](apps/ios) and [apps/web](apps/web).
 
-A **v3.5** model exists upstream in `mon_OCR` — 11,553,437 parameters, 160px input,
-276 characters. It is not published and nothing here can load it: the two
-generations disagree on class count and input height, and the web app now refuses
-to decode across that gap rather than returning wrong text. Adopting it is a
-coordinated change, not a file swap.
+**v3.5 is not a newer v2, it is a different contract.** Input height went 128 to
+160, output classes 316 to 277, charset 315 to 276, and the graph's width axis
+went from dynamic to a static 1024. Anything still holding a cached v2 artifact
+is refused rather than decoded, because a mismatch of that kind returns
+well-formed Mon text that is wrong. **v2** remains served at revision `a51be11`
+for anyone pinned to it.
+
+The model has **no held-out evaluation**. The figure that selected it is a
+training-time metric over 4,096 lines in a single typeface, and it is not an
+accuracy claim — see the model card.
 
 A **v4** server model was archived on 2026-08-05 under `mon_OCR` ADR-0011. It was
 never trained to convergence, so archiving it was a decision about maintaining a

@@ -14,7 +14,7 @@ import { segmentLines } from './segmentation';
 //
 // `a51be11` is the revision the web app pins and the four monocr-onnx SDKs pin.
 // Bump this in the same change that bumps those, or it stops being an answer.
-export const MODEL_VERSION = 'v2@a51be11';
+export const MODEL_VERSION = 'v3.5@d3d9d5e';
 
 /**
  * The model and the charset disagree about what this model is.
@@ -33,7 +33,7 @@ export class ModelContractError extends Error {
 export class MonOcrOnnx {
 	private session: ort.InferenceSession | null = null;
 	private charset: string = '';
-	private readonly TARGET_HEIGHT = 128;
+	private readonly TARGET_HEIGHT = 160;
 	private readonly TARGET_WIDTH = 1024;
 	/**
 	 * Initialize the ONNX Runtime session with model and charset.

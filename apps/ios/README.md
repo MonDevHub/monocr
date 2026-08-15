@@ -12,7 +12,7 @@ By leveraging a **Neural Engine optimized execution** model, MonOCR iOS utilizes
 
 - **On-Device Inference**: Optimized Core ML execution with ANE acceleration.
 - **Privacy by Design**: Zero data collection; OCR processing is 100% local.
-- **Mon Language Support**: Specialized for the Mon script (315-char charset).
+- **Mon Language Support**: Specialized for the Mon script (276-char charset).
 - **Line Segmentation**: Automatic horizontal projection profiling for accurate text extraction.
 - **Modern UI**: 100% SwiftUI with native animations and light/dark theme support.
 - **Format Support**: Handles high-resolution images and multi-page PDFs.
@@ -37,8 +37,8 @@ Image (UIImage)
 | ------------ | ------------------------------ |
 | Architecture | MobileNetV3 + BiLSTM-384 + CTC |
 | Precision    | FP32 (Core ML)                 |
-| Parameters   | ~6.6M                          |
-| Input        | 128 × Variable (H × W)         |
+| Parameters   | 11.55M                          |
+| Input        | 160 × 1024 (H × W), both static         |
 | Asset Size   | 24.3 MB                        |
 
 ## Project Structure

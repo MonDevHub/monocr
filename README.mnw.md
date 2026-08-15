@@ -22,18 +22,18 @@ MonOCR ဝွံ ဒှ်ပရဝ်ဂျေသူ မလ္ပကၠော�
 
 ## Model
 
-App ပိ ဂှ် သုင်စောဲဒၟံင် model မွဲဓဝ်ရ၊ ဂှ်ဒှ် **v2** ရ-
+App ပိ ဂှ် သုင်စောဲဒၟံင် model မွဲဓဝ်ရ၊ ဂှ်ဒှ် **v3.5** ရ-
 
 | | |
 | :--- | :--- |
 | Architecture | MobileNetV3 + BiLSTM-384 + CTC |
-| Parameters | ~6.6M |
-| Input | Grayscale, `128px` အမြင့် |
-| Charset | အက္ခရ် 315 |
+| Parameters | 11.55M |
+| Input | Grayscale, `160px` အမြင့် |
+| Charset | အက္ခရ် 276 |
 | Precision | FP32 |
-| ပတိတ်လဝ်ပ္ဍဲ | [`janakhpon/monocr`](https://huggingface.co/janakhpon/monocr), revision `a51be11` |
+| ပတိတ်လဝ်ပ္ဍဲ | [`janakhpon/monocr`](https://huggingface.co/janakhpon/monocr), revision `d3d9d5e` |
 
-Android ကေုာံ iOS ဂှ် bundle လဝ်ရ (26.3 MB ကေုာံ 24.3 MB)။ Web app ဂှ် နူကဵု revision မပင်လဝ်ဂှ် ဒါန်လုဒ်ရ။ အသေအဓော် app နကဵုမွဲမွဲဂှ် ရံင်ကေတ်ပ္ဍဲ [apps/android](apps/android), [apps/ios](apps/ios) ကေုာံ [apps/web](apps/web) ညိ။
+Android ကေုာံ iOS ဂှ် bundle လဝ်ရ (46.2 MB ကေုာံ 46.3 MB)။ Web app ဂှ် နူကဵု revision မပင်လဝ်ဂှ် ဒါန်လုဒ်ရ။ အသေအဓော် app နကဵုမွဲမွဲဂှ် ရံင်ကေတ်ပ္ဍဲ [apps/android](apps/android), [apps/ios](apps/ios) ကေုာံ [apps/web](apps/web) ညိ။
 
 Model **v3.5** ဂှ် နွံပ္ဍဲ `mon_OCR` — parameters 11,553,437, input 160px, အက္ခရ် 276။ ဟွံမွဲကဵုပတိတ်ဏီ၊ နူဗွဲမဏံ မွဲမွဲဟီု load ဟွံဂွံရ။ generation ၜါဂှ် ဟွံတုပ်ရေင်သကအ် ပ္ဍဲ class ဗီုပြင် ကေုာံ input အမြင့်ဂှ်ရ၊ web app ဂှ် လၟုဟ် ဟွံပတိတ်ကဵု လိခ်ဒးဟွံမွဲ — ကလေင်ငြင်ဆိုရ။ ပြံင်စဵုကဵု v3.5 ဂှ် ဟွံဒှ် ပြံင်ဖိုင်မွဲဓဝ်၊ ဒှ်ကမၠောန်မဒးဗဒှ်ကဵုတုပ်ပ္ဍဲအလုံအိုတ်ရ။
 

@@ -16,7 +16,7 @@ import java.nio.FloatBuffer
  * ONNX Runtime-backed OCR engine for Mon language.
  *
  * Loads monocr.onnx from assets and runs inference on
- * preprocessed line images ([1, 1, 128, 1024] Float32 tensors).
+ * preprocessed line images ([1, 1, 160, 1024] Float32 tensors).
  *
  * Equivalent to MonOcrOnnx in monocr-onnx.ts.
  */
@@ -35,7 +35,7 @@ class MonOcrEngine(private val context: Context) {
         //
         // `a51be11` is the revision the web app pins and the four monocr-onnx SDKs pin.
         // Bump this in the same change that bumps those, or it stops being an answer.
-        const val MODEL_VERSION = "v2@a51be11"
+        const val MODEL_VERSION = "v3.5@d3d9d5e"
     }
 
     val isInitialized: Boolean get() = ortSession != null

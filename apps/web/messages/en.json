@@ -29,7 +29,7 @@
 	"docs_privacy_desc": "All processing happens on your machine. No files are uploaded to the internet.",
 	"main_hero": "Mon OCR Project for preserving Mon language in the digital age.",
 	"main_requirements": "Requirements: Modern browser with hardware acceleration and 4GB+ RAM.",
-	"main_model_info": "Model file (26.3MB) is downloaded once and works offline.",
+	"main_model_info": "Model file (46.2MB) is downloaded once and works offline.",
 	"main_loading_model": "Loading model from Hugging Face... (Please wait)",
 	"main_engine_ready": "Engine ready (Cached for offline use)",
 	"main_process_another": "Process Another",

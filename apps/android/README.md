@@ -12,7 +12,7 @@ By implementing a **hardware-accelerated native inference** model, MonOCR Androi
 
 - **On-Device Inference**: Powered by ONNX Runtime with hardware acceleration.
 - **Privacy by Design**: Zero data collection unless users want to contribute intentionally; OCR processing is 100% local.
-- **Mon Language Support**: Specialized for the Mon script (315-char charset).
+- **Mon Language Support**: Specialized for the Mon script (276-char charset).
 - **Line Segmentation**: Automatic horizontal projection profiling for complex layouts.
 - **Format Support**: Handles large PDFs and high-resolution images.
 - **Script Fidelity**: Integration of PyidaungSu fonts for accurate Mon/Myanmar rendering.
@@ -36,9 +36,9 @@ Image (Bitmap)
 | ------------ | ------------------------------ |
 | Architecture | MobileNetV3 + BiLSTM-384 + CTC |
 | Precision    | FP32 (ONNX)                    |
-| Parameters   | ~6.6M                          |
-| Input        | 128 × 1024 px (H × W)          |
-| Asset Size   | 26.3 MB                        |
+| Parameters   | 11.55M                          |
+| Input        | 160 × 1024 px (H × W)          |
+| Asset Size   | 46.2 MB                        |
 
 ## Project Structure
 

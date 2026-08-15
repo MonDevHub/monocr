@@ -4,7 +4,7 @@ export async function onRequest(context) {
 	// which also made the `immutable` header below a promise this could not keep.
 	// A revision here means a new model reaches users when someone changes this
 	// line, not when someone pushes to the model repository.
-	const MODEL_URL = 'https://huggingface.co/janakhpon/monocr/resolve/a51be11/onnx/monocr.onnx';
+	const MODEL_URL = 'https://huggingface.co/janakhpon/monocr/resolve/d3d9d5e/onnx/monocr.onnx';
 
 	try {
 		// Fetch with redirect following (default behavior)
@@ -23,7 +23,7 @@ export async function onRequest(context) {
 		}
 
 		// Stream the response body directly rather than buffering. The file is
-		// 26,355,440 bytes at revision a51be11; this comment read "55MB" until
+		// 26,355,440 bytes at revision d3d9d5e; this comment read "55MB" until
 		// 2026-08-15, which was the size of an earlier revision.
 		return new Response(response.body, {
 			status: 200,

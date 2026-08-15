@@ -12,13 +12,13 @@ import kotlinx.coroutines.withContext
  * Preprocesses a line strip from a bitmap for OCR inference.
  *
  * Ported from monocr-onnx.ts processLine():
- *  - Target: [1, 1, 128, 1024] Float32 tensor (Batch, Channel, Height, Width)
+ *  - Target: [1, 1, 160, 1024] Float32 tensor (Batch, Channel, Height, Width)
  *  - Scale to TARGET_HEIGHT, pad right with white
  *  - Normalize: pixel / 127.5 - 1.0
  */
 object ImagePreprocessor {
 
-    const val TARGET_HEIGHT = 128
+    const val TARGET_HEIGHT = 160
     const val TARGET_WIDTH = 1024
 
     /**

@@ -176,18 +176,14 @@ private fun InfoCard(title: String, body: String) {
 @Composable
 private fun ModelInfoCard() {
     // Read off the bundled artifact, not off a spec sheet. app/src/main/assets/
-    // monocr.onnx is 26,342,200 bytes of FP32 = 26.3 MB decimal, matching
+    // monocr.onnx is 46,247,040 bytes of FP32 = 46.2 MB decimal, matching
     // README.md and the web app's own download string. Decimal MB, not MiB:
     // this figure previously read ~25 MB here and 26.3 MB in the web UI, which
     // is the same file measured two ways and reads as a contradiction.
     //
-    // The bundled file is NOT the published one, and the gap is 13,240 bytes.
-    // Hugging Face serves 26,355,440 bytes at revision a51be11 — the size the
-    // web app downloads and the size every monocr-onnx binding pins a sha256
-    // for. This asset predates that revision. Both round to 26.3 MB, so the UI
-    // is honest either way, but anything comparing bytes across the three apps
-    // is comparing two different files. Verified against the Hugging Face API
-    // on 2026-08-15.
+    // Updated 2026-08-15 with the v3.5 model. The bundled asset and the
+    // published one are the same bytes again — both 46,247,040 at revision
+    // d3d9d5e — which was not true of the v2 pair the previous note described.
     //
     // Three of these rows were wrong until 2026-08-15. Precision read FP16 and
     // size read ~13 MB, both describing a quantised export this app has never
@@ -200,10 +196,10 @@ private fun ModelInfoCard() {
     // a split that shared its typefaces with training.
     val rows = listOf(
         InfoRow("Architecture", "MobileNetV3 + BiLSTM-384 + CTC"),
-        InfoRow("Parameters",   "~6.6M"),
-        InfoRow("Input",        "128 × 1024 px"),
+        InfoRow("Parameters",   "11.55M"),
+        InfoRow("Input",        "160 × 1024 px"),
         InfoRow("Precision",    "FP32"),
-        InfoRow("Model size",   "26.3 MB"),
+        InfoRow("Model size",   "46.2 MB"),
     )
 
     Surface(

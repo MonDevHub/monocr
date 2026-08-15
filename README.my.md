@@ -24,18 +24,18 @@ MonOCR သည် မွန်အက္ခရာ ပုံရိပ်ကို�
 
 ## Model
 
-App သုံးခုစလုံးသည် model တစ်ခုတည်းကို သုံးသည်၊ ၎င်းမှာ **v2** ဖြစ်သည်-
+App သုံးခုစလုံးသည် model တစ်ခုတည်းကို သုံးသည်၊ ၎င်းမှာ **v3.5** ဖြစ်သည်-
 
 | | |
 | :--- | :--- |
 | Architecture | MobileNetV3 + BiLSTM-384 + CTC |
-| Parameters | ~6.6M |
-| Input | Grayscale, `128px` အမြင့် |
-| Charset | စာလုံး 315 လုံး |
+| Parameters | 11.55M |
+| Input | Grayscale, `160px` အမြင့် |
+| Charset | စာလုံး 276 လုံး |
 | Precision | FP32 |
-| ထုတ်ဝေထားရာ | [`janakhpon/monocr`](https://huggingface.co/janakhpon/monocr), revision `a51be11` |
+| ထုတ်ဝေထားရာ | [`janakhpon/monocr`](https://huggingface.co/janakhpon/monocr), revision `d3d9d5e` |
 
-Android နှင့် iOS သည် ၎င်းကို bundle လုပ်ထားသည် (26.3 MB နှင့် 24.3 MB အသီးသီး)။ Web app သည် pin ထားသော revision မှ ဒေါင်းလုဒ်လုပ်သည်။ app အလိုက်အသေးစိတ်ကို [apps/android](apps/android)၊ [apps/ios](apps/ios) နှင့် [apps/web](apps/web) တွင် ကြည့်ပါ။
+Android နှင့် iOS သည် ၎င်းကို bundle လုပ်ထားသည် (46.2 MB နှင့် 46.3 MB အသီးသီး)။ Web app သည် pin ထားသော revision မှ ဒေါင်းလုဒ်လုပ်သည်။ app အလိုက်အသေးစိတ်ကို [apps/android](apps/android)၊ [apps/ios](apps/ios) နှင့် [apps/web](apps/web) တွင် ကြည့်ပါ။
 
 **v3.5** model သည် `mon_OCR` တွင် ရှိသည် — parameters 11,553,437၊ input 160px၊ စာလုံး 276 လုံး။ ၎င်းကို မထုတ်ဝေရသေးပါ၊ ဤနေရာမှ မည်သည့်အရာမျှ load မလုပ်နိုင်ပါ။ generation နှစ်ခုသည် class အရေအတွက်နှင့် input အမြင့်တွင် ကွဲလွဲသည်၊ web app သည် ယခုအခါ စာသားမှားပြန်ပေးမည့်အစား ထိုကွာဟမှုကို ကျော်၍ decode လုပ်ရန် ငြင်းဆိုသည်။ ၎င်းသို့ ပြောင်းရန်မှာ file တစ်ခုလဲလှယ်ရုံမျှမဟုတ်ဘဲ ညှိနှိုင်းဆောင်ရွက်ရမည့် ပြောင်းလဲမှုဖြစ်သည်။
 

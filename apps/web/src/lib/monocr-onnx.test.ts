@@ -26,10 +26,12 @@ const { MonOcrOnnx, ModelContractError } = await import('./monocr-onnx');
 const { CONFIG, resolveRecognitionModel } = await import('./config');
 
 /**
- * The two generations, as measured from the real artifacts on 2026-08-14.
+ * The two generations, as measured from the real artifacts.
  *
- * v2 is published at revision a51be11 and is what apps/web/static/charset.txt
- * decodes. v3.5 is mon_OCR's current export, unpublished.
+ * v3.5 is published at revision d3d9d5e and is what apps/web/static/charset.txt
+ * decodes. v2 is the previous network, still served at a51be11 and still what
+ * an un-updated cache may hold — which is why it must be refused rather than
+ * quietly accepted.
  */
 const V2 = { height: 128, classes: 316 };
 const V35 = { height: 160, classes: 277 };
@@ -95,9 +97,9 @@ beforeEach(() => {
 });
 
 describe('the shipped charset', () => {
-	it('is the 315-character v2 alphabet the pinned model decodes', () => {
+	it('is the 276-character v3.5 alphabet the pinned model decodes', () => {
 		// If this fails, static/charset.txt changed and every number below is stale.
-		expect(CHARSET.length).toBe(315);
+		expect(CHARSET.length).toBe(276);
 	});
 
 	it('has no trailing newline, so the strip on load is a no-op today', () => {
@@ -106,27 +108,28 @@ describe('the shipped charset', () => {
 });
 
 describe('the model/charset contract', () => {
-	it('accepts the published v2 model against the shipped charset', () => {
-		const engine = engineWith(CHARSET, V2.height, V2.classes);
+	it('accepts the published v3.5 model against the shipped charset', () => {
+		const engine = engineWith(CHARSET, V35.height, V35.classes);
 		expect(() => engine.assertModelContract()).not.toThrow();
 	});
 
-	it('refuses a v3.5 model, naming both heights', () => {
-		const engine = engineWith(CHARSET, V35.height, V35.classes);
+	it('refuses a stale v2 model, naming both heights', () => {
+		const engine = engineWith(CHARSET, V2.height, V2.classes);
 
 		// Height is checked first: it is the one that would otherwise surface as an
-		// opaque ORT shape error during warmup.
+		// opaque ORT shape error during warmup. A cached v2 artifact against the
+		// v3.5 charset is the realistic way this happens.
 		expect(() => engine.assertModelContract()).toThrow(ModelContractError);
-		expect(() => engine.assertModelContract()).toThrow(/160px/);
 		expect(() => engine.assertModelContract()).toThrow(/128px/);
+		expect(() => engine.assertModelContract()).toThrow(/160px/);
 	});
 
 	it('refuses on class count alone, when the heights happen to agree', () => {
-		const engine = engineWith(CHARSET, V2.height, V35.classes);
+		const engine = engineWith(CHARSET, V35.height, V2.classes);
 
 		expect(() => engine.assertModelContract()).toThrow(ModelContractError);
-		expect(() => engine.assertModelContract()).toThrow(/emits 277 classes/);
-		expect(() => engine.assertModelContract()).toThrow(/charset has 315/);
+		expect(() => engine.assertModelContract()).toThrow(/emits 316 classes/);
+		expect(() => engine.assertModelContract()).toThrow(/charset has 276/);
 	});
 
 	it('warns rather than passing silently when a dimension is symbolic', () => {
@@ -163,7 +166,7 @@ describe('initialize', () => {
 	}
 
 	it('checks the contract on the primary session', async () => {
-		await expect(initWith([fakeSession(V35.height, V35.classes)])).rejects.toThrow(
+		await expect(initWith([fakeSession(V2.height, V2.classes)])).rejects.toThrow(
 			ModelContractError
 		);
 		// One create, not two: the mismatch must not be retried as an EP problem.
@@ -175,7 +178,7 @@ describe('initialize', () => {
 		// session is the one that would serve every request. It was unchecked until
 		// 2026-08-15.
 		await expect(
-			initWith([new Error('WebGPU EP unavailable'), fakeSession(V35.height, V35.classes)])
+			initWith([new Error('WebGPU EP unavailable'), fakeSession(V2.height, V2.classes)])
 		).rejects.toThrow(ModelContractError);
 		expect(createSession).toHaveBeenCalledTimes(2);
 	});
@@ -183,9 +186,9 @@ describe('initialize', () => {
 	it('loads a matching model on the fallback path', async () => {
 		const engine = await initWith([
 			new Error('WebGPU EP unavailable'),
-			fakeSession(V2.height, V2.classes)
+			fakeSession(V35.height, V35.classes)
 		]);
-		expect((engine as unknown as Internals).charset).toHaveLength(315);
+		expect((engine as unknown as Internals).charset).toHaveLength(276);
 	});
 
 	it('strips a trailing newline from the charset file', async () => {
@@ -198,12 +201,12 @@ describe('initialize', () => {
 				? new TextEncoder().encode(CHARSET + '\n')
 				: new Uint8Array([1, 2, 3])
 		);
-		createSession.mockResolvedValueOnce(fakeSession(V2.height, V2.classes));
+		createSession.mockResolvedValueOnce(fakeSession(V35.height, V35.classes));
 
-		// Without the strip the charset is 316 characters, which needs 317 classes,
+		// Without the strip the charset is 277 characters, which needs 278 classes,
 		// and the contract check rejects a model that is in fact correct.
 		await engine.initialize('/model.onnx', '/charset.txt');
-		expect((engine as unknown as Internals).charset).toHaveLength(315);
+		expect((engine as unknown as Internals).charset).toHaveLength(276);
 	});
 });
 
@@ -277,33 +280,33 @@ describe('resolveRecognitionModel', () => {
 	});
 
 	it('pins to a revision, never to a branch', () => {
-		expect(PINNED).toContain('/resolve/a51be11/');
+		expect(PINNED).toContain('/resolve/d3d9d5e/');
 		expect(PINNED).not.toContain('/resolve/main/');
 	});
 });
 
 describe('decoding', () => {
 	it('refuses a logits tensor whose class count does not match the charset', () => {
-		const engine = engineWith(CHARSET, V2.height, V2.classes);
-		const logits = logitsFor([1, 2, 3, 4], V35.classes);
+		const engine = engineWith(CHARSET, V35.height, V35.classes);
+		const logits = logitsFor([1, 2, 3, 4], V2.classes);
 
-		expect(() => engine.decodePredictions(logits, [1, 4, V35.classes])).toThrow(ModelContractError);
+		expect(() => engine.decodePredictions(logits, [1, 4, V2.classes])).toThrow(ModelContractError);
 	});
 
 	it('collapses CTC repeats and drops blanks', () => {
-		const engine = engineWith(CHARSET, V2.height, V2.classes);
+		const engine = engineWith(CHARSET, V35.height, V35.classes);
 		// class 1, class 1 again (a repeat), blank, class 1 again (a new run).
-		const logits = logitsFor([1, 1, 0, 1], V2.classes);
+		const logits = logitsFor([1, 1, 0, 1], V35.classes);
 
-		expect(engine.decodePredictions(logits, [1, 4, V2.classes])).toBe(CHARSET[0] + CHARSET[0]);
+		expect(engine.decodePredictions(logits, [1, 4, V35.classes])).toBe(CHARSET[0] + CHARSET[0]);
 	});
 
 	it('maps class n to charset[n - 1], because index 0 is the CTC blank', () => {
-		const engine = engineWith(CHARSET, V2.height, V2.classes);
-		const logits = logitsFor([1, 2, 315], V2.classes);
+		const engine = engineWith(CHARSET, V35.height, V35.classes);
+		const logits = logitsFor([1, 2, 276], V35.classes);
 
-		expect(engine.decodePredictions(logits, [1, 3, V2.classes])).toBe(
-			CHARSET[0] + CHARSET[1] + CHARSET[314]
+		expect(engine.decodePredictions(logits, [1, 3, V35.classes])).toBe(
+			CHARSET[0] + CHARSET[1] + CHARSET[275]
 		);
 	});
 });
