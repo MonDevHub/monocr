@@ -27,7 +27,15 @@ class MonOcrEngine(private val context: Context) {
     private var charset: String = ""
     
     companion object {
-        const val MODEL_VERSION = "2026.03.21.v1" // Constitution Aligned
+        // The model all three apps ship, identified by the revision it came from rather
+        // than by a date. `2026.03.21.v1` was none of: not a model generation, not a
+        // Hugging Face revision, and not the date of anything checkable. It was declared
+        // in three languages and read by nothing, so it drifted without consequence until
+        // someone tried to use it to answer which model was deployed.
+        //
+        // `a51be11` is the revision the web app pins and the four monocr-onnx SDKs pin.
+        // Bump this in the same change that bumps those, or it stops being an answer.
+        const val MODEL_VERSION = "v2@a51be11"
     }
 
     val isInitialized: Boolean get() = ortSession != null
