@@ -32,13 +32,13 @@ Image (Canvas/Blob)
 
 ### Model Specification
 
-| Attribute    | Specification                  |
-| ------------ | ------------------------------ |
-| Architecture | MobileNetV3 + BiLSTM-384 + CTC |
-| Precision    | FP32 (ONNX)                    |
+| Attribute    | Specification                   |
+| ------------ | ------------------------------- |
+| Architecture | MobileNetV3 + BiLSTM-384 + CTC  |
+| Precision    | FP32 (ONNX)                     |
 | Parameters   | 11.55M                          |
-| Input        | 160 × 1024 (H × W), both static         |
-| Asset Size   | 46.2 MB (downloaded once)      |
+| Input        | 160 × 1024 (H × W), both static |
+| Asset Size   | 46.2 MB (downloaded once)       |
 
 ## Project Structure
 
