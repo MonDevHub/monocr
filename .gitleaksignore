@@ -1,0 +1,10 @@
+# Known, already-disclosed findings. Both are the same feedback-service key,
+# committed at d026e3d (2026-04-11) and removed from the source on 2026-08-16.
+#
+# They are listed here so the scan fails on anything NEW rather than on this
+# one, which cannot be un-published by a code change: it is in the history and
+# in every build shipped between those dates. THE KEY STILL HAS TO BE ROTATED
+# SERVER-SIDE. Delete these two lines once the history is rewritten, or once
+# the key is rotated and you want the reminder gone.
+d026e3d9696abe2eddac47d983fa245599512b3e:apps/android/app/src/main/java/dev/janakhpon/monocr/engine/SyncWorker.kt:generic-api-key:16
+d026e3d9696abe2eddac47d983fa245599512b3e:apps/ios/monocr-ios/SyncService.swift:generic-api-key:9
