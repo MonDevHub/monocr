@@ -1,0 +1,136 @@
+# This repository had no CI at all until 2026-08-16.
+#
+# `.github/` held CONTRIBUTING.md and SECURITY.md and nothing else, while
+# apps/web/package.json defined `scan:secrets` (gitleaks) and a `ci` script that
+# nothing ever ran. A control that is written and never wired up is not a
+# control: an API key sat in two tracked source files for four months under a
+# SECURITY.md promising secrets are never committed.
+#
+# Android and iOS are deliberately not built here. There is no Gradle wrapper in
+# the tree, and an iOS build needs a macOS runner; both would be jobs nobody has
+# watched pass. The unit tests in those apps are worth wiring up next, starting
+# with committing `gradlew`.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  secrets:
+    # First, because it is the check whose absence cost the most. gitleaks scans
+    # the working tree and the history, so a rotated-but-still-committed
+    # credential keeps failing until it is actually removed.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan for committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Unit tests
+        run: pnpm --filter ./apps/web test
+      - name: Type check
+        run: pnpm --filter ./apps/web run type-check
+
+  model-consistency:
+    # Toolchain-free invariants across the three apps, in the spirit of
+    # monocr-onnx's charset-parity job. Every check here corresponds to a defect
+    # that was actually found in this repository on 2026-08-16, when three
+    # engines carried a comment naming the superseded revision directly above the
+    # constant pinning the current one, and the architecture was stated eight
+    # different ways.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The three bundled charsets are byte-identical
+        run: |
+          set -euo pipefail
+          ref=apps/web/static/charset.txt
+          for f in apps/android/app/src/main/assets/charset.txt \
+                   apps/ios/monocr-ios/charset.txt; do
+            cmp "$ref" "$f"
+          done
+          echo "charsets identical ($(wc -c < "$ref") bytes)"
+
+      - name: The charset keeps its leading U+0020
+        # A bare trim() eats it and shifts every decoded index by one.
+        run: |
+          set -euo pipefail
+          head -c 1 apps/web/static/charset.txt | od -An -tx1 | grep -q '20'
+          echo "leading space intact"
+
+      - name: One model revision, everywhere, including the prose
+        run: |
+          set -euo pipefail
+          pinned=d3d9d5e
+          missing=0
+          for f in apps/web/src/lib/config.ts \
+                   apps/web/src/lib/monocr-onnx.ts \
+                   apps/web/functions/monocr.onnx.js \
+                   apps/ios/monocr-ios/MonOcrEngine.swift \
+                   apps/android/app/src/main/java/dev/janakhpon/monocr/engine/MonOcrEngine.kt; do
+            grep -q "$pinned" "$f" || { echo "::error file=$f::does not mention the pinned revision $pinned"; missing=1; }
+          done
+          # The superseded revision must not appear in any engine or config. It
+          # may still be named in tests that describe v2 as history.
+          stale="$(grep -ln 'a51be11' \
+            apps/web/src/lib/config.ts \
+            apps/web/src/lib/monocr-onnx.ts \
+            apps/web/functions/monocr.onnx.js \
+            apps/ios/monocr-ios/MonOcrEngine.swift \
+            apps/android/app/src/main/java/dev/janakhpon/monocr/engine/MonOcrEngine.kt 2>/dev/null || true)"
+          if [ -n "$stale" ]; then
+            echo "::error title=Superseded revision referenced::$stale"
+            missing=1
+          fi
+          [ "$missing" -eq 0 ] && echo "revision $pinned consistent"
+          exit "$missing"
+
+      - name: The architecture is stated one way
+        # It was stated eight ways, and the single dissenting copy was the
+        # correct one — checked against the ONNX graph, which reports two LSTM
+        # nodes at hidden_size 512 plus SE and attention ops.
+        run: |
+          set -euo pipefail
+          arch='MobileNetV3-Large + SE + 2×BiLSTM-512 + attention + CTC'
+          bad="$(grep -rl 'BiLSTM-384' --include='*.md' --include='*.kt' --include='*.swift' . 2>/dev/null || true)"
+          if [ -n "$bad" ]; then
+            echo "::error title=Stale architecture (BiLSTM-384)::$bad"
+            exit 1
+          fi
+          echo "no stale architecture strings; current is: $arch"
+
+      - name: No retracted accuracy figure in shipped copy
+        # "97.5%+" survived in two onboarding strings after the READMEs were
+        # corrected. The project states it has no held-out evaluation on
+        # photographed pages, so a precision figure in the UI cannot be sourced.
+        #
+        # `//` lines are skipped on purpose. The comments that record the
+        # retraction quote the old number, and that is the point of them — a
+        # check that forbids naming the retracted value would delete its own
+        # audit trail.
+        run: |
+          set -euo pipefail
+          hits="$(grep -rn '97\.5' \
+            --include='*.kt' --include='*.swift' --include='*.ts' --include='*.svelte' \
+            apps/ 2>/dev/null | grep -v ':[[:space:]]*//' || true)"
+          if [ -n "$hits" ]; then
+            echo "::error title=Unsourced accuracy claim::$hits"
+            exit 1
+          fi
+          echo "no unsourced accuracy figures in shipped strings"

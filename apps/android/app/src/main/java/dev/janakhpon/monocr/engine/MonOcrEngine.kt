@@ -33,7 +33,7 @@ class MonOcrEngine(private val context: Context) {
         // in three languages and read by nothing, so it drifted without consequence until
         // someone tried to use it to answer which model was deployed.
         //
-        // `a51be11` is the revision the web app pins and the four monocr-onnx SDKs pin.
+        // `d3d9d5e` is the revision the web app pins and the four monocr-onnx SDKs pin.
         // Bump this in the same change that bumps those, or it stops being an answer.
         const val MODEL_VERSION = "v3.5@d3d9d5e"
     }

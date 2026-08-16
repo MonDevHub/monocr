@@ -23,6 +23,26 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // The feedback-service key is a runtime secret, not source. It was a
+        // string literal in SyncWorker.kt from 2026-04-11 to 2026-08-16, in a
+        // public repository, next to the production endpoint — treat that value
+        // as burned regardless of this change, because it is also in the git
+        // history and in every shipped APK.
+        //
+        // Supplied the same way the signing credentials below are: from
+        // local.properties, or the environment in CI. Absent, it stays empty and
+        // SyncWorker skips sync rather than failing the build, so a contributor
+        // who has no key can still build and run the app.
+        val secrets = Properties()
+        val secretsFile = rootProject.file("local.properties")
+        if (secretsFile.exists()) {
+            FileInputStream(secretsFile).use { secrets.load(it) }
+        }
+        val syncApiKey = secrets.getProperty("SYNC_API_KEY")
+            ?: System.getenv("SYNC_API_KEY")
+            ?: ""
+        buildConfigField("String", "SYNC_API_KEY", "\"$syncApiKey\"")
     }
 
     signingConfigs {
@@ -33,7 +53,14 @@ android {
                 FileInputStream(localPropertiesFile).use { localProperties.load(it) }
             }
 
-            storeFile = file("/Users/zinmin/Documents/ocrandroid.jks")
+            // Absolute path to one laptop until 2026-08-16, which made the
+            // release variant unbuildable by anyone else. Configurable now, with
+            // the old location as the default so existing setups keep working.
+            storeFile = file(
+                localProperties.getProperty("RELEASE_STORE_FILE")
+                    ?: System.getenv("RELEASE_STORE_FILE")
+                    ?: "/Users/zinmin/Documents/ocrandroid.jks"
+            )
             storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD") ?: System.getenv("RELEASE_STORE_PASSWORD")
             keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS") ?: System.getenv("RELEASE_KEY_ALIAS")
             keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD") ?: System.getenv("RELEASE_KEY_PASSWORD")

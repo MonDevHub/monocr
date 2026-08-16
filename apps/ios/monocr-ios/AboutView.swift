@@ -30,7 +30,7 @@ struct AboutView: View {
 
     private var modelInfo: [(String, String)] {
         [
-            ("Architecture", "MobileNetV3 + BiLSTM-384 + CTC"),
+            ("Architecture", "MobileNetV3-Large + SE + 2×BiLSTM-512 + attention + CTC"),
             ("Parameters", "11.55M"),
             ("Input", "160 × 1024 px"),
             ("Precision", "FP32 (Core ML)"),

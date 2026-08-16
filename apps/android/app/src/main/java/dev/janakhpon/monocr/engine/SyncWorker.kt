@@ -3,6 +3,7 @@ package dev.janakhpon.monocr.engine
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import dev.janakhpon.monocr.BuildConfig
 import dev.janakhpon.monocr.data.HistoryDatabase
 import dev.janakhpon.monocr.data.HistoryRecord
 import dev.janakhpon.monocr.util.MonLogger
@@ -13,7 +14,15 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 private const val BASE_URL = "https://ocr-feedback-service-857115062313.asia-southeast1.run.app/v1"
-private const val API_KEY = "a47102547a8db8aa2fa454441b04bbb3780fcc5f66f976159994315f003d209a"
+
+// From BuildConfig, set in app/build.gradle.kts out of local.properties or the
+// environment. This was a 64-character literal on the line below from
+// 2026-04-11 to 2026-08-16, in a public repository, directly beneath the
+// production endpoint it authenticates against.
+//
+// Empty is a supported state: a contributor without a key builds and runs the
+// app, and sync is skipped. It is not an error to report to the user.
+private val API_KEY: String get() = BuildConfig.SYNC_API_KEY
 
 /**
  * Background worker to synchronize feedback and contributions to Cloudflare R2.
@@ -28,6 +37,11 @@ class SyncWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
+            if (API_KEY.isBlank()) {
+                MonLogger.i("No sync key configured; skipping upload. Set SYNC_API_KEY in local.properties to enable it.")
+                return@withContext Result.success()
+            }
+
             val unsynced = dao.getUnsyncedRecords()
             if (unsynced.isEmpty()) {
                 return@withContext Result.success()

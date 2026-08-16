@@ -10,7 +10,7 @@ export const CONFIG = {
 		RECOGNITION: 'https://huggingface.co/janakhpon/monocr/resolve/d3d9d5e/onnx/monocr.onnx',
 
 		// Local override for development. Put the model at `static/monocr.onnx`
-		// and every reload reads it off disk instead of pulling 26.3 MB from
+		// and every reload reads it off disk instead of pulling 46.2 MB from
 		// Hugging Face. Gitignored — see the README for the fetch command.
 		//
 		// The path is the same one `functions/monocr.onnx.js` proxies in

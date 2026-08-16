@@ -35,11 +35,11 @@ Image (UIImage)
 
 | Attribute    | Specification                  |
 | ------------ | ------------------------------ |
-| Architecture | MobileNetV3 + BiLSTM-384 + CTC |
+| Architecture | MobileNetV3-Large + SE + 2×BiLSTM-512 + attention + CTC |
 | Precision    | FP32 (Core ML)                 |
 | Parameters   | 11.55M                          |
 | Input        | 160 × 1024 (H × W), both static         |
-| Asset Size   | 24.3 MB                        |
+| Asset Size   | 46.2 MB                        |
 
 ## Project Structure
 

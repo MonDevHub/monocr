@@ -195,7 +195,7 @@ private fun ModelInfoCard() {
     // rather than replaced with the v2 checkpoint's 2.5%, which was measured on
     // a split that shared its typefaces with training.
     val rows = listOf(
-        InfoRow("Architecture", "MobileNetV3 + BiLSTM-384 + CTC"),
+        InfoRow("Architecture", "MobileNetV3-Large + SE + 2×BiLSTM-512 + attention + CTC"),
         InfoRow("Parameters",   "11.55M"),
         InfoRow("Input",        "160 × 1024 px"),
         InfoRow("Precision",    "FP32"),

@@ -64,7 +64,11 @@ struct DocsView: View {
                 Section {
                     DocRow(number: "4", title: "Input Standards", systemImage: "checklist") {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Follow these standards to achieve maximum recognition accuracy (97.5%+).")
+                            // No percentage here. This read "(97.5%+)" until
+                            // 2026-08-16; that figure traces to no run, and the
+                            // project's own README states the model has no
+                            // held-out evaluation on photographed pages.
+                            Text("Follow these standards to give the model the best chance of reading a page.")
                                 .font(MonTheme.Typography.meta)
                                 .foregroundColor(.secondary)
                             

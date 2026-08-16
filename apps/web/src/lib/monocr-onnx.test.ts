@@ -221,7 +221,7 @@ describe('resolveRecognitionModel', () => {
 	it('uses the local file when one is really there', async () => {
 		vi.stubGlobal(
 			'fetch',
-			headReturning({ 'content-type': 'application/octet-stream', 'content-length': '26342200' })
+			headReturning({ 'content-type': 'application/octet-stream', 'content-length': '46247040' })
 		);
 		await expect(resolveRecognitionModel()).resolves.toBe(LOCAL);
 	});
@@ -232,7 +232,7 @@ describe('resolveRecognitionModel', () => {
 		// deliberately, so only the content-type check can reject it.
 		vi.stubGlobal(
 			'fetch',
-			headReturning({ 'content-type': 'text/html; charset=utf-8', 'content-length': '26342200' })
+			headReturning({ 'content-type': 'text/html; charset=utf-8', 'content-length': '46247040' })
 		);
 		await expect(resolveRecognitionModel()).resolves.toBe(PINNED);
 	});
@@ -251,7 +251,7 @@ describe('resolveRecognitionModel', () => {
 		vi.stubGlobal(
 			'fetch',
 			headReturning(
-				{ 'content-type': 'application/octet-stream', 'content-length': '26342200' },
+				{ 'content-type': 'application/octet-stream', 'content-length': '46247040' },
 				false
 			)
 		);
@@ -270,7 +270,7 @@ describe('resolveRecognitionModel', () => {
 		vi.stubEnv('DEV', false);
 		const head = headReturning({
 			'content-type': 'application/octet-stream',
-			'content-length': '26342200'
+			'content-length': '46247040'
 		});
 		vi.stubGlobal('fetch', head);
 

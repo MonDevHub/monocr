@@ -44,7 +44,11 @@ fun IntroScreen(
         IntroSlide(
             icon = Icons.Outlined.SettingsSuggest,
             title = "Precision & Docs",
-            description = "Check the Docs for guidelines on lighting and resolution to achieve 97.5%+ accuracy."
+            // No percentage here. This read "97.5%+ accuracy" until 2026-08-16;
+            // that figure traces to no run, and the project's own README states
+            // the model has no held-out evaluation on photographed pages.
+            // AboutScreen.kt retracted the same class of claim already.
+            description = "Check the Docs for guidelines on lighting and resolution that help the model read a page."
         ),
         IntroSlide(
             icon = Icons.Outlined.GroupWork,

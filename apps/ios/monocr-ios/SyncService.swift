@@ -6,7 +6,25 @@ actor SyncService {
     static let shared = SyncService()
     
     private static let BASE_URL = "https://ocr-feedback-service-857115062313.asia-southeast1.run.app/v1"
-    private static let API_KEY = "a47102547a8db8aa2fa454441b04bbb3780fcc5f66f976159994315f003d209a"
+
+    /// Supplied at build time, never in source.
+    ///
+    /// This was a 64-character literal on the line below from 2026-04-11 to
+    /// 2026-08-16, in a public repository, directly beneath the production
+    /// endpoint it authenticates against. Treat that value as burned regardless
+    /// of this change: it is in the git history and in every shipped IPA.
+    ///
+    /// Set `SYNC_API_KEY` in an xcconfig that is not committed (it reaches
+    /// Info.plist through `GENERATE_INFOPLIST_FILE`), or export
+    /// `MONOCR_SYNC_API_KEY` when running from Xcode. Empty is a supported
+    /// state: sync is skipped and everything else in the app works.
+    private static let API_KEY: String = {
+        if let key = Bundle.main.object(forInfoDictionaryKey: "SYNC_API_KEY") as? String,
+           !key.isEmpty {
+            return key
+        }
+        return ProcessInfo.processInfo.environment["MONOCR_SYNC_API_KEY"] ?? ""
+    }()
     
     private var isSyncing = false
     private var modelContainer: ModelContainer?
@@ -24,6 +42,7 @@ actor SyncService {
     }
     
     func syncAll() async {
+        guard !Self.API_KEY.isEmpty else { return }
         guard !isSyncing, let container = modelContainer else { return }
         isSyncing = true
         defer { isSyncing = false }

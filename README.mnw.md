@@ -26,7 +26,7 @@ App ပိ ဂှ် သုင်စောဲဒၟံင် model မွဲဓ�
 
 | | |
 | :--- | :--- |
-| Architecture | MobileNetV3 + BiLSTM-384 + CTC |
+| Architecture | MobileNetV3-Large + SE + 2×BiLSTM-512 + attention + CTC |
 | Parameters | 11.55M |
 | Input | Grayscale, `160px` အမြင့် |
 | Charset | အက္ခရ် 276 |
