@@ -4,7 +4,7 @@
 	"version": "0.4.0",
 	"type": "module",
 	"scripts": {
-		"prepare": "node scripts/copy-wasm.mjs && node scripts/copy-pdf-worker.mjs && svelte-kit sync || echo ''",
+		"prepare": "node scripts/copy-wasm.mjs && node scripts/copy-pdf-worker.mjs && pnpm run paraglide && svelte-kit sync || echo ''",
 		"dev": "node scripts/copy-wasm.mjs && node scripts/copy-pdf-worker.mjs && vite dev",
 		"start": "vite preview",
 		"preview": "vite preview",
