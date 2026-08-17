@@ -6,15 +6,30 @@
 # control: an API key sat in two tracked source files for four months under a
 # SECURITY.md promising secrets are never committed.
 #
-# Android and iOS are deliberately not built here. There is no Gradle wrapper in
-# the tree, and an iOS build needs a macOS runner; both would be jobs nobody has
-# watched pass. The unit tests in those apps are worth wiring up next, starting
-# with committing `gradlew`.
+# Android and iOS are deliberately excluded. There is no Gradle wrapper in the
+# tree, and an iOS build needs a macOS runner at roughly ten times the cost of a
+# Linux one. So `apps/android/app/src/test/` (two Kotlin tests) and
+# `apps/ios/monocr-iosTests/CtcDecoderTests.swift` do not run here — run them
+# locally before touching a decoder or a segmenter.
+#
+# No `paths:` filters anywhere in this file, on purpose. ci-cd.md:490-538: a
+# path-filtered required check goes silently dead the moment a directory is
+# renamed, and GitHub leaves it Pending and blocks the merge forever. The repo is
+# small enough to run everything on every push.
+#
+# Actions are pinned to commit SHAs, not tags — tags can be moved
+# (supply-chain-security.md:410). Dependabot's github-actions ecosystem keeps
+# them current, because a pin that is never updated is its own problem (:422).
 name: CI
 
 on:
   push:
   pull_request:
+
+# Read-only by default, escalated per job only where needed.
+# supply-chain-security.md:427.
+permissions:
+  contents: read
 
 jobs:
   secrets:
@@ -23,7 +38,7 @@ jobs:
     # credential keeps failing until it is actually removed.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       # The gitleaks binary, not gitleaks-action: the action requires a paid
@@ -40,11 +55,11 @@ jobs:
   web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "22"
+          node-version-file: apps/web/.nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Unit tests
@@ -65,6 +80,80 @@ jobs:
             exit "$status"
           fi
 
+  quality:
+    # Lint and format, which ran nowhere until 2026-08-17. apps/web has had a
+    # complete Prettier + ESLint setup and an aggregate `ci` script the whole
+    # time; nothing invoked any of it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: apps/web/.nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Fastest first (ci-cd.md:75). `lint` is `prettier --check . && eslint .`.
+      - name: Lint and format
+        run: pnpm --filter ./apps/web run lint
+
+      # --prod: dev-only advisories in build tooling do not ship to users, and
+      # gating on them would have meant landing a gate that was already red on
+      # 35 moderate findings in transitive test dependencies.
+      #
+      # --audit-level=high, failing rather than warning, per the checklist at
+      # supply-chain-security.md:767. Landing this took fixing what it found:
+      # protobufjs (6 advisories via onnxruntime-web, one critical) and
+      # fast-xml-builder, both pinned forward in pnpm.overrides.
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=high
+
+  go:
+    # services/feedback had no CI of any kind. `go vet` and `go test` both
+    # failed from a clean checkout because go.sum was missing entries for the
+    # swaggo packages — the service did not build, and nothing said so.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/feedback
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: services/feedback/go.mod
+          cache-dependency-path: services/feedback/go.sum
+
+      - name: gofmt
+        # gofmt -l prints unformatted files and exits 0 either way, so the exit
+        # code is not the gate — the output is.
+        run: |
+          set -euo pipefail
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error title=Unformatted Go files::$unformatted"
+            exit 1
+          fi
+          echo "gofmt clean"
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go build
+        run: go build ./...
+
+      - name: go test
+        # NOTE: there are currently zero *_test.go files here, so this passes
+        # vacuously. It is kept because it turns the moment someone adds a test
+        # into a real gate, and because `[no test files]` in the log is an
+        # honest signal. It is not evidence the service works.
+        run: go test ./...
+
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          "$(go env GOPATH)/bin/govulncheck" ./...
+
   model-consistency:
     # Toolchain-free invariants across the three apps, in the spirit of
     # monocr-onnx's charset-parity job. Every check here corresponds to a defect
@@ -74,7 +163,7 @@ jobs:
     # different ways.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: The three bundled charsets are byte-identical
         run: |

@@ -2,7 +2,7 @@
 	const { children } = $props();
 </script>
 
-<div class="min-h-screen bg-canvas text-fg-primary overflow-x-hidden">
+<div class="bg-canvas text-fg-primary min-h-screen overflow-x-hidden">
 	<div class="mx-auto w-full max-w-[1600px]">
 		{@render children?.()}
 	</div>

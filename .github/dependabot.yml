@@ -1,0 +1,59 @@
+# Automated dependency updates.
+#
+# se-brain/rules/standards/supply-chain-security.md:130 — "Renovate or Dependabot
+# running on every repository is a security control, not just maintenance.
+# Unpatched dependencies are the primary target."
+#
+# Grouped, per :160 — "Group related packages ... to avoid review fatigue from
+# dozens of single-package PRs." Ungrouped, this repo would open a PR per package
+# and the review would stop happening, which is the failure mode that matters.
+#
+# Only ecosystems CI can actually verify are listed. Android (gradle) and iOS are
+# not built or tested in CI, so a dependency PR for them could not be checked by
+# anything before merge — that is a bot opening unverifiable PRs, not a control.
+# Add the gradle ecosystem in the same change that adds an Android CI job.
+version: 2
+
+updates:
+  # JS/TS. One pnpm workspace, so the root manifest covers apps/web,
+  # shared/locales and the root tooling.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Build and test tooling churns fastest and carries the least risk.
+      dev-tooling:
+        dependency-type: development
+        patterns: ["*"]
+      # Runtime dependencies, reviewed together but separately from tooling.
+      runtime:
+        dependency-type: production
+        update-types: [minor, patch]
+    ignore:
+      # onnxruntime-web is pinned to match the graph the model was exported
+      # with. A major bump is a deliberate change that needs the export gates
+      # re-run, not a dependency PR.
+      - dependency-name: onnxruntime-web
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: gomod
+    directory: /services/feedback
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      go-dependencies:
+        patterns: ["*"]
+
+  # Keeps the SHA pins in ci.yml current. supply-chain-security.md:422 —
+  # "Pinning is not a reason to never update." Without this the pins rot.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ["*"]

@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RecoveryMiddleware provides a custom gin.Recovery implementation that logs 
+// RecoveryMiddleware provides a custom gin.Recovery implementation that logs
 // panics using structured slog JSON instead of raw console output.
 func RecoveryMiddleware(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -30,8 +30,8 @@ func RecoveryMiddleware(logger *slog.Logger) gin.HandlerFunc {
 
 				httpRequest, _ := httputil.DumpRequest(c.Request, false)
 				if brokenPipe {
-					logger.Error("Path is broken", 
-						"error", err, 
+					logger.Error("Path is broken",
+						"error", err,
 						"request", string(httpRequest),
 						"request_id", c.GetString("requestID"))
 					c.Error(err.(error))

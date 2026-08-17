@@ -23,12 +23,14 @@
       "workerd"
     ],
     "overrides": {
-      "seroval": "^1.4.1",
+      "axios": "^1.13.5",
       "cookie": "^0.7.0",
-      "sha.js": "^2.4.12",
-      "solid-js": "^1.9.4",
       "devalue": "^5.3.2",
-      "axios": "^1.13.5"
+      "fast-xml-builder": "^1.1.7",
+      "protobufjs": "^7.6.1",
+      "seroval": "^1.4.1",
+      "sha.js": "^2.4.12",
+      "solid-js": "^1.9.4"
     },
     "ignoredBuiltDependencies": [
       "protobufjs"

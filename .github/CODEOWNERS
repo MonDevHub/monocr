@@ -1,0 +1,15 @@
+# Every change gets a review request. One maintainer today, so this is a routing
+# rule rather than a division of ownership.
+*                       @janakhpon
+
+# The decode path, the model contract, and the pinned revision. A wrong charset
+# or a mismatched class count returns fluent-looking Mon that is simply wrong,
+# with no error raised — the defect this project has already shipped once.
+/apps/web/src/lib/monocr-onnx.ts        @janakhpon
+/apps/web/src/lib/config.ts             @janakhpon
+/apps/*/charset.txt                     @janakhpon
+/apps/**/engine/                        @janakhpon
+
+# Supply chain and CI.
+/.github/                               @janakhpon
+/.gitleaksignore                        @janakhpon

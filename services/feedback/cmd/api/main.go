@@ -67,22 +67,22 @@ func main() {
 	if conf.GinMode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
-	
+
 	// 4. Initialise Router & Hardened Middlewares
 	router := gin.New()
 
-	// Staff Grade: No CORS middleware needed as this service is 
+	// Staff Grade: No CORS middleware needed as this service is
 	// restricted to Native Mobile (Kotlin/Swift) clients only.
 	// Web version uses R2 Pre-signed URLs directly.
 	router.Use(middleware.RecoveryMiddleware(logger))
 
 	// Staff Grade: In-memory IP Rate Limiting
 	limiter := middleware.NewIPRateLimiter(rate.Limit(conf.RateLimitRequests), conf.RateLimitBurst)
-	
+
 	// Middleware Chain (Order Matters)
 	router.Use(middleware.RequestIDMiddleware())
 	router.Use(middleware.RateLimitMiddleware(limiter))
-	
+
 	// Global Payload Limit
 	router.Use(func(c *gin.Context) {
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, conf.MaxUploadSize)
