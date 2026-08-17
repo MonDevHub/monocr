@@ -96,7 +96,18 @@ jobs:
 
       # Fastest first (ci-cd.md:75). `lint` is `prettier --check . && eslint .`.
       - name: Lint and format
-        run: pnpm --filter ./apps/web run lint
+        run: |
+          set +e
+          output="$(pnpm --filter ./apps/web run lint 2>&1)"
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            detail="$(printf '%s\n' "$output" | tail -30 \
+              | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+            echo "::error title=Lint or format failed::${detail}"
+            exit "$status"
+          fi
 
       # --prod: dev-only advisories in build tooling do not ship to users, and
       # gating on them would have meant landing a gate that was already red on
