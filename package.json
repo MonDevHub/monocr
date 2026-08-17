@@ -37,8 +37,8 @@
     ]
   },
   "devDependencies": {
-    "turbo": "^2.1.2",
-    "googleapis": "^144.0.0",
-    "dotenv": "^16.4.5"
+    "turbo": "^2.10.9",
+    "googleapis": "^174.0.1",
+    "dotenv": "^17.4.2"
   }
 }
