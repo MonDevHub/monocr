@@ -3,7 +3,7 @@ import { CONFIG, resolveRecognitionModel } from './config';
 
 // Types
 type WorkerMessageType = 'INIT' | 'RECOGNIZE';
-type WorkerResponseType = 'RESULT' | 'ERROR';
+type WorkerResponseType = 'RESULT' | 'ERROR' | 'PROGRESS';
 
 interface WorkerMessage {
 	id: string;
@@ -39,6 +39,21 @@ let initPromise: Promise<void> | null = null;
 let idleTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
 const WORKER_IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
+/** Model-download progress subscribers. See `onModelProgress`. */
+type ProgressListener = (received: number, total: number) => void;
+const progressListeners = new Set<ProgressListener>();
+
+/**
+ * Observe the one-time model download. Returns an unsubscribe function.
+ *
+ * `total` is 0 when the server sends no `content-length`, so callers must treat
+ * it as unknown rather than dividing by it.
+ */
+export function onModelProgress(fn: ProgressListener): () => void {
+	progressListeners.add(fn);
+	return () => progressListeners.delete(fn);
+}
+
 // Map to store pending request resolvers
 const pending = new Map<
 	string,
@@ -65,6 +80,18 @@ function getWorker(): Worker {
 		worker = new OcrWorker();
 		worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
 			const { id, type, payload } = e.data;
+
+			// PROGRESS is not a completion. It must not resolve the request or delete
+			// it from `pending`, but it must reset the idle timer: without that, a
+			// download longer than five minutes is killed mid-flight by the very
+			// timer meant to reclaim an *idle* worker.
+			if (type === 'PROGRESS') {
+				const { received, total } = payload as { received: number; total: number };
+				progressListeners.forEach((fn) => fn(received, total));
+				resetIdleTimeout();
+				return;
+			}
+
 			if (pending.has(id)) {
 				const { resolve, reject } = pending.get(id)!;
 				pending.delete(id);
@@ -119,7 +146,10 @@ function request<T>(
 	type: WorkerMessageType,
 	payload: unknown,
 	transferables: Transferable[] = [],
-	timeoutMs = CONFIG.WORKER.TIMEOUT_MS
+	// Annotated `number`, not inferred: CONFIG is `as const`, so inferring from the
+	// default narrows the parameter to the literal 60000 and rejects every other
+	// timeout — including INIT's.
+	timeoutMs: number = CONFIG.WORKER.RECOGNIZE_TIMEOUT_MS
 ): Promise<T> {
 	const id = crypto.randomUUID();
 	const w = getWorker();
@@ -160,10 +190,15 @@ export async function initializeEngine(): Promise<void> {
 		// Initializing ONNX Runtime Worker
 		try {
 			// Pass model paths to worker (worker will fetch them)
-			await request('INIT', {
-				modelPath: await resolveRecognitionModel(),
-				charsetPath: CONFIG.MODELS.CHARSET
-			});
+			await request(
+				'INIT',
+				{
+					modelPath: await resolveRecognitionModel(),
+					charsetPath: CONFIG.MODELS.CHARSET
+				},
+				[],
+				CONFIG.WORKER.INIT_TIMEOUT_MS
+			);
 			// Worker initialized
 		} catch (e: unknown) {
 			initPromise = null; // Allow retry

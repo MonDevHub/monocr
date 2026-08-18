@@ -1,6 +1,6 @@
 import * as ort from 'onnxruntime-web';
 
-import { segmentLines } from './segmentation';
+import { segmentLines, tileLine } from './segmentation';
 
 /**
  * ONNX Runtime Web-based OCR engine for Mon language.
@@ -40,7 +40,11 @@ export class MonOcrOnnx {
 	 * @param modelPath Path to the ONNX model file
 	 * @param charsetPath Path to the charset file
 	 */
-	async initialize(modelPath: string, charsetPath: string): Promise<void> {
+	async initialize(
+		modelPath: string,
+		charsetPath: string,
+		onProgress?: (received: number, total: number) => void
+	): Promise<void> {
 		// Configure ONNX Runtime Wasm paths BEFORE creating session
 		// Senior Tip: Serving WASM from same-origin is most reliable for COOP/COEP and PWA.
 		ort.env.wasm.wasmPaths = '/wasm/';
@@ -100,8 +104,9 @@ export class MonOcrOnnx {
 			// part of the alphabet.
 			this.charset = decoder.decode(charsetBuffer).replace(/[\r\n]+$/, '');
 
-			// Load ONNX model with Caching strategy
-			const modelBuffer = await this.fetchAsset(modelPath);
+			// Load ONNX model with Caching strategy. The charset above is 556 bytes and
+			// needs no progress; this is the 46 MB one.
+			const modelBuffer = await this.fetchAsset(modelPath, onProgress);
 
 			// Init session with buffer, with automatic fallback mapping
 			try {
@@ -148,7 +153,10 @@ export class MonOcrOnnx {
 	 * Cache name matches the Workbox SW runtime cache so both paths
 	 * share a single store: Cache API reads → SW writes, and vice-versa.
 	 */
-	private async fetchAsset(url: string): Promise<Uint8Array> {
+	private async fetchAsset(
+		url: string,
+		onProgress?: (received: number, total: number) => void
+	): Promise<Uint8Array> {
 		const CACHE_NAME = 'monocr-models';
 		let cacheError: Error | null = null;
 
@@ -165,15 +173,23 @@ export class MonOcrOnnx {
 				const response = await fetch(url);
 				if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
 
-				// Store in cache for offline use; ignore quota errors gracefully
+				const bytes = await this.readWithProgress(response, onProgress);
+
+				// Cache the bytes we already have rather than a second copy of the
+				// stream. `cache.put(url, response.clone())` used to run before the
+				// body was read, which meant the entry only landed if the whole
+				// download completed — and on a slow link the worker was terminated
+				// first, so nothing was ever cached and every reload started over.
 				try {
-					await cache.put(url, response.clone());
+					await cache.put(
+						url,
+						new Response(bytes.buffer as ArrayBuffer, { headers: response.headers })
+					);
 				} catch (e) {
 					cacheError = new Error(`Cache write failed (quota?): ${e}`);
 				}
 
-				const buffer = await response.arrayBuffer();
-				return new Uint8Array(buffer);
+				return bytes;
 			}
 		} catch (e) {
 			cacheError = e instanceof Error ? e : new Error(String(e));
@@ -183,7 +199,7 @@ export class MonOcrOnnx {
 		try {
 			const response = await fetch(url);
 			if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
-			return new Uint8Array(await response.arrayBuffer());
+			return await this.readWithProgress(response, onProgress);
 		} catch (networkError) {
 			if (cacheError) {
 				throw new Error(
@@ -193,6 +209,98 @@ export class MonOcrOnnx {
 			}
 			throw networkError;
 		}
+	}
+
+	/**
+	 * Read a response body, reporting bytes as they arrive.
+	 *
+	 * `response.arrayBuffer()` gives no way to observe a 46 MB download, so the
+	 * UI could only show an indeterminate spinner for anywhere from 8 seconds to
+	 * several minutes. Reporting progress is also what keeps the worker's idle
+	 * timer alive while the download is in flight.
+	 *
+	 * Falls back to `arrayBuffer()` where the body is not a readable stream.
+	 *
+	 * Writes into one preallocated buffer when content-length is known, rather
+	 * than collecting chunks and concatenating: the concat held the chunk list and
+	 * the finished array at the same time, roughly 92 MB live for a 46 MB model,
+	 * on the low-end devices this whole path exists to serve. The chunk list is
+	 * kept only for the case where the declared length is absent or wrong, because
+	 * a body that overruns its content-length must not be silently truncated into
+	 * a corrupt model.
+	 */
+	private async readWithProgress(
+		response: Response,
+		onProgress?: (received: number, total: number) => void
+	): Promise<Uint8Array> {
+		const total = Number(response.headers.get('content-length') ?? 0);
+
+		if (!onProgress || !response.body) {
+			return new Uint8Array(await response.arrayBuffer());
+		}
+
+		const reader = response.body.getReader();
+		// Emit at most every 1% or 200 ms. One message per chunk meant hundreds to
+		// thousands of postMessage round trips per download, each one a Svelte
+		// state update and a clearTimeout/setTimeout pair. 200 ms stays far below
+		// the 5-minute idle timer those messages keep alive.
+		let lastEmit = 0;
+		let lastPct = -1;
+		const emit = (received: number, force: boolean) => {
+			const now = Date.now();
+			const pct = total > 0 ? Math.floor((received / total) * 100) : -1;
+			// Both conditions must hold, not either: an `||` here would emit on every
+			// 200 ms tick as well, which on a slow link is thousands of messages —
+			// the opposite of throttling. When content-length is missing, pct is -1
+			// and the time floor is the only gate.
+			const tooSoon = now - lastEmit < 200;
+			const samePct = pct >= 0 && pct === lastPct;
+			if (!force && (tooSoon || samePct)) return;
+			lastEmit = now;
+			lastPct = pct;
+			onProgress(received, total);
+		};
+
+		let preallocated = total > 0 ? new Uint8Array(total) : null;
+		const chunks: Uint8Array[] = [];
+		let received = 0;
+
+		for (;;) {
+			const { done, value } = await reader.read();
+			if (done) break;
+
+			if (preallocated && received + value.length <= preallocated.length) {
+				preallocated.set(value, received);
+			} else if (preallocated) {
+				// The body is longer than content-length claimed. Fall back rather
+				// than drop the overflow.
+				chunks.push(preallocated.subarray(0, received), value);
+				preallocated = null;
+			} else {
+				chunks.push(value);
+			}
+
+			received += value.length;
+			emit(received, false);
+		}
+
+		emit(received, true);
+
+		if (preallocated) {
+			// A body shorter than declared is a truncated download, not a model.
+			if (received !== preallocated.length) {
+				throw new Error(`Incomplete download: got ${received} of ${preallocated.length} bytes`);
+			}
+			return preallocated;
+		}
+
+		const bytes = new Uint8Array(received);
+		let offset = 0;
+		for (const chunk of chunks) {
+			bytes.set(chunk, offset);
+			offset += chunk.length;
+		}
+		return bytes;
 	}
 
 	/**
@@ -495,22 +603,38 @@ export class MonOcrOnnx {
 		// 4. Process each line
 		try {
 			for (const seg of segments) {
-				const inputData = await this.processLine(fullBitmap, seg.x, seg.y, seg.width, seg.height);
-				const inputTensor = new ort.Tensor('float32', inputData, [
-					1,
-					1,
-					this.TARGET_HEIGHT,
-					this.TARGET_WIDTH
-				]);
+				// A line wider than the window was squeezed into it, which on the
+				// pinned v3.5 graph measured CER 0.1434 against 0.0795 tiled. Tiles
+				// are read separately and joined with no separator: the cut lands at
+				// a white column inside a word, so a space there would be wrong.
+				const tiles = tileLine(imageData, seg, this.TARGET_HEIGHT, this.TARGET_WIDTH);
+				const parts: string[] = [];
 
-				const inputName = this.session!.inputNames[0];
-				const feeds: Record<string, ort.Tensor> = {};
-				feeds[inputName] = inputTensor;
+				for (const tile of tiles) {
+					const inputData = await this.processLine(
+						fullBitmap,
+						tile.x,
+						tile.y,
+						tile.width,
+						tile.height
+					);
+					const inputTensor = new ort.Tensor('float32', inputData, [
+						1,
+						1,
+						this.TARGET_HEIGHT,
+						this.TARGET_WIDTH
+					]);
 
-				const inferResults = await this.session!.run(feeds);
-				const output = inferResults[Object.keys(inferResults)[0]];
-				const text = this.decodePredictions(output.data as Float32Array, output.dims as number[]);
+					const inputName = this.session!.inputNames[0];
+					const feeds: Record<string, ort.Tensor> = {};
+					feeds[inputName] = inputTensor;
 
+					const inferResults = await this.session!.run(feeds);
+					const output = inferResults[Object.keys(inferResults)[0]];
+					parts.push(this.decodePredictions(output.data as Float32Array, output.dims as number[]));
+				}
+
+				const text = parts.join('');
 				if (text.trim()) {
 					results.push(text);
 				}

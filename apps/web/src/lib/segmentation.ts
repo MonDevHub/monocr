@@ -258,3 +258,118 @@ export function segmentLines(
 
 	return finalSegments;
 }
+
+/**
+ * Where to cut a wide line, and why this exists.
+ *
+ * A line wider than the model window is otherwise SQUEEZED into it — the app
+ * scales by height and then clamps the width to TARGET_WIDTH, compressing the
+ * glyphs horizontally. Measured over 240 rendered Mon lines wide enough to need
+ * the choice, median 3 tiles at the model height, one harness, only the graph
+ * swapped:
+ *
+ *     v2     squeezed 0.0676   tiled 0.0758   CER
+ *     v3.5   squeezed 0.1434   tiled 0.0795   CER
+ *
+ * This app pins v3.5 (`d3d9d5e`), so it was on the worse side of that. Tiling
+ * hurts v2, so anything repinned to `a51be11` must stop calling this.
+ *
+ * Ported from monocr-onnx `python/monocr_onnx/segmenter.py`; the constants are
+ * the same so the two produce identical cuts on the same input, which is what
+ * segmentation.test.ts checks against fixtures generated from that module.
+ */
+const CUT_SEARCH_FRACTION = 0.12;
+const CUT_INK_THRESHOLD = 250;
+
+/**
+ * Where to end a tile that starts at `x0` and may not pass `ideal`.
+ *
+ * Cutting at exactly `ideal` lands wherever the arithmetic falls, usually mid
+ * glyph. Both halves keep their pixels, so a coverage check still passes, but
+ * the model reads each half as a whole character and one glyph becomes two —
+ * upstream this showed up as `ဗော်` read back as `ဗေဗိာ်`.
+ *
+ * So search backwards from `ideal` for a column of white. A tile may only get
+ * narrower, never wider, or it stops fitting the window. Returns `ideal`
+ * unchanged when there is no gap: for a continuous script a known-bad seam
+ * beats an overflowing tile.
+ */
+function cutColumn(
+	page: ImageData,
+	seg: LineSegment,
+	x0: number,
+	ideal: number,
+	cropW: number
+): number {
+	if (ideal >= cropW) return cropW;
+
+	const window = Math.max(1, Math.trunc((ideal - x0) * CUT_SEARCH_FRACTION));
+	const lo = Math.max(x0 + 1, ideal - window);
+	if (lo >= ideal) return ideal;
+
+	// Ink per column across the band, counted on the page buffer directly rather
+	// than through a canvas crop: the pixels are already here, and a round trip
+	// through drawImage would resample them.
+	let best = lo;
+	let bestInk = Infinity;
+	let rightmostBlank = -1;
+
+	for (let x = lo; x < ideal; x++) {
+		let ink = 0;
+		for (let y = 0; y < seg.height; y++) {
+			const px = seg.x + x;
+			const py = seg.y + y;
+			if (px < 0 || py < 0 || px >= page.width || py >= page.height) continue;
+			const o = (py * page.width + px) * 4;
+			// Same luma as segmentLines and PIL's convert("L").
+			const gray = 0.299 * page.data[o] + 0.587 * page.data[o + 1] + 0.114 * page.data[o + 2];
+			if (gray < CUT_INK_THRESHOLD) ink++;
+		}
+		// Prefer a truly empty column, and the rightmost one, so tiles stay as
+		// wide as the window allows. Otherwise the lightest, first one wins to
+		// match numpy's argmin.
+		if (ink === 0) rightmostBlank = x;
+		if (ink < bestInk) {
+			bestInk = ink;
+			best = x;
+		}
+	}
+
+	return rightmostBlank >= 0 ? rightmostBlank : best;
+}
+
+/**
+ * Split one line into pieces that each fit the model window.
+ *
+ * Returns the segment unchanged when it already fits after being scaled to
+ * `targetH`. Otherwise cuts at whitespace columns, left to right; the pieces
+ * are read separately and joined with no separator, because the cut falls
+ * inside a word and a space there would be wrong.
+ */
+export function tileLine(
+	page: ImageData,
+	seg: LineSegment,
+	targetH: number,
+	targetW: number
+): LineSegment[] {
+	if (seg.height <= 0 || seg.width <= 0) return [seg];
+
+	const scale = targetH / seg.height;
+	if (Math.trunc(seg.width * scale) <= targetW) return [seg];
+
+	const tileWSrc = Math.max(1, Math.trunc(targetW / scale));
+	const tiles: LineSegment[] = [];
+	let x0 = 0;
+
+	while (x0 < seg.width) {
+		const ideal = Math.min(x0 + tileWSrc, seg.width);
+		// Structural guard, not a tuning knob: cutColumn can only return a value
+		// in (x0, ideal], but if it ever returned x0 this loop would spin forever
+		// on a page. One pixel of forced progress bounds it.
+		const x1 = Math.max(cutColumn(page, seg, x0, ideal, seg.width), x0 + 1);
+		tiles.push({ x: seg.x + x0, y: seg.y, width: x1 - x0, height: seg.height });
+		x0 = x1;
+	}
+
+	return tiles;
+}

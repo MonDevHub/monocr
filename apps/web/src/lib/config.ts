@@ -20,8 +20,23 @@ export const CONFIG = {
 		CHARSET: '/charset.txt'
 	},
 	WORKER: {
-		TIMEOUT_MS: 60000,
-		MAX_RETRIES: 3
+		// One timeout cannot serve both of these. Recognising a page is compute on
+		// bytes already in memory; initialising downloads 46,247,040 bytes of model
+		// over whatever connection the user has.
+		//
+		// A single 60,000 ms budget meant init needed 771 KB/s sustained — about
+		// 6.2 Mbps — or it failed every time. Below that the request rejected at 60 s
+		// while the download kept running, and the 5-minute idle timer then killed
+		// the worker mid-fetch. Nothing is written to the cache until the body is
+		// fully received, so a 1 Mbps connection needed ~6 minutes, got 5, and
+		// re-downloaded from zero on every reload, forever. The app simply did not
+		// work below 6.2 Mbps, which is a normal mobile connection in the places
+		// this is built for.
+		//
+		// 15 minutes covers roughly 0.4 Mbps. The timeout is here to catch a wedged
+		// worker, not to enforce a bandwidth floor.
+		INIT_TIMEOUT_MS: 15 * 60 * 1000,
+		RECOGNIZE_TIMEOUT_MS: 60000
 	},
 	UI: {
 		MAX_IMAGE_SIZE_MB: 50,
