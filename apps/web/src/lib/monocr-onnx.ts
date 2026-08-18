@@ -1,6 +1,6 @@
 import * as ort from 'onnxruntime-web';
 
-import { segmentLines } from './segmentation';
+import { segmentLines, tileLine } from './segmentation';
 
 /**
  * ONNX Runtime Web-based OCR engine for Mon language.
@@ -603,22 +603,38 @@ export class MonOcrOnnx {
 		// 4. Process each line
 		try {
 			for (const seg of segments) {
-				const inputData = await this.processLine(fullBitmap, seg.x, seg.y, seg.width, seg.height);
-				const inputTensor = new ort.Tensor('float32', inputData, [
-					1,
-					1,
-					this.TARGET_HEIGHT,
-					this.TARGET_WIDTH
-				]);
+				// A line wider than the window was squeezed into it, which on the
+				// pinned v3.5 graph measured CER 0.1434 against 0.0795 tiled. Tiles
+				// are read separately and joined with no separator: the cut lands at
+				// a white column inside a word, so a space there would be wrong.
+				const tiles = tileLine(imageData, seg, this.TARGET_HEIGHT, this.TARGET_WIDTH);
+				const parts: string[] = [];
 
-				const inputName = this.session!.inputNames[0];
-				const feeds: Record<string, ort.Tensor> = {};
-				feeds[inputName] = inputTensor;
+				for (const tile of tiles) {
+					const inputData = await this.processLine(
+						fullBitmap,
+						tile.x,
+						tile.y,
+						tile.width,
+						tile.height
+					);
+					const inputTensor = new ort.Tensor('float32', inputData, [
+						1,
+						1,
+						this.TARGET_HEIGHT,
+						this.TARGET_WIDTH
+					]);
 
-				const inferResults = await this.session!.run(feeds);
-				const output = inferResults[Object.keys(inferResults)[0]];
-				const text = this.decodePredictions(output.data as Float32Array, output.dims as number[]);
+					const inputName = this.session!.inputNames[0];
+					const feeds: Record<string, ort.Tensor> = {};
+					feeds[inputName] = inputTensor;
 
+					const inferResults = await this.session!.run(feeds);
+					const output = inferResults[Object.keys(inferResults)[0]];
+					parts.push(this.decodePredictions(output.data as Float32Array, output.dims as number[]));
+				}
+
+				const text = parts.join('');
 				if (text.trim()) {
 					results.push(text);
 				}
