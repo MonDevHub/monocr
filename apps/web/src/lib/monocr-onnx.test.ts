@@ -358,3 +358,82 @@ describe('the model-download budget', () => {
 		expect(CONFIG.WORKER.INIT_TIMEOUT_MS).toBeGreaterThan(WORKER_IDLE_TIMEOUT_MS);
 	});
 });
+
+/**
+ * Streaming the model body, added 2026-08-18 alongside the timeout split.
+ *
+ * The download is the slowest and least observable thing the app does, and it
+ * runs on the connections least able to afford a mistake, so the buffer
+ * arithmetic is worth pinning down.
+ */
+describe('reading the model body', () => {
+	type Reader = {
+		readWithProgress: (
+			r: Response,
+			cb?: (received: number, total: number) => void
+		) => Promise<Uint8Array>;
+	};
+
+	/** A Response whose body arrives in fixed-size chunks. */
+	function streamed(bytes: Uint8Array, chunk: number, declaredLength?: number) {
+		let i = 0;
+		const body = {
+			getReader: () => ({
+				read: async () => {
+					if (i >= bytes.length) return { done: true, value: undefined };
+					const slice = bytes.subarray(i, Math.min(i + chunk, bytes.length));
+					i += chunk;
+					return { done: false, value: slice };
+				}
+			})
+		};
+		return {
+			body,
+			headers: { get: () => String(declaredLength ?? bytes.length) }
+		} as unknown as Response;
+	}
+
+	const reader = () => new MonOcrOnnx() as unknown as Reader;
+	const payload = (n: number) => Uint8Array.from({ length: n }, (_, i) => i % 251);
+
+	it('returns the bytes intact when the declared length is right', async () => {
+		const bytes = payload(5000);
+
+		const got = await reader().readWithProgress(streamed(bytes, 512), () => {});
+
+		expect(got.length).toBe(5000);
+		expect(Array.from(got)).toEqual(Array.from(bytes));
+	});
+
+	it('refuses a body shorter than content-length instead of returning it', async () => {
+		// A truncated download decodes as a corrupt model. Failing here names the
+		// cause; failing inside InferenceSession.create does not.
+		const bytes = payload(3000);
+
+		await expect(reader().readWithProgress(streamed(bytes, 512, 5000), () => {})).rejects.toThrow(
+			/Incomplete download: got 3000 of 5000/
+		);
+	});
+
+	it('keeps the overflow when a body is longer than content-length', async () => {
+		const bytes = payload(5000);
+
+		const got = await reader().readWithProgress(streamed(bytes, 512, 3000), () => {});
+
+		expect(got.length).toBe(5000);
+		expect(Array.from(got)).toEqual(Array.from(bytes));
+	});
+
+	it('throttles progress instead of reporting every chunk', async () => {
+		const bytes = payload(200_000);
+		const seen: number[] = [];
+
+		// 400 chunks. Unthrottled this reports 400 times, each one a postMessage,
+		// a Svelte state update and a timer reset.
+		await reader().readWithProgress(streamed(bytes, 500), (received) => seen.push(received));
+
+		expect(seen.length).toBeLessThan(400);
+		// The last report must be the true total, or the bar stops short of 100%.
+		expect(seen.at(-1)).toBe(200_000);
+	});
+});

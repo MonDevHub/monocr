@@ -220,6 +220,14 @@ export class MonOcrOnnx {
 	 * timer alive while the download is in flight.
 	 *
 	 * Falls back to `arrayBuffer()` where the body is not a readable stream.
+	 *
+	 * Writes into one preallocated buffer when content-length is known, rather
+	 * than collecting chunks and concatenating: the concat held the chunk list and
+	 * the finished array at the same time, roughly 92 MB live for a 46 MB model,
+	 * on the low-end devices this whole path exists to serve. The chunk list is
+	 * kept only for the case where the declared length is absent or wrong, because
+	 * a body that overruns its content-length must not be silently truncated into
+	 * a corrupt model.
 	 */
 	private async readWithProgress(
 		response: Response,
@@ -232,15 +240,58 @@ export class MonOcrOnnx {
 		}
 
 		const reader = response.body.getReader();
+		// Emit at most every 1% or 200 ms. One message per chunk meant hundreds to
+		// thousands of postMessage round trips per download, each one a Svelte
+		// state update and a clearTimeout/setTimeout pair. 200 ms stays far below
+		// the 5-minute idle timer those messages keep alive.
+		let lastEmit = 0;
+		let lastPct = -1;
+		const emit = (received: number, force: boolean) => {
+			const now = Date.now();
+			const pct = total > 0 ? Math.floor((received / total) * 100) : -1;
+			// Both conditions must hold, not either: an `||` here would emit on every
+			// 200 ms tick as well, which on a slow link is thousands of messages —
+			// the opposite of throttling. When content-length is missing, pct is -1
+			// and the time floor is the only gate.
+			const tooSoon = now - lastEmit < 200;
+			const samePct = pct >= 0 && pct === lastPct;
+			if (!force && (tooSoon || samePct)) return;
+			lastEmit = now;
+			lastPct = pct;
+			onProgress(received, total);
+		};
+
+		let preallocated = total > 0 ? new Uint8Array(total) : null;
 		const chunks: Uint8Array[] = [];
 		let received = 0;
 
 		for (;;) {
 			const { done, value } = await reader.read();
 			if (done) break;
-			chunks.push(value);
+
+			if (preallocated && received + value.length <= preallocated.length) {
+				preallocated.set(value, received);
+			} else if (preallocated) {
+				// The body is longer than content-length claimed. Fall back rather
+				// than drop the overflow.
+				chunks.push(preallocated.subarray(0, received), value);
+				preallocated = null;
+			} else {
+				chunks.push(value);
+			}
+
 			received += value.length;
-			onProgress(received, total);
+			emit(received, false);
+		}
+
+		emit(received, true);
+
+		if (preallocated) {
+			// A body shorter than declared is a truncated download, not a model.
+			if (received !== preallocated.length) {
+				throw new Error(`Incomplete download: got ${received} of ${preallocated.length} bytes`);
+			}
+			return preallocated;
 		}
 
 		const bytes = new Uint8Array(received);
