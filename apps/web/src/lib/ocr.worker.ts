@@ -9,9 +9,18 @@ self.onmessage = async (e: MessageEvent) => {
 		switch (type) {
 			case 'INIT':
 				if (!engine) {
-					engine = new MonOcrOnnx();
+					// Assign only after initialize() resolves. Assigning first meant a
+					// failed init left a non-null `engine` behind, so the next INIT took
+					// the `if (!engine)` short-circuit and reported 'Initialized' against
+					// a session that was never created — the UI went ready and the first
+					// scan died on "Model not initialized". Harmless while nothing could
+					// retry; a retry button makes it reachable.
+					const pending = new MonOcrOnnx();
 					const { modelPath, charsetPath } = payload;
-					await engine.initialize(modelPath, charsetPath);
+					await pending.initialize(modelPath, charsetPath, (received, total) => {
+						self.postMessage({ id, type: 'PROGRESS', payload: { received, total } });
+					});
+					engine = pending;
 				}
 				self.postMessage({ id, type: 'RESULT', payload: 'Initialized' });
 				break;

@@ -40,7 +40,11 @@ export class MonOcrOnnx {
 	 * @param modelPath Path to the ONNX model file
 	 * @param charsetPath Path to the charset file
 	 */
-	async initialize(modelPath: string, charsetPath: string): Promise<void> {
+	async initialize(
+		modelPath: string,
+		charsetPath: string,
+		onProgress?: (received: number, total: number) => void
+	): Promise<void> {
 		// Configure ONNX Runtime Wasm paths BEFORE creating session
 		// Senior Tip: Serving WASM from same-origin is most reliable for COOP/COEP and PWA.
 		ort.env.wasm.wasmPaths = '/wasm/';
@@ -100,8 +104,9 @@ export class MonOcrOnnx {
 			// part of the alphabet.
 			this.charset = decoder.decode(charsetBuffer).replace(/[\r\n]+$/, '');
 
-			// Load ONNX model with Caching strategy
-			const modelBuffer = await this.fetchAsset(modelPath);
+			// Load ONNX model with Caching strategy. The charset above is 556 bytes and
+			// needs no progress; this is the 46 MB one.
+			const modelBuffer = await this.fetchAsset(modelPath, onProgress);
 
 			// Init session with buffer, with automatic fallback mapping
 			try {
@@ -148,7 +153,10 @@ export class MonOcrOnnx {
 	 * Cache name matches the Workbox SW runtime cache so both paths
 	 * share a single store: Cache API reads → SW writes, and vice-versa.
 	 */
-	private async fetchAsset(url: string): Promise<Uint8Array> {
+	private async fetchAsset(
+		url: string,
+		onProgress?: (received: number, total: number) => void
+	): Promise<Uint8Array> {
 		const CACHE_NAME = 'monocr-models';
 		let cacheError: Error | null = null;
 
@@ -165,15 +173,23 @@ export class MonOcrOnnx {
 				const response = await fetch(url);
 				if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
 
-				// Store in cache for offline use; ignore quota errors gracefully
+				const bytes = await this.readWithProgress(response, onProgress);
+
+				// Cache the bytes we already have rather than a second copy of the
+				// stream. `cache.put(url, response.clone())` used to run before the
+				// body was read, which meant the entry only landed if the whole
+				// download completed — and on a slow link the worker was terminated
+				// first, so nothing was ever cached and every reload started over.
 				try {
-					await cache.put(url, response.clone());
+					await cache.put(
+						url,
+						new Response(bytes.buffer as ArrayBuffer, { headers: response.headers })
+					);
 				} catch (e) {
 					cacheError = new Error(`Cache write failed (quota?): ${e}`);
 				}
 
-				const buffer = await response.arrayBuffer();
-				return new Uint8Array(buffer);
+				return bytes;
 			}
 		} catch (e) {
 			cacheError = e instanceof Error ? e : new Error(String(e));
@@ -183,7 +199,7 @@ export class MonOcrOnnx {
 		try {
 			const response = await fetch(url);
 			if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
-			return new Uint8Array(await response.arrayBuffer());
+			return await this.readWithProgress(response, onProgress);
 		} catch (networkError) {
 			if (cacheError) {
 				throw new Error(
@@ -193,6 +209,47 @@ export class MonOcrOnnx {
 			}
 			throw networkError;
 		}
+	}
+
+	/**
+	 * Read a response body, reporting bytes as they arrive.
+	 *
+	 * `response.arrayBuffer()` gives no way to observe a 46 MB download, so the
+	 * UI could only show an indeterminate spinner for anywhere from 8 seconds to
+	 * several minutes. Reporting progress is also what keeps the worker's idle
+	 * timer alive while the download is in flight.
+	 *
+	 * Falls back to `arrayBuffer()` where the body is not a readable stream.
+	 */
+	private async readWithProgress(
+		response: Response,
+		onProgress?: (received: number, total: number) => void
+	): Promise<Uint8Array> {
+		const total = Number(response.headers.get('content-length') ?? 0);
+
+		if (!onProgress || !response.body) {
+			return new Uint8Array(await response.arrayBuffer());
+		}
+
+		const reader = response.body.getReader();
+		const chunks: Uint8Array[] = [];
+		let received = 0;
+
+		for (;;) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			chunks.push(value);
+			received += value.length;
+			onProgress(received, total);
+		}
+
+		const bytes = new Uint8Array(received);
+		let offset = 0;
+		for (const chunk of chunks) {
+			bytes.set(chunk, offset);
+			offset += chunk.length;
+		}
+		return bytes;
 	}
 
 	/**

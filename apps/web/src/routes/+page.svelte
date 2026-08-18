@@ -2,7 +2,7 @@
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { onMount, onDestroy } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
-	import { initializeEngine, recognize, cleanup } from '$lib/monocr';
+	import { initializeEngine, recognize, cleanup, onModelProgress } from '$lib/monocr';
 	import { CONFIG } from '$lib/config';
 	import { renderPdfPage, loadPdf } from '$lib/utils/pdf-util';
 	import { feedbackStore } from '$lib/stores/feedback';
@@ -14,6 +14,11 @@
 	let engineReady = $state(false);
 	let loading = $state(false);
 	let error = $state<string | null>(null);
+
+	let modelReceived = $state(0);
+	let modelTotal = $state(0);
+	let stopProgress: (() => void) | null = null;
+	const MB = 1024 * 1024;
 
 	let file = $state<File | null>(null);
 	let previewUrl = $state<string | null>(null);
@@ -55,9 +60,10 @@
 		}
 	}
 
-	onMount(async () => {
+	async function startEngine() {
 		try {
 			loading = true;
+			error = null;
 			await Promise.all([initializeEngine(), loadHistory()]);
 			engineReady = true;
 		} catch (e: unknown) {
@@ -66,9 +72,22 @@
 		} finally {
 			loading = false;
 		}
+	}
+
+	onMount(() => {
+		// The model is downloaded once and cached. Report bytes while it arrives:
+		// it is 46 MB, and on a slow connection an indeterminate spinner is
+		// indistinguishable from a hang, which is what made people reload and start
+		// the download again from zero.
+		stopProgress = onModelProgress((received, total) => {
+			modelReceived = received;
+			modelTotal = total;
+		});
+		startEngine();
 	});
 
 	onDestroy(() => {
+		stopProgress?.();
 		cleanup();
 		// Only revoke if we aren't heading to the report page
 		if (previewUrl && !window.location.pathname.includes('/report')) {
@@ -279,10 +298,27 @@
 		<div class="flex justify-center pt-2">
 			{#if !engineReady && !error}
 				<div
-					class="bg-canvas-subtle/60 text-fg-muted inline-flex items-center gap-2 rounded-md px-3 py-1 text-[11px] font-semibold tracking-wider uppercase"
+					class="bg-canvas-subtle/60 text-fg-muted inline-flex flex-col items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
 				>
-					<div class="bg-fg-muted h-1 w-1 animate-pulse rounded-full"></div>
-					{m.main_loading_model()}
+					<div class="flex items-center gap-2">
+						<div class="bg-fg-muted h-1 w-1 animate-pulse rounded-full"></div>
+						{m.main_loading_model()}
+						{#if modelTotal > 0}
+							<span class="normal-case tabular-nums"
+								>{(modelReceived / MB).toFixed(1)} / {(modelTotal / MB).toFixed(1)} MB</span
+							>
+						{/if}
+					</div>
+					{#if modelTotal > 0}
+						<!-- Determinate only when content-length was sent; otherwise the bar
+						     would animate against an unknown total and mislead. -->
+						<div class="bg-fg-muted/20 h-0.5 w-40 overflow-hidden rounded-full">
+							<div
+								class="bg-fg-muted h-full transition-[width] duration-200"
+								style="width: {Math.min(100, (modelReceived / modelTotal) * 100)}%"
+							></div>
+						</div>
+					{/if}
 				</div>
 			{:else if error}
 				<div
@@ -297,6 +333,17 @@
 						>
 							Learn more
 						</a>
+					{:else}
+						<!-- Previously there was no way back from a failed load except a
+						     full reload, which threw away a partial download. -->
+						<button
+							type="button"
+							onclick={startEngine}
+							disabled={loading}
+							class="ml-2 border-b border-red-200/50 pb-px font-bold uppercase transition-colors hover:text-red-700 disabled:opacity-50 dark:hover:text-red-300"
+						>
+							Retry
+						</button>
 					{/if}
 				</div>
 			{:else}
