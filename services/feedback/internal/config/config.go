@@ -36,9 +36,32 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("missing critical environment variables: check API_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME")
 	}
 
-	// Optional Rate Limits
-	rateReq, _ := strconv.ParseFloat(getEnv("RATE_LIMIT_REQUESTS", "5.0"), 64)
-	rateBurst, _ := strconv.Atoi(getEnv("RATE_LIMIT_BURST", "10"))
+	// Optional rate limits.
+	//
+	// These discarded their parse errors until 2026-08-19, and the zero value
+	// Go returns on failure is not a harmless default here: rate.NewLimiter with
+	// a burst of 0 rejects every request forever, and /health does not touch the
+	// limiter, so the service reports healthy through a total outage. A trailing
+	// space in RATE_LIMIT_BURST was enough to cause it.
+	//
+	// Refuse to start instead. A service that will serve nothing should say so
+	// at boot, where the operator is still watching, not at the first request.
+	rateReq, err := strconv.ParseFloat(getEnv("RATE_LIMIT_REQUESTS", "5.0"), 64)
+	if err != nil {
+		return nil, fmt.Errorf("RATE_LIMIT_REQUESTS must be a number: %w", err)
+	}
+	if rateReq <= 0 {
+		return nil, fmt.Errorf("RATE_LIMIT_REQUESTS must be greater than 0, got %v", rateReq)
+	}
+
+	rateBurst, err := strconv.Atoi(getEnv("RATE_LIMIT_BURST", "10"))
+	if err != nil {
+		return nil, fmt.Errorf("RATE_LIMIT_BURST must be an integer: %w", err)
+	}
+	if rateBurst <= 0 {
+		return nil, fmt.Errorf("RATE_LIMIT_BURST must be greater than 0, got %d", rateBurst)
+	}
+
 	conf.RateLimitRequests = rateReq
 	conf.RateLimitBurst = rateBurst
 
