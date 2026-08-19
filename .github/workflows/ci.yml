@@ -64,6 +64,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Unit tests
         run: pnpm --filter ./apps/web test
+
+      # Nothing built the app until 2026-08-19. Tests and svelte-check both run
+      # against source, so a break that only appears in a production build —
+      # the wasm and pdf-worker copy steps, the Cloudflare adapter, a
+      # `import.meta.env.DEV` branch — shipped undetected. `build` is also the
+      # step that produces what Pages actually serves.
+      - name: Production build
+        run: pnpm --filter ./apps/web run build
       - name: Type check
         run: |
           set +e
