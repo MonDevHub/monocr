@@ -91,12 +91,20 @@ struct ContentView: View {
                 
                 Spacer()
                 
+                SegmentationModePicker(
+                    mode: viewModel.segmentationMode,
+                    isEnabled: !viewModel.isProcessing,
+                    onSelect: { mode in
+                        viewModel.selectSegmentationMode(mode, modelContext: modelContext)
+                    }
+                )
+
                 ActionButtonsView(
                     selectedItem: $selectedItem,
                     showFileImporter: $showFileImporter,
                     showCamera: $viewModel.showCamera,
                     onImageSelected: { image in
-                        viewModel.processImage(image, modelContext: modelContext)
+                        viewModel.processImage(image, provenance: .photoLibrary, modelContext: modelContext)
                     },
                     onFileTooLarge: {
                         viewModel.errorMessage = NSLocalizedString("File too large (Max 50MB). Use CLI tools or desktop version for bigger file support.", comment: "")
@@ -190,7 +198,11 @@ struct ContentView: View {
             .sheet(isPresented: $viewModel.showCamera) {
                 CameraPicker(image: Binding(
                     get: { viewModel.selectedImage },
-                    set: { if let img = $0 { viewModel.processImage(img, modelContext: modelContext) } }
+                    set: {
+                        if let img = $0 {
+                            viewModel.processImage(img, provenance: .cameraCapture, modelContext: modelContext)
+                        }
+                    }
                 ))
             }
             .fileImporter(
