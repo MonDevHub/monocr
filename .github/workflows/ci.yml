@@ -6,11 +6,19 @@
 # control: an API key sat in two tracked source files for four months under a
 # SECURITY.md promising secrets are never committed.
 #
-# Android and iOS are deliberately excluded. There is no Gradle wrapper in the
-# tree, and an iOS build needs a macOS runner at roughly ten times the cost of a
-# Linux one. So `apps/android/app/src/test/` (two Kotlin tests) and
-# `apps/ios/monocr-iosTests/CtcDecoderTests.swift` do not run here — run them
-# locally before touching a decoder or a segmenter.
+# Android is deliberately excluded: there is no Gradle wrapper in the tree, so
+# `apps/android/app/src/test/` runs locally only. Run it before touching a decoder
+# or a segmenter.
+#
+# iOS is no longer excluded, but only its pure logic. `apps/ios/MonOcrCore` is a
+# Swift package over the Foundation-only files, so `swift test` needs no
+# simulator, no signing and no Xcode — which is what made a macOS runner too
+# expensive to justify before. A full app build still is, and is still out.
+#
+# The tests it runs had never executed once: `monocr-iosTests` was in no target in
+# the whole history of project.pbxproj, and `xcodebuild test` reported success
+# against it anyway. That is why the job below asserts a test COUNT rather than
+# trusting the exit code.
 #
 # No `paths:` filters anywhere in this file, on purpose. ci-cd.md:490-538: a
 # path-filtered required check goes silently dead the moment a directory is
@@ -173,6 +181,86 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest
           "$(go env GOPATH)/bin/govulncheck" ./...
 
+  cli:
+    # apps/cli is the batch and desktop surface (ADR-0004). It depends on the
+    # monocr-onnx Rust library, which is a SIBLING REPOSITORY, so this job
+    # currently checks out both. That is a stopgap: once the tiling work in that
+    # crate is released, Cargo.toml should point at a pinned git rev and the
+    # second checkout goes away. A path dependency on a sibling checkout is the
+    # documented reason mon-vlm's CI cannot run at all.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: monocr
+
+      - name: Check out the sibling SDK the CLI depends on
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: MonDevHub/monocr-onnx
+          path: monocr-onnx
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: poppler
+        # pdftoppm and pdfinfo are runtime dependencies of the PDF path, and the
+        # renderer's tests skip themselves without them — which would make this
+        # job pass while testing nothing.
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      - name: cargo fmt
+        working-directory: monocr/apps/cli
+        run: cargo fmt --check
+
+      - name: cargo clippy
+        working-directory: monocr/apps/cli
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: cargo test
+        working-directory: monocr/apps/cli
+        run: cargo test
+
+      - name: The tiling fixture is not optional
+        # The fixture is the only thing keeping four language ports in step. If
+        # it goes missing, every port's parity test silently has nothing to
+        # compare against.
+        working-directory: monocr
+        run: |
+          set -euo pipefail
+          f=shared/segmentation-fixtures/tiling-cases.json
+          test -s "$f"
+          python3 - "$f" <<'PY'
+          import json, sys
+          d = json.load(open(sys.argv[1]))
+          assert d["cases"], "fixture has no cases"
+          assert d["cut_column_probes"], "fixture has no cut probes"
+          for c in d["cases"]:
+              w = c["expected_tile_widths"]
+              assert w, f"{c['name']}: no expected widths"
+              assert sum(w) == c["width"], f"{c['name']}: tiles do not partition the line"
+          print(f"fixture ok: {len(d['cases'])} cases, {len(d['cut_column_probes'])} probes")
+          PY
+
+  ios-core:
+    # macOS runner, but only for `swift test` over the pure Swift package — no
+    # simulator, no signing, no Xcode. Roughly the cost of the Linux jobs.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: swift version
+        run: swift --version
+
+      - name: MonOcrCore tests
+        working-directory: apps/ios
+        # The wrapper exists because a bare `swift test` here builds, links, runs
+        # nothing and exits 0: SwiftPM's generated entry point is compiled out by
+        # `#if canImport(Testing)` when the framework search path is missing, and
+        # target-level swiftSettings do not reach that module. The script supplies
+        # the flags on the command line and fails the run unless a test count was
+        # actually reported.
+        run: sh Scripts/swift-test.sh
+
   model-consistency:
     # Toolchain-free invariants across the three apps, in the spirit of
     # monocr-onnx's charset-parity job. Every check here corresponds to a defect
@@ -227,6 +315,26 @@ jobs:
           fi
           [ "$missing" -eq 0 ] && echo "revision $pinned consistent"
           exit "$missing"
+
+      - name: The CLI delegates the pin rather than restating it
+        # apps/cli deliberately has no revision of its own: it takes the model
+        # through the monocr-onnx library, which owns MODEL_REVISION. That is one
+        # source of truth, and adding the CLI to the list above would create a
+        # second one that can drift. So the check here is the inverse — assert
+        # the CLI has NOT acquired a hardcoded revision.
+        run: |
+          set -euo pipefail
+          if [ ! -d apps/cli ]; then
+            echo "apps/cli absent, nothing to check"
+            exit 0
+          fi
+          found="$(grep -rlE '\b(d3d9d5e|a51be11|881d167)\b' apps/cli/src apps/cli/Cargo.toml 2>/dev/null || true)"
+          if [ -n "$found" ]; then
+            echo "::error title=CLI hardcodes a model revision::$found"
+            echo "The CLI must take the pin from monocr-onnx, not restate it."
+            exit 1
+          fi
+          echo "CLI delegates the pin to the library"
 
       - name: The architecture is stated one way
         # It was stated eight ways, and the single dissenting copy was the
