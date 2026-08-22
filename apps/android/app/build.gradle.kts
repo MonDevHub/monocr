@@ -132,6 +132,13 @@ android {
                 "build/generated/ksp/release/java"
             )
         }
+        getByName("test") {
+            // The tiling fixture is generated from the reference implementation in
+            // monocr-onnx and shared with web, iOS and Rust. Wired in from its one
+            // location rather than copied here, because a copy is a copy that goes
+            // stale and then agrees with the wrong answer.
+            resources.srcDir(rootProject.file("../../shared/segmentation-fixtures"))
+        }
     }
 }
 
@@ -170,6 +177,9 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
+    // Reads the shared tiling fixture. Test-only: `org.json` is in the mockable
+    // android.jar, so every call throws in a plain JVM unit test.
+    testImplementation(libs.gson)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

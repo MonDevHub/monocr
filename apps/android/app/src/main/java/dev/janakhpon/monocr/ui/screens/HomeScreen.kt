@@ -19,9 +19,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,11 +36,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +65,8 @@ import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import dev.janakhpon.monocr.R
 import dev.janakhpon.monocr.data.HistoryRecord
+import dev.janakhpon.monocr.engine.ImagePreprocessor
+import dev.janakhpon.monocr.engine.SegmentationMode
 import dev.janakhpon.monocr.ui.MainViewModel
 import dev.janakhpon.monocr.ui.UiState
 import dev.janakhpon.monocr.ui.components.HeroHeader
@@ -103,22 +109,27 @@ fun HomeScreen(
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
-        uri?.let { 
+        uri?.let {
             context.contentResolver.takePersistableUriPermission(
                 it, Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
-            scope.launch { loadAndProcess(context, it, viewModel) } 
+            scope.launch { loadAndProcess(context, it, viewModel, ::galleryModeFor) }
         }
     }
 
     val pdfLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
-        uri?.let { 
+        uri?.let {
             context.contentResolver.takePersistableUriPermission(
                 it, Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
-            scope.launch { loadAndProcess(context, it, viewModel) } 
+            // loadAndProcess routes a PDF to the multi-page reader before it reaches
+            // the image path, so this mode is never consulted; it says what a PDF
+            // would get anyway.
+            scope.launch {
+                loadAndProcess(context, it, viewModel) { SegmentationMode.PAGE }
+            }
         }
     }
 
@@ -128,7 +139,11 @@ fun HomeScreen(
     ) { success ->
         if (success) {
             cameraUri?.let { uri ->
-                scope.launch { loadAndProcess(context, uri, viewModel) }
+                // A camera capture is a photo of a slide, a poster or a sign far more
+                // often than it is a book page, and those need the sparse threshold.
+                scope.launch {
+                    loadAndProcess(context, uri, viewModel) { SegmentationMode.SPARSE }
+                }
             }
         }
     }
@@ -144,6 +159,8 @@ fun HomeScreen(
     }
 
     val scanHistory by viewModel.scanHistory.collectAsState()
+    val segmentationMode by viewModel.segmentationMode.collectAsState()
+    val rerunnableImage by viewModel.rerunnableImage.collectAsState()
     val scrollState = rememberScrollState()
     val showHistoryResultDialogState = remember { mutableStateOf<HistoryRecord?>(null) }
     
@@ -220,6 +237,26 @@ fun HomeScreen(
                     }
                 }
 
+                // Line detection control. Offered after a run, not before: the useful
+                // moment to change it is when the reading came back merged or split,
+                // and re-running is one tap. Not switched automatically — the upstream
+                // docs record 0.83 confidence on a fabricated reading, so the model's
+                // own certainty cannot tell us segmentation went wrong.
+                rerunnableImage?.let { imageUri ->
+                    AnimatedVisibility(
+                        visible = uiState is UiState.Success || uiState is UiState.OcrError
+                    ) {
+                        SegmentationModeControl(
+                            selected = segmentationMode,
+                            blockShapedLines = (uiState as? UiState.Success)?.result?.blockShapedLineCount ?: 0,
+                            failedLines = (uiState as? UiState.Success)?.result?.failedLineCount ?: 0,
+                            onSelect = { mode ->
+                                scope.launch { loadAndProcess(context, imageUri, viewModel) { mode } }
+                            }
+                        )
+                    }
+                }
+
                 // History Section
                 HistorySection(
                     title = stringResource(R.string.history_title),
@@ -273,9 +310,98 @@ fun HomeScreen(
 
 // ─── Sub-composables extracted to ui/components/ ─────────────────────────────
 
+/**
+ * Lets the user pick how the page is split into lines, with the mode the run
+ * actually used preselected.
+ *
+ * There is no single right threshold — a fraction of mean row density that separates
+ * book lines sits below the noise floor of a photograph — so this is a choice the
+ * user can see and change, not a hidden constant.
+ */
+@Composable
+private fun SegmentationModeControl(
+    selected: SegmentationMode,
+    blockShapedLines: Int,
+    failedLines: Int,
+    onSelect: (SegmentationMode) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.segmentation_mode_label),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SegmentationMode.entries.forEach { mode ->
+                    val label = when (mode) {
+                        SegmentationMode.PAGE -> R.string.segmentation_mode_page
+                        SegmentationMode.SPARSE -> R.string.segmentation_mode_sparse
+                        SegmentationMode.LINE -> R.string.segmentation_mode_line
+                    }
+                    FilterChip(
+                        selected = mode == selected,
+                        onClick = { if (mode != selected) onSelect(mode) },
+                        label = { Text(stringResource(label)) }
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.segmentation_mode_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (blockShapedLines > 0) {
+                Text(
+                    text = stringResource(R.string.segmentation_block_warning, blockShapedLines),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            if (failedLines > 0) {
+                Text(
+                    text = stringResource(R.string.segmentation_failed_lines, failedLines),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-private suspend fun loadAndProcess(context: Context, uri: Uri, viewModel: MainViewModel) {
+/**
+ * A gallery image is a page unless it is too short to hold two lines, in which case
+ * it is a crop of one line and segmenting it would only chop the line up.
+ */
+private fun galleryModeFor(bitmap: Bitmap): SegmentationMode =
+    if (bitmap.height < 2 * ImagePreprocessor.TARGET_HEIGHT) {
+        SegmentationMode.LINE
+    } else {
+        SegmentationMode.PAGE
+    }
+
+/**
+ * @param chooseMode picks the segmentation mode from the decoded bitmap. Provenance
+ *   lives at the call site, which is the only place that knows whether this came from
+ *   the camera, the gallery, or the user re-running with a mode they chose.
+ */
+private suspend fun loadAndProcess(
+    context: Context,
+    uri: Uri,
+    viewModel: MainViewModel,
+    chooseMode: (Bitmap) -> SegmentationMode
+) {
     val fileSize = try {
         context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: 0L
     } catch (_: Exception) {
@@ -327,7 +453,7 @@ private suspend fun loadAndProcess(context: Context, uri: Uri, viewModel: MainVi
             if (decoded != null) rotateImageIfRequired(context, decoded, uri) else null
         }
     } ?: return
-    viewModel.onImageSelected(uri, bitmap)
+    viewModel.onImageSelected(uri, bitmap, chooseMode(bitmap))
 }
 
 private fun rotateImageIfRequired(context: Context, img: Bitmap, selectedImage: Uri): Bitmap {

@@ -47,9 +47,18 @@ object CtcDecoder {
             if (idx != 0 && idx != prevIdx) {
                 // 1-indexed: idx=1 → charset[0]
                 val charIdx = idx - 1
-                if (charIdx < charset.length) {
-                    decoded.append(charset[charIdx])
+                if (charIdx >= charset.length) {
+                    // Unreachable once the model contract holds, and that is the point:
+                    // this index means the graph emits more classes than the charset
+                    // describes. Dropping it silently, as this did, turned that
+                    // mismatch into a reading with characters quietly missing.
+                    throw ModelContractException(
+                        "model predicted class $idx but the charset has only " +
+                            "${charset.length} characters; the model and the charset are " +
+                            "different generations"
+                    )
                 }
+                decoded.append(charset[charIdx])
             }
             prevIdx = idx
         }

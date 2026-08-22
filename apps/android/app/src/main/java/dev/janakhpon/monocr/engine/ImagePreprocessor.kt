@@ -22,20 +22,43 @@ object ImagePreprocessor {
     const val TARGET_WIDTH = 1024
 
     /**
-     * Extract and preprocess a line segment from [source] at [segment].
+     * Render a normalised grey page as a bitmap, so the scaling below can use
+     * Canvas's bilinear filter — the same resampler the iOS and web preprocessors
+     * use, which is why it is worth a conversion rather than a hand-written
+     * resampler here.
+     *
+     * Converts [page]'s buffer in place and takes ownership of it: the caller must
+     * finish segmenting and tiling before calling this. A separate ARGB buffer would
+     * be another 33 MB on a 300 DPI A4 page, on top of the bitmap it feeds.
+     */
+    fun toBitmapConsuming(page: GreyImage): Bitmap {
+        val argb = page.pixels
+        for (i in argb.indices) {
+            val v = argb[i]
+            argb[i] = (0xFF shl 24) or (v shl 16) or (v shl 8) or v
+        }
+        val bitmap = androidx.core.graphics.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
+        bitmap.setPixels(argb, 0, page.width, 0, 0, page.width, page.height)
+        return bitmap
+    }
+
+    /**
+     * Extract and preprocess a line segment from [normalizedPage] at [segment].
      * Returns a Float32Array of shape [1, 1, TARGET_HEIGHT, TARGET_WIDTH].
      *
-     * Includes adaptive inversion (ported from monocr-ios):
-     * If the mean luminance of the active region is < 120, the segment is
-     * assumed to be light text on a dark background. It is inverted so the
-     * model always receives dark text on a white canvas.
+     * [normalizedPage] must already be dark ink on white — [PageNormalizer] does
+     * that once for the whole page. There is deliberately no polarity check here.
+     * The old per-line `meanGray < 120` inversion ran after segmentation, so on an
+     * inverted page the segmenter had already found the background and called it
+     * text; and because the page-level normalisation is not idempotent, keeping both
+     * would invert twice on exactly the inputs that need it.
      */
-    suspend fun processLine(source: Bitmap, segment: LineSegment): FloatArray =
+    suspend fun processLine(normalizedPage: Bitmap, segment: LineSegment): FloatArray =
         withContext(Dispatchers.Default) {
             val sy = segment.y
-            val sh = minOf(segment.height, source.height - sy)
+            val sh = minOf(segment.height, normalizedPage.height - sy)
             val sx = segment.x
-            val sw = minOf(segment.width, source.width - sx)
+            val sw = minOf(segment.width, normalizedPage.width - sx)
 
             // Scale to fit TARGET_HEIGHT, capped at TARGET_WIDTH
             val scale = TARGET_HEIGHT.toFloat() / sh
@@ -52,45 +75,24 @@ object ImagePreprocessor {
 
             val srcRect = Rect(sx, sy, sx + sw, sy + sh)
             val dstRect = Rect(0, 0, scaledWidth, TARGET_HEIGHT)
-            canvasG.drawBitmap(source, srcRect, dstRect, paint)
+            canvasG.drawBitmap(normalizedPage, srcRect, dstRect, paint)
 
             val pixels = IntArray(TARGET_WIDTH * TARGET_HEIGHT)
             canvas.getPixels(pixels, 0, TARGET_WIDTH, 0, 0, TARGET_WIDTH, TARGET_HEIGHT)
             canvas.recycle()
 
-            // Pass 1: Convert pixels → grayscale float + compute mean for inversion check
+            // Pass 1: Convert pixels → grayscale float
             val float32 = FloatArray(TARGET_WIDTH * TARGET_HEIGHT)
-            var sumGray = 0.0
-            var activeCount = 0
 
             for (i in float32.indices) {
                 val px = pixels[i]
                 val r = (px shr 16 and 0xFF).toFloat()
                 val g = (px shr 8  and 0xFF).toFloat()
                 val b = (px        and 0xFF).toFloat()
-                val gray = 0.299f * r + 0.587f * g + 0.114f * b
-                float32[i] = gray
-                if (i % TARGET_WIDTH < scaledWidth) {
-                    sumGray += gray
-                    activeCount++
-                }
+                float32[i] = 0.299f * r + 0.587f * g + 0.114f * b
             }
 
-            // Adaptive inversion: if dark background, invert FIRST before computing
-            // stretch statistics — matches the web training pipeline exactly.
-            val meanGray = if (activeCount > 0) sumGray / activeCount else 255.0
-            val shouldInvert = meanGray < 120.0
-
-            if (shouldInvert) {
-                for (i in float32.indices) {
-                    if (i % TARGET_WIDTH < scaledWidth) {
-                        float32[i] = 255f - float32[i]
-                    }
-                }
-            }
-
-            // Pass 2: Compute min/max on already-inverted active region
-            // (must match web: stretch calibrated to post-inversion values)
+            // Pass 2: Compute min/max on the active region for the contrast stretch
             var minG = 255f
             var maxG = 0f
             for (i in float32.indices) {

@@ -1,6 +1,7 @@
 package dev.janakhpon.monocr.engine
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 /**
@@ -60,6 +61,22 @@ class CtcDecoderTest {
 
         val result = CtcDecoder.decode(logits, timeSteps, numClasses, charset)
         assertEquals("AA", result)
+    }
+
+    @Test
+    fun `a class the charset cannot name is an error, not a dropped character`() {
+        // The model claims 4 classes, so 3 characters, but the charset names 2. This
+        // used to skip the unnameable index and return "A", which reads as a plausible
+        // result and hides the fact that the model and the charset are different
+        // generations.
+        val charset = "AB"
+        val numClasses = 4
+        val timeSteps = 2
+        val logits = buildLogits(timeSteps, numClasses, intArrayOf(1, 3))
+
+        assertThrows(ModelContractException::class.java) {
+            CtcDecoder.decode(logits, timeSteps, numClasses, charset)
+        }
     }
 
     @Test

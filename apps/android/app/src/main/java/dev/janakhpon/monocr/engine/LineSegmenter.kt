@@ -1,38 +1,87 @@
 package dev.janakhpon.monocr.engine
 
-import android.graphics.Bitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Segments a bitmap into individual text lines using horizontal projection profile.
- * Expert version synchronized with monocr-web.
+ * One band of the page, in page coordinates.
+ *
+ * [looksLikeALine] is the shape verdict from [LineSegmenter.looksLikeALine]. It does
+ * not drop anything; callers decide what to do with a band that is shaped like a
+ * block.
  */
-data class LineSegment(val x: Int, val y: Int, val width: Int, val height: Int)
+data class LineSegment(
+    val x: Int,
+    val y: Int,
+    val width: Int,
+    val height: Int,
+    val looksLikeALine: Boolean = true
+)
 
+/**
+ * Segments a page into text lines using a horizontal projection profile.
+ *
+ * Takes a [GreyImage] rather than a bitmap, and expects it already normalised to
+ * dark ink on white by [PageNormalizer]. Reading polarity per line after this ran
+ * was the old bug: the profile measured the background of an inverted page as ink.
+ */
 object LineSegmenter {
 
     private const val WINDOW_SIZE = 25
     private const val C_THRESHOLD = 8
     private const val SMOOTH_KERNEL = 5
     private const val MIN_LINE_HEIGHT = 10
-    private const val DENSITY_THRESHOLD_RATIO = 0.03f
 
-    suspend fun segment(bitmap: Bitmap): List<LineSegment> = withContext(Dispatchers.Default) {
-        val width = bitmap.width
-        val height = bitmap.height
+    /**
+     * A band taller than this fraction of the page is too tall to be one line.
+     * Upstream, across the sample images and both PDFs, the tallest band on a
+     * readable multi-line page was 29% of page height, against 65% and 100% on the
+     * two camera photos the model cannot read.
+     */
+    private const val IMPLAUSIBLE_LINE_FRACTION = 0.40f
 
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+    /** Wider than this against its own height and it is line-shaped, whatever its height. */
+    private const val LINE_SHAPE_ASPECT = 4.0f
 
-        // 1. Convert pixels to grayscale
-        val gray = IntArray(width * height) { i ->
-            val px = pixels[i]
-            val r = (px shr 16 and 0xFF) * 0.299f
-            val g = (px shr 8 and 0xFF) * 0.587f
-            val b = (px and 0xFF) * 0.114f
-            (r + g + b).toInt()
-        }
+    /**
+     * Is this band shaped like one line of text, or is it a fused block?
+     *
+     * The projection profile can return a band covering most of the page when the
+     * gaps between lines never fall under the density threshold — which is a fraction
+     * of the mean, and sits below the noise floor of a photograph. Nothing downstream
+     * notices. The recogniser scales whatever it is given to 160px and answers, and it
+     * does not answer "I cannot read this": measured upstream 2026-08-15, a 493px band
+     * on a 760px page came back as fluent Mon meaning "Mudon township" at confidence
+     * 0.83, appearing nowhere on the page. So confidence cannot be the filter. Shape can.
+     *
+     * Two conditions, because either alone gets a real case wrong. Page fraction alone
+     * rejects a single-line crop, which is 100% of its own image. Aspect alone rejects
+     * a short word on a page, which can be taller than it is wide. A band has to fail
+     * both to be called a block.
+     *
+     * Ported from mon_OCR `segmenter.looks_like_a_line`; same two constants.
+     */
+    fun looksLikeALine(bbox: LineSegment, pageHeight: Int): Boolean {
+        if (bbox.height <= 0 || pageHeight <= 0) return false
+        val fillsThePage = bbox.height > pageHeight * IMPLAUSIBLE_LINE_FRACTION
+        val lineShaped = bbox.width.toFloat() / bbox.height >= LINE_SHAPE_ASPECT
+        return lineShaped || !fillsThePage
+    }
+
+    /**
+     * @param densityThresholdRatio valley threshold as a fraction of mean row
+     *   density. See [SegmentationMode] for why this is a parameter and not a
+     *   constant: no single value works on both book pages and photographs.
+     */
+    suspend fun segment(
+        page: GreyImage,
+        densityThresholdRatio: Float
+    ): List<LineSegment> = withContext(Dispatchers.Default) {
+        val width = page.width
+        val height = page.height
+        if (width == 0 || height == 0) return@withContext emptyList()
+
+        val gray = page.pixels
 
         // 1b. Smooth Grayscale — Separable 5x5 Box Blur (O(1) per pixel via sliding window)
         //     Pass A: Horizontal 1D blur
@@ -157,8 +206,8 @@ object LineSegmenter {
         // 6. Valley detection
         val nonZeroHist = hist.filter { it > 0 }
         val meanDensity = if (nonZeroHist.isEmpty()) 0f else nonZeroHist.average().toFloat()
-        val threshold = meanDensity * DENSITY_THRESHOLD_RATIO
-        
+        val threshold = meanDensity * densityThresholdRatio
+
         val segments = mutableListOf<LineSegment>()
         var startY: Int? = null
 
@@ -189,14 +238,14 @@ object LineSegmenter {
             medianH = sortedHeights[sortedHeights.size / 2]
         }
 
-        val finalSegments = segments.filter { seg ->
+        segments.filter { seg ->
             val ratio = seg.width.toFloat() / seg.height
             if (ratio < 0.2f || seg.width < 10 || seg.height < 10) false
             else if (medianH > 0 && ratio < 2.5f && seg.height > medianH * 2.5f) false
             else true
+        }.map { seg ->
+            seg.copy(looksLikeALine = looksLikeALine(seg, height))
         }
-
-        finalSegments
     }
 
     private fun addSegment(
