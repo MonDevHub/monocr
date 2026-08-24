@@ -274,6 +274,15 @@ export function segmentLines(
  * This app pins v3.5 (`d3d9d5e`), so it was on the worse side of that. Tiling
  * hurts v2, so anything repinned to `a51be11` must stop calling this.
  *
+ * REMEASURED 2026-08-22, and the figures above did not reproduce.
+ * `mon_OCR/eval/tiling-ab-2026-08-22.md` scored 201 rendered lines through both
+ * the Python arms and the Rust binding and found the answer is width-dependent:
+ * squeezing wins at 2 tiles, the two are at parity at 3, and tiling wins from 4
+ * tiles up, reaching 20x-36x by 6 where squeezing exceeds 0.83 CER. At median 3
+ * tiles -- the population the numbers above were taken on -- there is no tiling
+ * advantage. Tiling stays the default because its downside is bounded and
+ * squeezing's is not, so this is a safety net rather than a general win.
+ *
  * Ported from monocr-onnx `python/monocr_onnx/segmenter.py`; the constants are
  * the same so the two produce identical cuts on the same input, which is what
  * segmentation.test.ts checks against fixtures generated from that module.
@@ -294,7 +303,10 @@ const CUT_INK_THRESHOLD = 250;
  * unchanged when there is no gap: for a continuous script a known-bad seam
  * beats an overflowing tile.
  */
-function cutColumn(
+// Exported for the parity tests only. A tiling failure is otherwise reported as
+// a wrong tile width, which does not say whether the cut search or the loop is
+// at fault; the fixture carries probes that pin the cut search on its own.
+export function cutColumn(
 	page: ImageData,
 	seg: LineSegment,
 	x0: number,

@@ -1,46 +1,63 @@
 import Foundation
-import UIKit
 
 // LineSegment is already defined in LineSegment.swift
 
 nonisolated enum LineSegmenter {
-    
+
     private static let windowSize = 25
     private static let cThreshold = 8 // Lowered to capture faint strokes
     private static let smoothKernel = 3
     private static let minLineHeight = 10
-    private static let densityThresholdRatio: Float = 0.03 // Lowered to 3% to catch floating marks
-    
-    static func segment(image: UIImage) -> [LineSegment] {
-        guard let cgImage = image.cgImage else { return [] }
-        let width = cgImage.width
-        let height = cgImage.height
-        
-        // 1. Setup Grayscale Buffer
-        var rgba = [UInt8](repeating: 0, count: width * height * 4)
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        
-        guard let context = CGContext(data: &rgba,
-                                    width: width,
-                                    height: height,
-                                    bitsPerComponent: 8,
-                                    bytesPerRow: width * 4,
-                                    space: colorSpace,
-                                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else { return [] }
-        
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-        
-        var gray = [UInt8](repeating: 0, count: width * height)
-        for i in 0..<(width * height) {
-            let offset = i * 4
-            let r = Float(rgba[offset])
-            let g = Float(rgba[offset + 1])
-            let b = Float(rgba[offset + 2])
-            
-            let luminosity = 0.299 * r + 0.587 * g + 0.114 * b
-            gray[i] = UInt8(max(0, min(255, luminosity)))
-        }
-        
+
+    /// A band taller than this fraction of the page is unlikely to be one line.
+    private static let implausibleLineFraction: Float = 0.40
+
+    /// A band at least this wide relative to its height is line-shaped.
+    private static let lineShapeAspect: Float = 4.0
+
+    /**
+     Is this band shaped like one line of text, or is it a fused block?
+
+     The projection profile can return a band covering most of the page when the
+     gaps between lines never fall under the density threshold — which is a
+     fraction of the mean, and sits below the noise floor of a photograph.
+     Nothing downstream notices: the recogniser scales whatever it is given to
+     the model height and answers, and it does not answer "I cannot read this".
+     Measured upstream 2026-08-15, a 493px band on a 760px page came back as
+     fluent Mon that appears nowhere on the page, at confidence 0.83.
+
+     So confidence cannot be the filter — it was 0.83 on that fabrication and
+     0.00 on a genuinely blank crop. Shape can. Two conditions, because either
+     alone gets a real case wrong: page fraction alone rejects a single-line crop,
+     which is 100% of its own image, and aspect alone rejects a short word, which
+     can be taller than it is wide. A band has to fail both to be called a block.
+
+     This drops nothing. Callers decide what to do with an unreliable reading.
+
+     Ported from mon_OCR `src/monocr/segmenter.py` (`looks_like_a_line`).
+     */
+    static func looksLikeALine(bbox: LineSegment, pageHeight: Int) -> Bool {
+        guard bbox.height > 0, pageHeight > 0 else { return false }
+        let fillsThePage = Float(bbox.height) > Float(pageHeight) * implausibleLineFraction
+        let lineShaped = Float(bbox.width) / Float(bbox.height) >= lineShapeAspect
+        return lineShaped || !fillsThePage
+    }
+
+    /**
+     Cut a page into text lines.
+
+     `densityThresholdRatio` is the row-density threshold as a fraction of the
+     mean, and it is a parameter because no single value fits both a book page
+     and a slide; see `SegmentationMode`. The page must already be
+     polarity-normalised — this profile treats dark pixels as ink and has no way
+     to notice that it was handed a dark-mode screenshot.
+     */
+    static func segment(page: GreyImage, densityThresholdRatio: Float) -> [LineSegment] {
+        let width = page.width
+        let height = page.height
+        guard width > 0, height > 0 else { return [] }
+        let gray = page.pixels
+
         // 1b. Smooth Grayscale (3x3 Box Blur)
         var smoothedGray = [UInt8](repeating: 0, count: width * height)
         for y in 0..<height {

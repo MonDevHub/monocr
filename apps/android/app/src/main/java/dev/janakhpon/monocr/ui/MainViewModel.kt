@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.janakhpon.monocr.engine.OcrRepository
 import dev.janakhpon.monocr.engine.OcrResult
+import dev.janakhpon.monocr.engine.SegmentationMode
 import dev.janakhpon.monocr.data.HistoryRecord
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,6 +36,22 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
     val scanHistory: StateFlow<List<HistoryRecord>> = repository.getScanHistory()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /**
+     * The mode the last run used. Set from where the image came from, then overridable
+     * by the user. Deliberately not inferred from the model's own output: the upstream
+     * docs record 0.83 confidence on a fabricated reading, so confidence cannot decide
+     * whether segmentation worked.
+     */
+    private val _segmentationMode = MutableStateFlow(SegmentationMode.PAGE)
+    val segmentationMode: StateFlow<SegmentationMode> = _segmentationMode.asStateFlow()
+
+    /**
+     * The image the mode control can re-run against, or null when there is nothing to
+     * re-run — before the first scan, or after a PDF, which is always read page mode.
+     */
+    private val _rerunnableImage = MutableStateFlow<Uri?>(null)
+    val rerunnableImage: StateFlow<Uri?> = _rerunnableImage.asStateFlow()
+
     init {
         viewModelScope.launch {
             try {
@@ -48,11 +65,13 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
         }
     }
 
-    fun onImageSelected(uri: Uri, bitmap: android.graphics.Bitmap) {
+    fun onImageSelected(uri: Uri, bitmap: android.graphics.Bitmap, mode: SegmentationMode) {
         viewModelScope.launch {
             _uiState.value = UiState.Processing(uri)
+            _segmentationMode.value = mode
+            _rerunnableImage.value = uri
             try {
-                val result = repository.performOcr(bitmap)
+                val result = repository.performOcr(bitmap, mode)
                 _uiState.value = UiState.Success(uri, result, uri, "image/jpeg")
                 repository.saveToHistory(
                     fileName = uri.lastPathSegment ?: "scan",
@@ -73,6 +92,10 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
     fun onPdfSelected(context: android.content.Context, uri: Uri, previewUri: Uri?) {
         viewModelScope.launch {
             _uiState.value = UiState.Processing(previewUri ?: uri)
+            // A PDF render is dense text by construction, and the pages are not
+            // re-readable from a single bitmap, so no mode choice is offered.
+            _segmentationMode.value = SegmentationMode.PAGE
+            _rerunnableImage.value = null
             try {
                 val result = repository.performMultiPageOcr(context, uri)
                 _uiState.value = UiState.Success(previewUri ?: uri, result, uri, "application/pdf")
@@ -105,6 +128,7 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
     fun reset() {
         if (repository.isEngineReady) {
             _uiState.value = UiState.Ready
+            _rerunnableImage.value = null
         }
     }
 

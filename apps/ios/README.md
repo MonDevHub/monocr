@@ -13,7 +13,8 @@ By leveraging a **Neural Engine optimized execution** model, MonOCR iOS utilizes
 - **On-Device Inference**: Optimized Core ML execution with ANE acceleration.
 - **Privacy by Design**: Zero data collection; OCR processing is 100% local.
 - **Mon Language Support**: Specialized for the Mon script (276-char charset).
-- **Line Segmentation**: Automatic horizontal projection profiling for accurate text extraction.
+- **Line Segmentation**: Horizontal projection profiling, with a Page / Sparse / Line mode so dense scans and wide-spaced photos can use different thresholds.
+- **Line Tiling**: Lines wider than the model window are cut at whitespace instead of squeezed into it (CER 0.0795 tiled against 0.1434 squeezed on the shipped v3.5 graph).
 - **Modern UI**: 100% SwiftUI with native animations and light/dark theme support.
 - **Format Support**: Handles high-resolution images and multi-page PDFs.
 - **Script Fidelity**: Integration of PyidaungSu fonts for correct Mon/Myanmar rendering.
@@ -25,11 +26,23 @@ By leveraging a **Neural Engine optimized execution** model, MonOCR iOS utilizes
 
 ```
 Image (UIImage)
-  LineSegmenter     -> horizontal projection profile -> List<LineSegment>
-  ImagePreprocessor  -> grayscale + normalize [-1.0, 1.0]
-  MonOcrEngine      -> Core ML Prediction (monocr.mlpackage)
-  CtcDecoder        -> greedy CTC decode -> String
+  GreyImage.upright  -> orientation-corrected 8-bit grey buffer
+  PageNormalizer     -> polarity + background levelling, ONCE, before segmenting
+  LineSegmenter      -> horizontal projection profile -> [LineSegment]
+  LineTiler          -> split lines too wide for the window -> [LineSegment]
+  ImagePreprocessor  -> scale to 160x1024 + normalize [-1.0, 1.0]
+  MonOcrEngine       -> Core ML Prediction (monocr.mlpackage)
+  CtcDecoder         -> greedy CTC decode -> String
 ```
+
+Tiles of one line join with no separator; distinct lines join with a newline.
+Polarity is decided at page level because the projection profile treats dark
+pixels as ink: deciding it per line, after segmentation, made a dark-mode
+screenshot segment on the gaps between lines.
+
+The engine refuses to load a model whose input height or class count disagrees
+with this build (`assertModelContract`), because that mismatch produces
+well-formed, wrong Mon text rather than an error.
 
 ### Model Specification
 
@@ -51,7 +64,8 @@ apps/ios/
 │   ├── persistence/      # SwiftData models & History
 │   ├── resources/        # Models, Fonts, & Assets
 │   └── util/             # Platform & PDF utilities
-├── monocr-iosTests/      # Unit & Performance Tests
+├── MonOcrCore/           # Swift package: the platform-free logic, and its tests
+├── Scripts/              # swift-test.sh
 └── monocr-ios.xcodeproj  # Xcode Project
 ```
 
@@ -70,6 +84,34 @@ MonOCR is a unified cross-platform ecosystem designed for parity and performance
 - **Xcode 15.0+**
 - **iOS 16.0+**
 - **Swift 5.9+**
+
+### Tests
+
+`npm test`, or `sh Scripts/swift-test.sh` directly. It runs the `MonOcrCore`
+Swift package with SwiftPM, which needs neither Xcode nor a simulator.
+
+`MonOcrCore/Sources/MonOcrCore/` is **relative symlinks** into `monocr-ios/`, not
+copies. The app target is a synchronized group over `monocr-ios/`, so the files
+have to live there; symlinking them into a package makes them testable without
+touching `monocr-ios.xcodeproj` and without a second copy that can drift. Adding a
+file to the package means adding a symlink, not moving anything.
+
+Only the platform-free half is in there — `GreyImage`, `PageNormalizer`,
+`LineSegmenter`, `LineTiler`, `CtcDecoder`, `LogitsLayout` and the small value
+types. Anything that imports UIKit, SwiftUI or Core ML still has no test, because
+running it needs a simulator.
+
+> [!IMPORTANT]
+> `xcodebuild test` on this project used to report success against a scheme that
+> is not checked in and a target with no tests in it. `Scripts/swift-test.sh`
+> therefore fails when a run reports no test count, rather than trusting an exit
+> code of 0. It also passes the `-F` and `-rpath` flags SwiftPM needs to find
+> `Testing.framework` in Apple's Command Line Tools; those cannot live in
+> `Package.swift`, which is explained at the top of that file.
+
+The `ld: warning: building for macOS-13.0, but linking with dylib ... built for
+newer version 14.0` line on every test run is `Testing.framework`'s deployment
+target against the package's. It affects nothing the app ships.
 
 ### Getting Started
 

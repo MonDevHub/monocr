@@ -6,6 +6,7 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtException
 import ai.onnxruntime.OrtSession
+import ai.onnxruntime.TensorInfo
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -36,6 +37,22 @@ class MonOcrEngine(private val context: Context) {
         // `d3d9d5e` is the revision the web app pins and the four monocr-onnx SDKs pin.
         // Bump this in the same change that bumps those, or it stops being an answer.
         const val MODEL_VERSION = "v3.5@d3d9d5e"
+
+        /**
+         * The cache filename carries the version, because `cacheDir` survives an app
+         * update and the old copy did not.
+         *
+         * The asset used to be copied to a fixed `monocr.onnx` only when that file was
+         * absent. A device that had run the v2 build kept the v2 graph — 26,342,200
+         * bytes, input height 128 — after updating to a build that preprocesses to 160,
+         * and nothing noticed: the graph loads, inference runs, and the output is wrong
+         * Mon text. Derived from [MODEL_VERSION] rather than written out, so the two
+         * cannot drift.
+         */
+        val CACHED_MODEL_NAME: String = "monocr-${MODEL_VERSION.replace('@', '-')}.onnx"
+
+        /** Anything matching this that is not [CACHED_MODEL_NAME] is a superseded copy. */
+        private val CACHED_MODEL_PATTERN = Regex("""^monocr.*\.onnx$""")
     }
 
     val isInitialized: Boolean get() = ortSession != null
@@ -59,14 +76,23 @@ class MonOcrEngine(private val context: Context) {
         val env = OrtEnvironment.getEnvironment()
         ortEnv = env
 
-        // FIX C8: Instead of readBytes() which double-buffers 25MB in JVM heap + Native ORT,
-        // we copy the asset once to the cache directory, and load via file path.
-        val modelFile = File(context.cacheDir, "monocr.onnx")
-        
-        // CTO AUDIT: Cleanup legacy fp16 model if it exists to free up space
-        val legacyModelFile = File(context.cacheDir, "monocr_fp16.onnx")
-        if (legacyModelFile.exists()) {
-            legacyModelFile.delete()
+        // Instead of readBytes(), which double-buffers 25MB in JVM heap and native ORT,
+        // copy the asset once to the cache directory and load via file path.
+        val modelFile = File(context.cacheDir, CACHED_MODEL_NAME)
+
+        // Every other cached graph is from a previous build: the unversioned
+        // monocr.onnx, the retired monocr_fp16.onnx, and any earlier version key.
+        // Leaving them costs 25MB each and, worse, leaves a plausible-looking file for
+        // a future bug to load.
+        context.cacheDir.listFiles()?.forEach { file ->
+            if (file.name != CACHED_MODEL_NAME && CACHED_MODEL_PATTERN.matches(file.name)) {
+                if (file.delete()) {
+                    MonLogger.i("deleted stale cached model: name=${file.name}")
+                } else {
+                    // Not fatal — the current model still loads from its own path.
+                    MonLogger.w("could not delete stale cached model: name=${file.name}")
+                }
+            }
         }
 
         if (!modelFile.exists()) {
@@ -90,7 +116,83 @@ class MonOcrEngine(private val context: Context) {
         }
 
         MonLogger.i("Creating ONNX session from ${modelFile.name}...")
-        ortSession = env.createSession(modelFile.absolutePath, sessionOpts)
+        val session = env.createSession(modelFile.absolutePath, sessionOpts)
+        try {
+            assertModelContract(session)
+        } catch (e: Throwable) {
+            // A session that fails the contract must not stay open and must not stay
+            // reachable: half-initialised, the next runInference would use it.
+            session.close()
+            throw e
+        }
+        ortSession = session
+    }
+
+    /**
+     * Refuse to run a model that does not match what this app decodes with.
+     *
+     * The weights are a build asset and the charset is another build asset, so nothing
+     * structurally ties the two together — they agree because someone checked. The
+     * failure this prevents is silent: a 277-class graph read through a 315-character
+     * table yields well-formed Mon text that is wrong, with no exception and no lookup
+     * miss, because every decodable index is in range of the larger table.
+     *
+     * Mirrors the check in apps/web `monocr-onnx.ts`.
+     */
+    private fun assertModelContract(session: OrtSession) {
+        val inputInfo = session.inputInfo.values.firstOrNull()?.info as? TensorInfo
+        val inputShape = inputInfo?.shape
+        if (inputShape == null || inputShape.size < 4) {
+            // Unverifiable, not verified. A graph missing the fields a check needs is
+            // disproportionately likely to be the one that is wrong, so say so.
+            MonLogger.w(
+                "model input is not a 4d tensor; cannot verify input height against " +
+                    "target_height=${ImagePreprocessor.TARGET_HEIGHT}"
+            )
+        } else {
+            val declaredHeight = inputShape[2]
+            if (declaredHeight <= 0) {
+                // ORT reports a symbolic dimension as -1. Nothing to compare against.
+                MonLogger.w(
+                    "model input height is symbolic (dim=$declaredHeight); cannot verify it " +
+                        "against target_height=${ImagePreprocessor.TARGET_HEIGHT}"
+                )
+            } else if (declaredHeight.toInt() != ImagePreprocessor.TARGET_HEIGHT) {
+                throw ModelContractException(
+                    "Model expects an input height of ${declaredHeight}px; this build " +
+                        "preprocesses to ${ImagePreprocessor.TARGET_HEIGHT}px. The model and this " +
+                        "app are different generations."
+                )
+            }
+        }
+
+        val outputShape = (session.outputInfo.values.firstOrNull()?.info as? TensorInfo)?.shape
+        val declaredClasses = outputShape?.lastOrNull() ?: -1L
+        if (declaredClasses <= 0) {
+            // Recoverable: runInference re-checks against the tensor that actually comes
+            // back, so this one is deferred rather than skipped.
+            MonLogger.w(
+                "model output class axis is symbolic; deferring the charset contract check " +
+                    "to the first decode"
+            )
+        } else {
+            assertClassCount(declaredClasses.toInt())
+        }
+    }
+
+    /**
+     * CTC reserves index 0 for the blank, so a model over N characters emits N + 1
+     * classes. Anything else means the two assets describe different models.
+     */
+    private fun assertClassCount(numClasses: Int) {
+        val expected = charset.length + 1
+        if (numClasses != expected) {
+            throw ModelContractException(
+                "Model emits $numClasses classes, implying ${numClasses - 1} characters; the " +
+                    "bundled charset has ${charset.length}, which needs $expected (one CTC blank " +
+                    "plus one per character). Refusing to decode."
+            )
+        }
     }
 
     /**
@@ -129,14 +231,17 @@ class MonOcrEngine(private val context: Context) {
                     val dims       = outputTensor.info.shape          // [1, T, C]
                     val timeSteps  = dims[1].toInt()
                     val numClasses = dims[2].toInt()
+                    // Cheap, and it closes the gap the load-time check leaves open when
+                    // the graph declares the class axis symbolically.
+                    assertClassCount(numClasses)
                     CtcDecoder.decode(logits, timeSteps, numClasses, charset)
                 }
             }
         } catch (e: OrtException) {
-            // NNAPI/driver-level abort on certain devices — degrade gracefully rather
-            // than crashing the entire OCR pipeline. The caller will skip blank lines.
-            MonLogger.e("Inference failed for line segment (OrtException). Skipping.", e)
-            ""
+            // An NNAPI or driver-level abort used to be swallowed and returned as "",
+            // so a device that failed on every line produced a page that looked empty
+            // rather than broken. Report it and let the caller decide.
+            throw LineInferenceException("line inference failed in the ONNX runtime", e)
         }
     }
 

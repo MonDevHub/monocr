@@ -1,0 +1,12 @@
+{
+  "name": "@monocr/cli",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "cargo build --release",
+    "dev": "cargo run --",
+    "test": "cargo test",
+    "lint": "cargo clippy --all-targets -- -D warnings",
+    "format": "cargo fmt"
+  }
+}

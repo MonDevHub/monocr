@@ -1,0 +1,43 @@
+[package]
+name = "monocr-cli"
+version = "0.1.0"
+edition = "2021"
+description = "Batch Mon OCR over books, PDFs and images, on-device"
+license = "MIT"
+
+[[bin]]
+name = "monocr-cli"
+path = "src/main.rs"
+
+[dependencies]
+# The OCR core. This CLI is a delivery surface over the library, not a sixth
+# reimplementation of the recogniser: segmentation, tiling, the model pin and
+# the charset contract all live upstream.
+#
+# TODO(before CI): this must become a pinned git rev, not a path. A path
+# dependency on a sibling checkout is a known failure mode in this ecosystem —
+# mon-lm records that "mon-vlm took an editable path install of it and that is
+# why mon-vlm's CI cannot run at all: uv sync fails on any machine without
+# mon_OCR checked out alongside". The path is here only so the CLI builds
+# against uncommitted upstream work; swap it for
+#   monocr-onnx = { git = "https://github.com/MonDevHub/monocr-onnx", rev = "..." }
+# once the tiling change lands, and keep the rev pinned.
+monocr-onnx = { path = "../../../monocr-onnx/rust" }
+
+# Pinned exactly, not by range. ort is a pre-release and "2.0.0-rc.11"
+# range-matches rc.13, which changed Send bounds and does not compile
+# against this crate. Upstream's Cargo.lock pins rc.11; a new member has
+# to say so explicitly or it resolves forward and breaks.
+ort = "=2.0.0-rc.11"
+anyhow = "1.0"
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "process", "fs"] }
+image = "0.24"
+walkdir = "2"
+
+[dev-dependencies]
+assert_fs = "1"

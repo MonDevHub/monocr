@@ -26,6 +26,28 @@ struct ResultCardView: View {
 
             Divider()
 
+            // A band shaped like a block rather than a line still returns fluent
+            // Mon — upstream measured confidence 0.83 on text that appears
+            // nowhere on the page. Say so instead of presenting it as a reading.
+            if !result.unreliableLines.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle")
+                    Text(
+                        String(
+                            format: NSLocalizedString(
+                                "%d block(s) were too tall to be one line. Their text may be invented — try the Sparse or Line mode.",
+                                comment: "Unreliable segmentation warning"
+                            ),
+                            result.unreliableLines.count
+                        )
+                    )
+                }
+                .font(MonTheme.Typography.meta)
+                .foregroundColor(MonTheme.warning)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+            }
+
             // Content
             MonTextView(text: result.text)
                 .frame(height: 300) // Reduced from 350 for density

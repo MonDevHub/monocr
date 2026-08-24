@@ -5,6 +5,6 @@
   "scripts": {
     "build": "xcodebuild -project monocr-ios.xcodeproj -scheme monocr-ios -configuration Debug",
     "clean": "xcodebuild clean",
-    "test": "xcodebuild test -project monocr-ios.xcodeproj -scheme monocr-ios"
+    "test": "sh Scripts/swift-test.sh"
   }
 }
