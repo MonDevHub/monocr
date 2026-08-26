@@ -100,9 +100,13 @@ class MainViewModel: ObservableObject {
         provenance: ImageProvenance,
         modelContext: ModelContext? = nil
     ) {
+        let pixelWidth = Int(image.size.width * image.scale)
         let pixelHeight = Int(image.size.height * image.scale)
-        segmentationMode = provenance.defaultMode(pixelHeight: pixelHeight)
-        MonLogger.i("image from \(provenance) is \(pixelHeight)px tall; mode=\(segmentationMode.rawValue)")
+        segmentationMode = provenance.defaultMode(pixelWidth: pixelWidth, pixelHeight: pixelHeight)
+        MonLogger.i(
+            "image from \(provenance) is \(pixelWidth)x\(pixelHeight); "
+                + "mode=\(segmentationMode.rawValue)"
+        )
 
         lastPdfURL = nil
         runImage(image, modelContext: modelContext)
@@ -144,7 +148,7 @@ class MainViewModel: ObservableObject {
     func processPdf(at url: URL, modelContext: ModelContext? = nil) {
         // A PDF render is a clean page image, so the dense-text threshold is the
         // right default. The user can still switch, which re-runs this file.
-        segmentationMode = ImageProvenance.pdfRender.defaultMode(pixelHeight: 0)
+        segmentationMode = ImageProvenance.pdfRender.defaultMode(pixelWidth: 0, pixelHeight: 0)
         lastImage = nil
         runPdf(at: url, modelContext: modelContext)
     }
