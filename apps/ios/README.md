@@ -14,7 +14,7 @@ By leveraging a **Neural Engine optimized execution** model, MonOCR iOS utilizes
 - **Privacy by Design**: Zero data collection; OCR processing is 100% local.
 - **Mon Language Support**: Specialized for the Mon script (276-char charset).
 - **Line Segmentation**: Horizontal projection profiling, with a Page / Sparse / Line mode so dense scans and wide-spaced photos can use different thresholds.
-- **Line Tiling**: Lines wider than the model window are cut at whitespace instead of squeezed into it (CER 0.0795 tiled against 0.1434 squeezed on the shipped v3.5 graph).
+- **Line Tiling**: Lines wider than the model window are cut at whitespace instead of squeezed into it. Squeezing degrades without bound as a line gets wider — 0.21 CER at four model windows against tiling's 0.06, and above 0.83 by six — while tiling costs a fraction of a point on narrower lines. Measured over 201 rendered lines in `mon_OCR/eval/tiling-ab-2026-08-22.md`.
 - **Modern UI**: 100% SwiftUI with native animations and light/dark theme support.
 - **Format Support**: Handles high-resolution images and multi-page PDFs.
 - **Script Fidelity**: Integration of PyidaungSu fonts for correct Mon/Myanmar rendering.
