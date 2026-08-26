@@ -1,6 +1,6 @@
 import * as ort from 'onnxruntime-web';
 
-import { segmentLines, tileLine } from './segmentation';
+import { normalizePagePolarity, segmentLines, tileLine } from './segmentation';
 
 /**
  * ONNX Runtime Web-based OCR engine for Mon language.
@@ -402,7 +402,10 @@ export class MonOcrOnnx {
 	 * Process a single text line into model input tensor format.
 	 */
 	private async processLine(
-		source: ImageBitmap,
+		// A canvas, not only a bitmap: the page is polarity-normalised into
+		// `segCanvas` before segmentation, and the model must read the same pixels
+		// the segmenter did.
+		source: ImageBitmap | OffscreenCanvas,
 		sx: number,
 		sy: number,
 		sw: number,
@@ -442,37 +445,21 @@ export class MonOcrOnnx {
 
 		const { data } = ctx.getImageData(0, 0, this.TARGET_WIDTH, this.TARGET_HEIGHT);
 
-		// Convert to grayscale
+		// Convert to grayscale.
+		//
+		// Polarity is NOT decided here any more, and the comment that used to sit
+		// below this loop claiming it "matches monocr-ios and monocr-android
+		// behaviour" was false: iOS removed per-line inversion precisely because the
+		// segmenter had already run on the un-inverted page. This was worse still,
+		// deciding per TILE, so two tiles of one line could invert differently.
+		// `segmentation.normalizePagePolarity` now does it once, per page, before
+		// segmentation — which is also why the active-region luminance mean this loop
+		// used to accumulate is gone: nothing reads it.
 		const grayscale = new Float32Array(this.TARGET_WIDTH * this.TARGET_HEIGHT);
-		let sumGray = 0;
-		let activeCount = 0;
 		for (let i = 0; i < grayscale.length; i++) {
 			const offset = i * 4;
-			const r = data[offset];
-			const g = data[offset + 1];
-			const b = data[offset + 2];
-			const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-			grayscale[i] = gray;
-			// Only sample active (non-padded) region for mean luminance
-			if (i % this.TARGET_WIDTH < scaledWidth) {
-				sumGray += gray;
-				activeCount++;
-			}
-		}
-
-		// Adaptive inversion: if the active region is predominantly dark (mean < 120),
-		// assume light text on dark background and invert so the model sees dark on white.
-		// This matches monocr-ios and monocr-android behaviour.
-		const meanGray = activeCount > 0 ? sumGray / activeCount : 255;
-		const shouldInvert = meanGray < 120;
-
-		// Apply inversion first so contrast stretching works in the correct direction
-		if (shouldInvert) {
-			for (let i = 0; i < grayscale.length; i++) {
-				if (i % this.TARGET_WIDTH < scaledWidth) {
-					grayscale[i] = 255 - grayscale[i];
-				}
-			}
+			grayscale[i] =
+				0.299 * data[offset] + 0.587 * data[offset + 1] + 0.114 * data[offset + 2];
 		}
 
 		// Contrast stretching: linearly scale the active-region luminance to [0,255].
@@ -590,6 +577,15 @@ export class MonOcrOnnx {
 
 		const imageData = segCtx.getImageData(0, 0, fullBitmap.width, fullBitmap.height);
 
+		// Once, here, before anything reads the pixels. Written back to the canvas so
+		// `segmentLines`, `tileLine` and `processLine` all see the same buffer —
+		// previously the first two read `imageData` while the third drew from the
+		// original bitmap, so normalising one would have desynchronised them.
+		if (normalizePagePolarity(imageData)) {
+			segCtx.putImageData(imageData, 0, 0);
+			console.info('[monocr-onnx] page had a dark background; inverted before segmenting');
+		}
+
 		// 3. Segment Lines
 		let segments = segmentLines(imageData);
 
@@ -630,7 +626,7 @@ export class MonOcrOnnx {
 
 				for (const tile of tiles) {
 					const inputData = await this.processLine(
-						fullBitmap,
+						segCanvas,
 						tile.x,
 						tile.y,
 						tile.width,

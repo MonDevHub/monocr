@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import fixture from '../../../../shared/segmentation-fixtures/tiling-cases.json';
-import { cutColumn, looksLikeALine, segmentLines, tileLine } from './segmentation';
+import {
+	backgroundIsDark,
+	cutColumn,
+	looksLikeALine,
+	normalizePagePolarity,
+	segmentLines,
+	tileLine
+} from './segmentation';
 
 /**
  * Tiling parity with the Python binding.
@@ -214,5 +221,104 @@ describe('looksLikeALine', () => {
 		for (const seg of segments) {
 			expect(typeof seg.lineShaped).toBe('boolean');
 		}
+	});
+});
+
+/**
+ * Page polarity, decided once.
+ *
+ * Cases mirror iOS `PageNormalizerTests`. The one that matters is
+ * `segmentationFindsTextNotGapsOnADarkPage`: it demonstrates the defect this
+ * function exists for, rather than only testing the function in isolation.
+ */
+describe('page polarity', () => {
+	/** A page of `bg`, with evenly spaced full-height bars of `ink` in one band. */
+	function page(w: number, h: number, bg: number, ink: number, band: [number, number]) {
+		const data = new Uint8ClampedArray(w * h * 4);
+		for (let i = 0; i < w * h; i++) {
+			const o = i * 4;
+			data[o] = data[o + 1] = data[o + 2] = bg;
+			data[o + 3] = 255;
+		}
+		for (let y = band[0]; y < band[1]; y++) {
+			for (let x = 20; x < w - 20; x += 8) {
+				const o = (y * w + x) * 4;
+				data[o] = data[o + 1] = data[o + 2] = ink;
+			}
+		}
+		return { width: w, height: h, data } as ImageData;
+	}
+
+	it('detects a dark background', () => {
+		expect(backgroundIsDark(page(200, 200, 20, 240, [80, 120]))).toBe(true);
+	});
+
+	it('leaves a light background alone', () => {
+		const light = page(200, 200, 250, 10, [80, 120]);
+		expect(backgroundIsDark(light)).toBe(false);
+		expect(normalizePagePolarity(light)).toBe(false);
+	});
+
+	it('a dark page comes out dark ink on white', () => {
+		const dark = page(200, 200, 20, 240, [80, 120]);
+		expect(normalizePagePolarity(dark)).toBe(true);
+		// A corner was background (20) and is now paper (235).
+		expect(dark.data[0]).toBe(235);
+		// The alpha channel is untouched.
+		expect(dark.data[3]).toBe(255);
+	});
+
+	it('samples corners, not a global mean', () => {
+		// Light paper, but the middle 60% is solid ink — a global mean would call this
+		// dark. The corners are what make it light, which is the reason for the patches.
+		const w = 200;
+		const h = 200;
+		const data = new Uint8ClampedArray(w * h * 4);
+		for (let i = 0; i < w * h; i++) {
+			const o = i * 4;
+			data[o] = data[o + 1] = data[o + 2] = 250;
+			data[o + 3] = 255;
+		}
+		// Ink must cover MORE THAN HALF the page, or a global median would also call
+		// it light and the test would not discriminate. 160x160 of 200x200 is 64%, and
+		// it stops short of the 20px corner patches on every side.
+		for (let y = 20; y < 180; y++) {
+			for (let x = 20; x < 180; x++) {
+				const o = (y * w + x) * 4;
+				data[o] = data[o + 1] = data[o + 2] = 0;
+			}
+		}
+		expect(backgroundIsDark({ width: w, height: h, data } as ImageData)).toBe(false);
+	});
+
+	it('a degenerate image is not called dark', () => {
+		expect(backgroundIsDark({ width: 0, height: 0, data: new Uint8ClampedArray(0) } as ImageData)).toBe(
+			false
+		);
+	});
+
+	/**
+	 * The defect, demonstrated. On a dark page the projection profile measures the
+	 * BACKGROUND as ink, so the bands it returns are the gaps between lines — and
+	 * inverting afterwards, per tile, cannot undo that.
+	 */
+	it('segmentation finds text not gaps on a dark page', () => {
+		const band: [number, number] = [80, 120];
+		const dark = page(200, 200, 20, 240, band);
+
+		// Un-normalised: whatever it finds, it is not the one band of text.
+		const before = segmentLines(dark);
+
+		const normalised = page(200, 200, 20, 240, band);
+		expect(normalizePagePolarity(normalised)).toBe(true);
+		const after = segmentLines(normalised);
+
+		expect(after.length).toBeGreaterThan(0);
+		// The text band is covered by a returned segment.
+		const mid = (band[0] + band[1]) / 2;
+		const covers = after.some((s) => s.y <= mid && s.y + s.height >= mid);
+		expect(covers).toBe(true);
+		// And the two differ, which is the whole point of doing it before segmenting.
+		expect(JSON.stringify(before)).not.toBe(JSON.stringify(after));
 	});
 });

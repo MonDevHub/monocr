@@ -51,6 +51,106 @@ const IMPLAUSIBLE_LINE_FRACTION = 0.4;
 /** Minimum width-to-height ratio for a band to read as a line regardless of size. */
 const LINE_SHAPE_ASPECT = 4.0;
 
+/** Background luminance below this reads as a dark background to invert. */
+const DARK_BACKGROUND_MEDIAN = 128;
+/** Corner patch size as a fraction of each page dimension, floored at 3px. */
+const CORNER_FRACTION = 10;
+const CORNER_FLOOR = 3;
+
+/** Rec.601 luma, the same weights `segmentLines` uses. */
+function luma(data: Uint8ClampedArray, pixel: number): number {
+	const o = pixel * 4;
+	return 0.299 * data[o] + 0.587 * data[o + 1] + 0.114 * data[o + 2];
+}
+
+/**
+ * Is this page light text on a dark background?
+ *
+ * Sampled from the four corner patches rather than a global mean: page corners are
+ * almost always background, so their median survives a dense, text-heavy page
+ * where a mean would be dragged down by ink.
+ *
+ * Ported from iOS `PageNormalizer.backgroundIsDark`, itself from mon_OCR
+ * `utils.to_normalized_grayscale`. The median averages the two middle values, as
+ * numpy does, and the sample is always even (four patches of equal size).
+ */
+export function backgroundIsDark(image: ImageData): boolean {
+	const { width, height, data } = image;
+	if (width <= 0 || height <= 0) return false;
+
+	const patchH = Math.min(Math.max(CORNER_FLOOR, Math.floor(height / CORNER_FRACTION)), height);
+	const patchW = Math.min(Math.max(CORNER_FLOOR, Math.floor(width / CORNER_FRACTION)), width);
+
+	// Counting sort, not a real sort: four patches of a 12MP photo is ~4% of it and
+	// only two order statistics are needed.
+	const histogram = new Int32Array(256);
+	let count = 0;
+	const rowBands: [number, number][] = [
+		[0, patchH],
+		[height - patchH, height]
+	];
+	const colBands: [number, number][] = [
+		[0, patchW],
+		[width - patchW, width]
+	];
+	for (const [y0, y1] of rowBands) {
+		for (const [x0, x1] of colBands) {
+			for (let y = y0; y < y1; y++) {
+				for (let x = x0; x < x1; x++) {
+					histogram[Math.round(luma(data, y * width + x))]++;
+					count++;
+				}
+			}
+		}
+	}
+	if (count === 0) return false;
+
+	const lowerRank = (count - 1) >> 1;
+	const upperRank = count >> 1;
+	let seen = 0;
+	let lower = 0;
+	let upper = 0;
+	for (let value = 0; value < 256; value++) {
+		seen += histogram[value];
+		if (lower === 0 && seen > lowerRank) lower = value;
+		if (seen > upperRank) {
+			upper = value;
+			break;
+		}
+	}
+	return (lower + upper) / 2 < DARK_BACKGROUND_MEDIAN;
+}
+
+/**
+ * Put the page into the polarity the model was trained on, **once**, before
+ * anything reads it. Mutates `image` and reports whether it inverted.
+ *
+ * WHY THIS IS A PAGE-LEVEL OPERATION. Inversion used to happen per *tile*, inside
+ * `processLine`, after `segmentLines` had already run on the un-inverted pixels. On
+ * a dark-mode screenshot or an inverted scan the segmenter therefore measured the
+ * BACKGROUND as ink and returned the gaps between lines. Inverting afterwards
+ * cannot undo that. Worse than the iOS bug it mirrors: because the decision was
+ * per tile, two tiles of one line could invert differently.
+ *
+ * iOS removed exactly this and recorded why (`ImagePreprocessor.swift:108-113`).
+ *
+ * NOT PORTED: background levelling. iOS's `PageNormalizer` also divides out a
+ * dilated background estimate to flatten sepia paper and grey panels. That is a
+ * separate enhancement, it is the expensive half, and it is explicitly not
+ * idempotent — mixing it in here without the memory work this file already needs
+ * would trade one silent bug for another.
+ */
+export function normalizePagePolarity(image: ImageData): boolean {
+	if (!backgroundIsDark(image)) return false;
+	const { data } = image;
+	for (let i = 0; i < data.length; i += 4) {
+		data[i] = 255 - data[i];
+		data[i + 1] = 255 - data[i + 1];
+		data[i + 2] = 255 - data[i + 2];
+	}
+	return true;
+}
+
 export function segmentLines(
 	imageData: ImageData,
 	smoothKernel: number = 3 // Default changed to 3 to match Android/Python
