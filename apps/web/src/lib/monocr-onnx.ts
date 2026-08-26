@@ -1,7 +1,7 @@
 import * as ort from 'onnxruntime-web';
 
 import { assessCapture } from './capture-quality';
-import { normalizePagePolarity, segmentLines, tileLine } from './segmentation';
+import { looksLikeALine, normalizePagePolarity, segmentLines, tileLine } from './segmentation';
 
 /**
  * ONNX Runtime Web-based OCR engine for Mon language.
@@ -459,8 +459,7 @@ export class MonOcrOnnx {
 		const grayscale = new Float32Array(this.TARGET_WIDTH * this.TARGET_HEIGHT);
 		for (let i = 0; i < grayscale.length; i++) {
 			const offset = i * 4;
-			grayscale[i] =
-				0.299 * data[offset] + 0.587 * data[offset + 1] + 0.114 * data[offset + 2];
+			grayscale[i] = 0.299 * data[offset] + 0.587 * data[offset + 1] + 0.114 * data[offset + 2];
 		}
 
 		// Contrast stretching: linearly scale the active-region luminance to [0,255].
@@ -605,7 +604,13 @@ export class MonOcrOnnx {
 
 		// Fallback: if no segments found (e.g. single large word filling bounds?), use full image
 		if (segments.length === 0) {
-			segments = [{ x: 0, y: 0, width: fullBitmap.width, height: fullBitmap.height }];
+			// Flagged, not left undefined. A whole page read as one line is the exact
+			// case the fused-block check exists for — mon_OCR pins it as
+			// `(2048, 1366, 1366, false, "a whole page returned as one band")` — and
+			// `seg.lineShaped === false` silently passes over `undefined`, so the one
+			// band most in need of the warning was the one band not getting it.
+			const whole = { x: 0, y: 0, width: fullBitmap.width, height: fullBitmap.height };
+			segments = [{ ...whole, lineShaped: looksLikeALine(whole, fullBitmap.height) }];
 		}
 
 		const results: string[] = [];

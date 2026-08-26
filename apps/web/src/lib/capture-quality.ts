@@ -48,10 +48,12 @@ export const SOFT_IMAGE_LAPLACIAN_VARIANCE = 100;
  * canonical segmenter contains, where the minimum is tested once on the core run
  * and once on the padded bbox.
  *
- * The factor between them was measured on a synthetic band, not on real text: a
- * core band of `MIN_LINE_HEIGHT + 1` reports as 27px, i.e. roughly 2.5x. So a
- * reported median at 3x the drop threshold sits just above the danger line, which
- * is where this is set. `reportedHeightOfABarelyKeptBand` pins that relationship,
+ * The factor between them is **not constant**, and only the value near the drop
+ * threshold matters here. Measured on synthetic bands: core 11 reports 27 (2.45x),
+ * 20 reports 40 (2.0x), 40 reports 70 (1.75x), 160 reports 245 (1.53x). It
+ * asymptotes to 1.5 because smearing and smoothing add fixed rows while padding is
+ * a 25% multiple. So 2.45x holds exactly where this threshold sits and nowhere
+ * else, which is why 3x the drop bound is the right place for it. `reportedHeightOfABarelyKeptBand` pins that relationship,
  * so a change to padding or smearing breaks a test instead of silently moving this
  * warning's meaning.
  */
@@ -62,8 +64,9 @@ export interface CaptureAssessment {
 	sharpness: number;
 	/**
 	 * Median *reported* band height in pixels, or 0 if none. Includes padding and
-	 * vertical smearing, so it overstates the ink by roughly 2.5x — see
-	 * `SMALL_TEXT_HEIGHT`.
+	 * vertical smearing, so it overstates the ink — by about 2.45x at the drop
+	 * threshold, falling towards 1.5x for ordinary text. Do not divide by a fixed
+	 * factor; see `SMALL_TEXT_HEIGHT`.
 	 */
 	medianLineHeight: number;
 	/** How many bands were found. Zero means the segmenter had nothing to work with. */
@@ -91,16 +94,19 @@ export function laplacianVariance(image: ImageData): number {
 		grey[i] = 0.299 * data[o] + 0.587 * data[o + 1] + 0.114 * data[o + 2];
 	}
 
-	// Welford would be tidier, but the interior fits comfortably in a double and the
-	// two-pass form is easier to read against the definition.
+	// This is the naive single-pass form, E[x^2] - E[x]^2, which is the numerically
+	// unstable one — not the two-pass or Welford form. It is safe here for a specific
+	// reason worth recording: a discrete Laplacian over the interior telescopes to
+	// boundary terms, so the mean is ~0 for any real image and sumSq/n dominates
+	// mean^2 by orders of magnitude, leaving no cancellation. Worst case at 12MP is
+	// sumSq ~1.25e13, comfortably inside a double.
 	let sum = 0;
 	let sumSq = 0;
 	let n = 0;
 	for (let y = 1; y < height - 1; y++) {
 		for (let x = 1; x < width - 1; x++) {
 			const i = y * width + x;
-			const response =
-				grey[i - width] + grey[i + width] + grey[i - 1] + grey[i + 1] - 4 * grey[i];
+			const response = grey[i - width] + grey[i + width] + grey[i - 1] + grey[i + 1] - 4 * grey[i];
 			sum += response;
 			sumSq += response * response;
 			n++;
