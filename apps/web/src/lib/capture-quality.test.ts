@@ -153,6 +153,33 @@ describe('assessCapture', () => {
 		expect(assessCapture(clean).sharpness).toBeCloseTo(laplacianVariance(clean), 6);
 	});
 
+	/**
+	 * The recognise path segments the page itself and must not pay for it a second
+	 * time. Pinned with a segment list that could not have come from this image, so a
+	 * regression to re-segmenting shows up as the wrong answer rather than only as
+	 * slowness nobody notices.
+	 */
+	it('uses the segments it is given instead of re-segmenting', () => {
+		const clean = page(600, 400, [
+			[60, 110],
+			[160, 210],
+			[260, 310]
+		]);
+		const injected = [
+			{ x: 0, y: 0, width: 600, height: 7 },
+			{ x: 0, y: 20, width: 600, height: 7 },
+			{ x: 0, y: 40, width: 600, height: 7 }
+		];
+		const result = assessCapture(clean, injected);
+
+		expect(result.lineCount).toBe(3);
+		expect(result.medianLineHeight).toBe(7);
+		// And the injected geometry drives the warning, not the image's real bands,
+		// which are tall enough to be silent.
+		expect(result.warnings.join(' ')).toContain('discarded without notice');
+		expect(assessCapture(clean).warnings).toEqual([]);
+	});
+
 	it('warns about bands that are not line-shaped', () => {
 		// One squarish block filling most of a small page: fails the aspect test and
 		// exceeds the page fraction, so `looksLikeALine` rejects it.

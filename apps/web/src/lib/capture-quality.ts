@@ -21,7 +21,7 @@
  * `medianLineHeight` as the honest stand-in for the advertised DPI bar.
  */
 
-import { MIN_LINE_HEIGHT, segmentLines } from './segmentation';
+import { MIN_LINE_HEIGHT, segmentLines, type LineSegment } from './segmentation';
 
 /**
  * Laplacian-variance floor below which an image reads as soft.
@@ -114,12 +114,15 @@ export function laplacianVariance(image: ImageData): number {
 /**
  * What this capture is likely to cost, and why.
  *
- * Runs the segmenter, so it is not free — call it once per page alongside
- * recognition, not per tile.
+ * Pass `segments` if you have already segmented the page. Segmentation allocates
+ * six full-page buffers plus a Float64 integral image — on a 12MP photo that is
+ * well over 150MB — so a caller that segments anyway must not pay for it twice.
+ * The recognise path does exactly that. Omit `segments` and this will segment for
+ * you, which is the right shape for a standalone pre-flight check.
  */
-export function assessCapture(image: ImageData): CaptureAssessment {
+export function assessCapture(image: ImageData, segments?: LineSegment[]): CaptureAssessment {
 	const sharpness = laplacianVariance(image);
-	const segments = segmentLines(image);
+	segments ??= segmentLines(image);
 
 	let medianLineHeight = 0;
 	if (segments.length > 0) {

@@ -588,14 +588,20 @@ export class MonOcrOnnx {
 		}
 
 		// 3. Segment Lines
-		// Say what this capture is going to cost before spending a minute on it. The
-		// apps advertise "300 DPI min" and nothing has ever measured anything, so a
-		// bad capture was only ever diagnosable from bad Mon text.
-		for (const warning of assessCapture(imageData).warnings) {
+		let segments = segmentLines(imageData);
+
+		// Say what this capture is going to cost before spending a minute of inference
+		// on it. The apps advertise "300 DPI min" and nothing has ever measured
+		// anything, so a bad capture was only diagnosable from bad Mon text.
+		//
+		// The segments are passed in rather than recomputed: segmentation allocates
+		// six full-page buffers plus a Float64 integral, and running it twice per page
+		// was a regression this call introduced. Assessed here, before the
+		// whole-page fallback below, so an empty result is reported as "no lines
+		// found" rather than hidden by the fallback that replaces it.
+		for (const warning of assessCapture(imageData, segments).warnings) {
 			console.warn(`[monocr-onnx] capture: ${warning}`);
 		}
-
-		let segments = segmentLines(imageData);
 
 		// Fallback: if no segments found (e.g. single large word filling bounds?), use full image
 		if (segments.length === 0) {
