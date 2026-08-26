@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import fixture from '../../../../shared/segmentation-fixtures/tiling-cases.json';
-import { cutColumn, tileLine } from './segmentation';
+import { cutColumn, looksLikeALine, segmentLines, tileLine } from './segmentation';
 
 /**
  * Tiling parity with the Python binding.
@@ -163,5 +163,56 @@ describe('tileLine matches the Python binding it was ported from', () => {
 
 		expect(tiles.length).toBeGreaterThan(0);
 		expect(tiles.every((t) => t.width >= 1)).toBe(true);
+	});
+});
+
+/**
+ * The fused-block flag.
+ *
+ * Cases and reasons are lifted verbatim from `mon_OCR`
+ * `tests/test_segmenter.py::test_a_fused_block_is_not_a_line`, so this port and the
+ * canonical implementation are pinned to the same evidence rather than to two
+ * separately chosen rules. It takes both axes: page fraction alone rejects the
+ * first two, which are genuine single lines filling their own image, and aspect
+ * alone rejects the third, a short word taller than it is wide.
+ */
+describe('looksLikeALine', () => {
+	const cases: [number, number, number, boolean, string][] = [
+		[1024, 160, 160, true, 'a single-line crop is 100% of its own image'],
+		[693, 128, 128, true, 'the digit strip: its band is 693px wide, not the full 1024'],
+		[200, 220, 2200, true, 'a short word on a page is taller than it is wide'],
+		[1000, 339, 1524, true, 'the tallest band on a readable screenshot'],
+		[1200, 493, 760, false, 'the fused band that returned confident fiction'],
+		[1200, 476, 760, false, 'its neighbour on the same photo'],
+		[2048, 1366, 1366, false, 'a whole page returned as one band']
+	];
+
+	for (const [width, height, page, expected, why] of cases) {
+		it(`${width}x${height} on a ${page}px page -> ${expected}: ${why}`, () => {
+			expect(looksLikeALine({ x: 0, y: 0, width, height }, page)).toBe(expected);
+		});
+	}
+
+	it('a degenerate box is not a line', () => {
+		expect(looksLikeALine({ x: 0, y: 0, width: 100, height: 0 }, 100)).toBe(false);
+		expect(looksLikeALine({ x: 0, y: 0, width: 100, height: 50 }, 0)).toBe(false);
+	});
+
+	it('segmentLines flags every segment it returns', () => {
+		// One wide dark band on a white page: a plain, unambiguous line.
+		const w = 400;
+		const h = 200;
+		const data = new Uint8ClampedArray(w * h * 4).fill(255);
+		for (let y = 80; y < 120; y++) {
+			for (let x = 20; x < 380; x += 8) {
+				const i = (y * w + x) * 4;
+				data[i] = data[i + 1] = data[i + 2] = 0;
+			}
+		}
+		const segments = segmentLines({ width: w, height: h, data } as ImageData);
+		expect(segments.length).toBeGreaterThan(0);
+		for (const seg of segments) {
+			expect(typeof seg.lineShaped).toBe('boolean');
+		}
 	});
 });

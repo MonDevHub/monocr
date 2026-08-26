@@ -603,14 +603,28 @@ export class MonOcrOnnx {
 		// 4. Process each line
 		try {
 			for (const seg of segments) {
+				// A band that is not line-shaped is a fused block of several lines, and
+				// reading it as one returns text that appears nowhere on the page —
+				// upstream measured exactly that at confidence 0.83, so confidence
+				// cannot be the filter. Logged rather than dropped, because the band
+				// still carries text a reader may want. The flag is not yet on the
+				// worker's RESULT payload, which is a plain string; surfacing it in the
+				// UI needs that protocol widened.
+				if (seg.lineShaped === false) {
+					console.warn(
+						`[monocr-onnx] band ${seg.width}x${seg.height} at (${seg.x},${seg.y}) is not ` +
+							`line-shaped — it may be several fused lines read as one. Treat its text ` +
+							`with suspicion.`
+					);
+				}
+
 				// A line wider than the window was squeezed into it. The cost of that
 				// was quoted here as CER 0.1434 against 0.0795 tiled; retired
 				// 2026-08-22, harness never committed, figures do not reproduce. It is
 				// width-dependent and unbounded — 0.21 CER at 4 model windows against
 				// tiling's 0.06, above 0.83 by 6 (mon_OCR/eval/tiling-ab-2026-08-22.md).
-				// Tiles are
-				// read separately and joined with no separator: the cut lands at a
-				// white column inside a word, so a space there would be wrong.
+				// Tiles are read separately and joined with no separator: the cut lands
+				// at a white column inside a word, so a space there would be wrong.
 				const tiles = tileLine(imageData, seg, this.TARGET_HEIGHT, this.TARGET_WIDTH);
 				const parts: string[] = [];
 

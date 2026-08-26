@@ -14,7 +14,42 @@ export interface LineSegment {
 	y: number;
 	width: number;
 	height: number;
+	/**
+	 * False when the band is not shaped like a line — read that before trusting
+	 * the text. Optional so existing callers that construct a segment by hand
+	 * still typecheck; `segmentLines` always sets it.
+	 */
+	lineShaped?: boolean;
 }
+
+/**
+ * Is this band plausibly one line of text, or a fused block of several?
+ *
+ * A port of `looks_like_a_line` in `mon_OCR/src/monocr/segmenter.py:181-215`, with
+ * the same two constants. iOS (`LineSegmenter.looksLikeALine`) and the Rust CLI
+ * (`apps/cli/src/mode.rs:161-168`) both already carry it; the web app was the only
+ * surface with no equivalent and no field to report one, so a fused band was
+ * rendered as ordinary output.
+ *
+ * Confidence cannot substitute for this. Upstream measured a photograph where five
+ * lines fused into one band and the recogniser returned fluent Mon that appears
+ * nowhere on the page, **at confidence 0.83** — while a genuinely blank crop scores
+ * 0.00. The signal is the wrong way round, which is why this is geometric.
+ */
+export function looksLikeALine(segment: LineSegment, pageHeight: number): boolean {
+	if (segment.height <= 0 || pageHeight <= 0) return false;
+	// A band can be line-shaped, or it can be small relative to the page. It is
+	// only implausible when it is neither: tall enough to be a block AND not
+	// elongated enough to be a line.
+	const fillsThePage = segment.height > pageHeight * IMPLAUSIBLE_LINE_FRACTION;
+	const lineShaped = segment.width / segment.height >= LINE_SHAPE_ASPECT;
+	return lineShaped || !fillsThePage;
+}
+
+/** A band taller than this fraction of the page is suspect unless it is elongated. */
+const IMPLAUSIBLE_LINE_FRACTION = 0.4;
+/** Minimum width-to-height ratio for a band to read as a line regardless of size. */
+const LINE_SHAPE_ASPECT = 4.0;
 
 export function segmentLines(
 	imageData: ImageData,
@@ -256,7 +291,10 @@ export function segmentLines(
 		return true;
 	});
 
-	return finalSegments;
+	// Flag rather than drop. A fused block still carries text a reader may want,
+	// and `mon_OCR`'s api.read_page makes the same choice: return it, mark it, let
+	// the caller decide.
+	return finalSegments.map((seg) => ({ ...seg, lineShaped: looksLikeALine(seg, height) }));
 }
 
 /**
