@@ -61,7 +61,9 @@ export default defineConfig({
 			},
 			workbox: {
 				globPatterns: [
-					'client/**/*.{js,css,ico,png,svg,webp,avif,jpg,jpeg,json,woff,woff2}',
+					// `ttf` matters: the only Myanmar font ships as TTF, so without it an
+					// offline PWA kept every Latin font and lost Mon rendering entirely.
+					'client/**/*.{js,css,ico,png,svg,webp,avif,jpg,jpeg,json,woff,woff2,ttf}',
 					'prerendered/**/*.{html,json}'
 				],
 				globIgnores: ['**/node_modules/**/*', '**/.git/**/*'],

@@ -296,7 +296,8 @@
 />
 
 <style>
-	.font-mon {
-		font-family: 'PyidaungSu', 'Myanmar Text', sans-serif;
-	}
+	/* `.font-mon` moved to src/app.css on 2026-08-26. The copy here carried the
+	   family but not the `@font-face`, which lived in routes/+page.svelte — so this
+	   component requested PyidaungSu on every route except `/` and got whatever the
+	   OS offered for Myanmar, which on a Myanmar-market machine may be Zawgyi. */
 </style>
