@@ -53,11 +53,17 @@ export function looksLikeALine(segment: LineSegment, pageHeight: number): boolea
  * nowhere else reports it.
  *
  * The canonical value is 20 (`mon_OCR` `_MIN_LINE_HEIGHT`); this port has always
- * used 10. That divergence is recorded in the Canonical Algorithm Spec header and
- * is deliberately not reconciled here: which value is right is a measurement
- * question and nothing in this ecosystem can yet measure it.
+ * used 10. That divergence is recorded in the "Canonical Algorithm Spec v1" header
+ * at `mon_OCR/src/monocr/segmenter.py:7-78`, which also forbids reconciling it by
+ * editing a constant: which value is right is a measurement question and nothing in
+ * this ecosystem can yet measure it.
  */
 export const MIN_LINE_HEIGHT = 10;
+
+/** Padded bands smaller than this in either axis are noise, not text. See the use
+ * site: this is a bound on the padded bbox, not on the raw run MIN_LINE_HEIGHT
+ * governs, so the shared value 10 is a coincidence rather than a link. */
+const NOISE_SPECK_PX = 10;
 
 /** A band taller than this fraction of the page is suspect unless it is elongated. */
 const IMPLAUSIBLE_LINE_FRACTION = 0.4;
@@ -121,11 +127,18 @@ export function backgroundIsDark(image: ImageData): boolean {
 	const lowerRank = (count - 1) >> 1;
 	const upperRank = count >> 1;
 	let seen = 0;
-	let lower = 0;
-	let upper = 0;
+	// -1, not 0, as the "not found yet" sentinel. 0 is a legal luma — a genuinely
+	// black corner — and using it for both meanings meant the sentinel never cleared
+	// on such a page, so `lower` was reassigned once more and came out 1 instead of 0.
+	// Measured: a page half black and half white reported median 128 against a true
+	// 127.5, which is on the wrong side of the threshold, so the inverted scan this
+	// function exists to catch was read as a light page. iOS PageNormalizer.swift
+	// carries the same defect.
+	let lower = -1;
+	let upper = -1;
 	for (let value = 0; value < 256; value++) {
 		seen += histogram[value];
-		if (lower === 0 && seen > lowerRank) lower = value;
+		if (lower === -1 && seen > lowerRank) lower = value;
 		if (seen > upperRank) {
 			upper = value;
 			break;
@@ -392,7 +405,13 @@ export function segmentLines(
 		if (ratio < 0.2) return false;
 
 		// Drop tiny noise specks
-		if (seg.width < 10 || seg.height < 10) return false;
+		// Not MIN_LINE_HEIGHT, deliberately, and not a copy of it either. This tests
+		// the PADDED bbox where MIN_LINE_HEIGHT tests the raw run, so they are
+		// thresholds on two different quantities that happen to share a number — the
+		// core-vs-padded confusion `capture-quality.ts` documents in the canonical
+		// segmenter. Named here rather than unified, because unifying them changes
+		// which bands survive and that needs a measurement.
+		if (seg.width < NOISE_SPECK_PX || seg.height < NOISE_SPECK_PX) return false;
 
 		// Reject logos/images:
 		// If it's squarish (not a distinct wide line) AND much taller than normal text

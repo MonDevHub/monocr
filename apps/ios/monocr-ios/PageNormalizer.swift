@@ -69,11 +69,18 @@ nonisolated enum PageNormalizer {
         let lowerRank = (count - 1) / 2
         let upperRank = count / 2
         var seen = 0
-        var lower = 0
-        var upper = 0
+        // -1, not 0, as the "not found yet" sentinel. 0 is a legal luminance — a
+        // genuinely black corner — so using it for both meanings meant the sentinel
+        // never cleared on such a page and `lower` was reassigned once more, coming
+        // out 1 instead of 0. Measured on the web port, which was a line-for-line
+        // copy of this: a page half black and half white reported median 128 against
+        // a true 127.5, landing on the wrong side of `darkBackgroundMedian` — so the
+        // inverted scan this function exists to catch was read as a light page.
+        var lower = -1
+        var upper = -1
         for value in 0..<256 {
             seen += histogram[value]
-            if lower == 0 && seen > lowerRank { lower = value }
+            if lower == -1 && seen > lowerRank { lower = value }
             if seen > upperRank {
                 upper = value
                 break

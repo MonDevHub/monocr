@@ -291,10 +291,34 @@ describe('page polarity', () => {
 		expect(backgroundIsDark({ width: w, height: h, data } as ImageData)).toBe(false);
 	});
 
+	/**
+	 * The sentinel case. `lower` used 0 for both "not found yet" and a legal luma of
+	 * 0, so on a page whose lower order statistic is genuinely black the sentinel
+	 * never cleared and the median came back half a level high — enough to land on
+	 * the wrong side of the 128 threshold and read an inverted scan as a light page.
+	 */
+	it('a page whose corners are half black reads as dark', () => {
+		// Left half black, right half white. Two corner patches are pure 0 and two are
+		// pure 255, so the lower order statistic is exactly 0 and the true median is
+		// 127.5 — just below the threshold.
+		const w = 200;
+		const h = 200;
+		const data = new Uint8ClampedArray(w * h * 4);
+		for (let y = 0; y < h; y++) {
+			for (let x = 0; x < w; x++) {
+				const o = (y * w + x) * 4;
+				const v = x < w / 2 ? 0 : 255;
+				data[o] = data[o + 1] = data[o + 2] = v;
+				data[o + 3] = 255;
+			}
+		}
+		expect(backgroundIsDark({ width: w, height: h, data } as ImageData)).toBe(true);
+	});
+
 	it('a degenerate image is not called dark', () => {
-		expect(backgroundIsDark({ width: 0, height: 0, data: new Uint8ClampedArray(0) } as ImageData)).toBe(
-			false
-		);
+		expect(
+			backgroundIsDark({ width: 0, height: 0, data: new Uint8ClampedArray(0) } as ImageData)
+		).toBe(false);
 	});
 
 	/**
