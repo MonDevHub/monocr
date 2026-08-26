@@ -1,5 +1,6 @@
 import * as ort from 'onnxruntime-web';
 
+import { assessCapture } from './capture-quality';
 import { normalizePagePolarity, segmentLines, tileLine } from './segmentation';
 
 /**
@@ -587,6 +588,13 @@ export class MonOcrOnnx {
 		}
 
 		// 3. Segment Lines
+		// Say what this capture is going to cost before spending a minute on it. The
+		// apps advertise "300 DPI min" and nothing has ever measured anything, so a
+		// bad capture was only ever diagnosable from bad Mon text.
+		for (const warning of assessCapture(imageData).warnings) {
+			console.warn(`[monocr-onnx] capture: ${warning}`);
+		}
+
 		let segments = segmentLines(imageData);
 
 		// Fallback: if no segments found (e.g. single large word filling bounds?), use full image

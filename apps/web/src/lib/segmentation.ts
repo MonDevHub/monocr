@@ -46,6 +46,19 @@ export function looksLikeALine(segment: LineSegment, pageHeight: number): boolea
 	return lineShaped || !fillsThePage;
 }
 
+/**
+ * Bands shorter than this are discarded, silently and with no signal to the
+ * caller. Exported so `capture-quality` can warn about text that is close to it
+ * rather than letting lines vanish — a page captured too small loses text here and
+ * nowhere else reports it.
+ *
+ * The canonical value is 20 (`mon_OCR` `_MIN_LINE_HEIGHT`); this port has always
+ * used 10. That divergence is recorded in the Canonical Algorithm Spec header and
+ * is deliberately not reconciled here: which value is right is a measurement
+ * question and nothing in this ecosystem can yet measure it.
+ */
+export const MIN_LINE_HEIGHT = 10;
+
 /** A band taller than this fraction of the page is suspect unless it is elongated. */
 const IMPLAUSIBLE_LINE_FRACTION = 0.4;
 /** Minimum width-to-height ratio for a band to read as a line regardless of size. */
@@ -303,7 +316,6 @@ export function segmentLines(
 		nonZeroHist.length > 0 ? nonZeroHist.reduce((a, b) => a + b, 0) / nonZeroHist.length : 0;
 	// Use extreme low threshold (3%) to ensure faint diacritics spanning valleys don't get cut
 	const threshold = meanDensity * 0.03;
-	const MIN_LINE_HEIGHT = 10;
 
 	const segments: LineSegment[] = [];
 	let startY: number | null = null;
