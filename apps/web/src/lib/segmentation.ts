@@ -185,7 +185,7 @@ export function normalizePagePolarity(image: ImageData): boolean {
  * than merely small. Lowering it toward a glyph's width is what would make rule
  * suppression dangerous.
  */
-const RULE_SPAN = 0.5;
+export const RULE_SPAN = 0.5;
 
 /**
  * Suppression that would remove more than this share of the page's ink has found
@@ -199,7 +199,7 @@ const RULE_SPAN = 0.5;
  * pages classify 21.5%–58.8% of their ink as rules, pages with no rules 0.00%,
  * and that false positive 98.7%.
  */
-const RULE_MAX_INK_SHARE = 0.8;
+export const RULE_MAX_INK_SHARE = 0.8;
 
 /**
  * Remove printed rules — page borders, table rules, underlines — from a text mask.

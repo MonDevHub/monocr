@@ -33,13 +33,15 @@ one, no morphological smear at all, a fixed 4px pad on both axes, and smoothing 
 
 ## What does not
 
-|                            | Web                     | Android            | iOS                | CLI                         |
-| -------------------------- | ----------------------- | ------------------ | ------------------ | --------------------------- |
-| Histogram smoothing kernel | 3                       | **5**              | 3                  | 3                           |
-| Grayscale blur             | 3×3                     | **5×5**            | 3×3                | **none**                    |
-| Binarizes against          | **unblurred** grayscale | blurred            | blurred            | **global 128**              |
-| Density ratio, page mode   | 0.03                    | 0.03               | 0.03               | **0.05**                    |
-| Mode selection             | **none**                | provenance + shape | provenance + shape | `--mode`, `auto`, `inspect` |
+|                                       | Web                     | Android            | iOS                | CLI                         |
+| ------------------------------------- | ----------------------- | ------------------ | ------------------ | --------------------------- |
+| Histogram smoothing kernel            | 3                       | **5**              | 3                  | 3                           |
+| Grayscale blur                        | 3×3                     | **5×5**            | 3×3                | **none**                    |
+| Binarizes against                     | **unblurred** grayscale | blurred            | blurred            | **global 128**              |
+| Density ratio, page mode              | 0.03                    | 0.03               | 0.03               | **0.05**                    |
+| Mode selection                        | **none**                | provenance + shape | provenance + shape | `--mode`, `auto`, `inspect` |
+| Polarity normalised before segmenting | yes                     | yes                | yes                | **no**                      |
+| Printed-rule suppression              | **yes**                 | no                 | no                 | no                          |
 
 Two of the first three are Android against the others; the third is web against
 the others. So no surface is the reference, and no two agree completely.
@@ -48,6 +50,13 @@ the others. So no surface is the reference, and no two agree completely.
 density ratio under "what agrees", which was true of the three apps and never of
 the CLI. `apps/cli/src/mode.rs:39` calls 0.05 "the library default" and pins it by
 test, so the two values are each deliberate and simply were never compared.
+
+**The CLI is the only surface that does not normalise polarity**, and that row was
+missing from this document until 2026-08-27 — a three-against-one divergence absent
+from the file whose sole purpose is recording them. It matters because the segmenter
+treats dark as ink: handed a light-on-dark page, the CLI segments the _background_
+and returns the gaps between lines. The gap is in `monocr-onnx/rust`, which the CLI
+delegates to, and it is blocked on a linker rather than a decision.
 
 **Web has no mode at all**, which is worth stating beside the rest: it is the one
 surface where a fused-block reading cannot be retried, because there is no other

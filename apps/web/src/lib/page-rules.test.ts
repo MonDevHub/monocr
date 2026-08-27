@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { segmentLines, suppressPageRules } from './segmentation';
+import { RULE_MAX_INK_SHARE, RULE_SPAN, segmentLines, suppressPageRules } from './segmentation';
 
 /**
  * Printed-rule suppression.
@@ -135,7 +135,7 @@ describe('suppressPageRules', () => {
 		// Kills the >= / > off-by-one on the horizontal bound. The frame fixture
 		// spans the full width, far past the threshold, so a one-pixel error in the
 		// bound is invisible there. Text is present for the same ink-share reason.
-		const minH = Math.max(15, Math.floor(WIDTH * 0.5)); // RULE_SPAN = 0.5
+		const minH = Math.max(15, Math.floor(WIDTH * RULE_SPAN)); // imported, so it tracks a change
 		const rowY = MARGIN + BAND + 10;
 
 		const exact = mask(4, 40, false);
@@ -153,7 +153,7 @@ describe('suppressPageRules', () => {
 		// The vertical bound needs its own case: an exact-length test on the
 		// horizontal axis leaves the vertical >= / > mutation alive.
 		const { m, height } = mask(4, 40, false);
-		const minV = Math.max(15, Math.floor(height * 0.5));
+		const minV = Math.max(15, Math.floor(height * RULE_SPAN));
 		const col = 12; // in the left margin, clear of the glyph columns
 		for (let y = 0; y < minV; y++) m[y * WIDTH + col] = 1;
 
@@ -166,6 +166,29 @@ describe('suppressPageRules', () => {
 		expect(short.m[col]).toBe(1);
 	});
 
+	it('pins the two constants by value, not only by relation', () => {
+		// IMPORTING A CONSTANT MAKES A TEST BLIND TO IT. The boundary tests above
+		// derive minH and minV from RULE_SPAN, which is right — they check the
+		// `>=` relation and should survive a deliberate retune. But it also means
+		// they pass for ANY value: changing RULE_SPAN to 0.25 left the whole suite
+		// green, which is how this test came to exist.
+		//
+		// So the value is pinned separately, with its reason. Both numbers sit in a
+		// measured gap and are not free to drift:
+		//
+		//   RULE_SPAN 0.5      no Mon, Burmese or Latin glyph holds an unbroken
+		//                      stroke half a page long, so the false-positive risk
+		//                      against text is structural rather than merely small.
+		//   RULE_MAX_INK_SHARE real framed pages classify 21.5%–58.8% of their ink
+		//   0.8                as rules, rule-free pages 0.00%, and the known false
+		//                      positive 98.7%. 0.8 sits in that empty band.
+		//
+		// Five sibling implementations carry the same two values. Changing one here
+		// without the others is the drift `mon_OCR/scripts/segmenter_parity.py`
+		// exists to catch, and it does not yet cover these two.
+		expect(RULE_SPAN).toBe(0.5);
+		expect(RULE_MAX_INK_SHARE).toBe(0.8);
+	});
 	it('handles a blank and an all-ink mask without throwing', () => {
 		const blank = new Uint8Array(100 * 50);
 		expect(suppressPageRules(blank, 100, 50)).toBe(false);
