@@ -25,4 +25,5 @@ Project health, security, and contribution standards.
 Onboarding for new developers.
 
 - **[Environment Setup Guide](guides/setup.md)**: Dependencies, keys, and initial builds.
+- **[Building and testing the mobile apps](guides/mobile-build-and-test.md)**: The exact Android and iOS clean-build and test commands, why both toolchains look absent when they are only mis-pathed, and what `pnpm test` caches away.
 - **[Localization Sync Guide](architecture/adr/0002-unified-localization-bridge.md)**: Maintaining platform-parity for Mon charset translations.
