@@ -72,12 +72,31 @@ which is part of why this is recorded rather than unified.
 
 ## A fifth divergence, newer and larger than any above
 
-`mon_OCR`'s segmenter gained printed-rule suppression on 2026-08-27 (step 3.5) and
-**no surface here has it**. Measured on twelve real MNEC papers: nine collapsed to
-a single band without it, seven of those returning 0–2 characters, and the twelve
-together went from 3,846 characters to 5,924. Pages carrying no rules come back
-byte-identical, so it is not a trade-off between document types the way the
-density ratio is.
+`mon_OCR`'s segmenter gained printed-rule suppression on 2026-08-27 (step 3.5).
+Measured on twelve real MNEC papers, nine collapsed to a single band without it and
+seven of those returned 0–2 characters. Pages carrying no rules come back
+byte-identical, so it is not a trade-off between document types the way the density
+ratio is.
+
+**Of the four surfaces here, only web has it.** Each port was measured through its
+own parameter set rather than inheriting the reference figure — bands over the same
+twelve pages, without → with:
+
+| surface                      | bands without |         with |
+| ---------------------------- | ------------: | -----------: |
+| **web**                      |            68 |      **160** |
+| iOS                          |            68 | _not ported_ |
+| Android                      |            70 | _not ported_ |
+| CLI (via `monocr-onnx/rust`) |           118 | _not ported_ |
+
+The three unported ones are blocked by tooling on the machine the work was done
+on, not by a decision: the Rust test binary cannot link there (`clang_rt.osx`
+missing), iOS needs Xcode where only Command Line Tools are installed, and Gradle
+cannot resolve a JDK toolchain offline. Unverified code is not worth shipping to an
+app, so they wait rather than being written blind.
+
+An earlier version of this section said _no_ surface had it, which was true for
+about an hour.
 
 That makes it different in kind from everything above. The rows in the table are
 unresolved because picking a winner needs ground truth nobody has; this one is
