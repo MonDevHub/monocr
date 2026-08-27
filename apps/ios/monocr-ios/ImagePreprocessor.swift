@@ -74,7 +74,10 @@ nonisolated enum ImagePreprocessor {
             
             if let croppedCg = cgImage.cropping(to: cropRect) {
                 let croppedUi = UIImage(cgImage: croppedCg)
-                // Draw the crop into the (0,0,scaledWidth,128) area.
+                // Draw the crop into the (0,0,scaledWidth,targetHeight) area.
+                // Named rather than written as a literal: this said 128 and kept
+                // saying it after the window moved to 160, because the draw below
+                // reads ModelWindow.height while the comment read nothing.
                 // This correctly squashes the line if scaledWidth was capped.
                 croppedUi.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: CGFloat(targetHeight)))
             } else {

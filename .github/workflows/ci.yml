@@ -350,6 +350,34 @@ jobs:
           fi
           echo "no stale architecture strings; current is: $arch"
 
+      - name: No stale input shape
+        # Added after `docs/architecture/platform/android.md` carried
+        # `[1,1,128,1024]` for eleven days while the file it described said
+        # `[1, 1, 160, 1024]`. Height moved 128 -> 160 at the v3.5 migration and
+        # the doc never followed.
+        #
+        # Greps the SHAPE, not the bare number, and that distinction is the whole
+        # design. `128` alone is unusable as a gate here: it is the dark-as-ink
+        # binarisation threshold in `apps/web/src/lib/segmentation.ts`,
+        # `PageNormalizer.kt` and `PageNormalizer.swift`, it is the migration
+        # history in the READMEs, and it is a deliberate V2 fixture in
+        # `monocr-onnx.test.ts`. Every one of those is correct and a bare-number
+        # gate would fire on all of them — a gate that cries wolf gets deleted.
+        #
+        # Verified both directions before committing: zero matches on the tree as
+        # it stands, and a match on the pre-fix text of android.md:23.
+        run: |
+          set -euo pipefail
+          bad="$(grep -rlE '\[ *1, *1, *128, *1024 *\]' \
+            --include='*.md' --include='*.kt' --include='*.swift' \
+            --include='*.ts' --include='*.js' --include='*.rs' \
+            . 2>/dev/null || true)"
+          if [ -n "$bad" ]; then
+            echo "::error title=Stale input shape ([1,1,128,1024]; current is [batch,1,160,1024])::$bad"
+            exit 1
+          fi
+          echo "no stale input shapes; current is [batch, 1, 160, 1024], height and width both static"
+
       - name: No retracted accuracy figure in shipped copy
         # The project states it has no held-out evaluation on photographed pages,
         # so a precision figure in the UI cannot be sourced.

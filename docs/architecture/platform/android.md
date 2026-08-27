@@ -20,7 +20,7 @@ dev.janakhpon.monocr/
 │   ├── OcrRepository.kt  <- Orchestrator: delegates to engine, saves history
 │   ├── MonOcrEngine.kt   <- ONNX Runtime inference session
 │   ├── LineSegmenter.kt  <- Horizontal projection -> line bounding boxes
-│   ├── ImagePreprocessor.kt <- Bitmap -> [1,1,128,1024] float tensor
+│   ├── ImagePreprocessor.kt <- Bitmap -> [1,1,160,1024] float tensor
 │   └── CtcDecoder.kt     <- Greedy CTC decoding of logits
 │
 ├── data/                 <- Room persistence layer
