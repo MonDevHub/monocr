@@ -13,10 +13,19 @@ object CtcDecoder {
     /**
      * Decode raw logits from the OCR model into a string.
      *
+     * The charset parameter is documented without a character count, deliberately. It
+     * read "(315 chars, 1-indexed)" — v2's alphabet — and went on reading it through
+     * v3.5, which cut the charset to 276. A count restated in prose cannot follow the
+     * asset it describes, and this decoder cannot check it either: every index a
+     * 277-class graph can emit is in range of a 315-entry table, so a mismatch decodes
+     * silently. The check that catches it is MonOcrEngine.assertModelContract, comparing
+     * the loaded charset against the graph at session open. The iOS twins in
+     * CtcDecoder.swift state the parameter the same way, for the same reason.
+     *
      * @param logits  Flat Float32 array from model output, shape [1, T, C]
      * @param timeSteps  Number of time steps (T)
      * @param numClasses Number of output classes (C), includes blank at 0
-     * @param charset    The character set string (315 chars, 1-indexed)
+     * @param charset    The character set string
      */
     fun decode(
         logits: FloatArray,
