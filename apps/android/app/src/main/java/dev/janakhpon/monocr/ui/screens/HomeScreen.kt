@@ -385,11 +385,7 @@ private fun SegmentationModeControl(
  * it is a crop of one line and segmenting it would only chop the line up.
  */
 private fun galleryModeFor(bitmap: Bitmap): SegmentationMode =
-    if (bitmap.height < 2 * ImagePreprocessor.TARGET_HEIGHT) {
-        SegmentationMode.LINE
-    } else {
-        SegmentationMode.PAGE
-    }
+    SegmentationMode.forGalleryImage(bitmap.width, bitmap.height)
 
 /**
  * @param chooseMode picks the segmentation mode from the decoded bitmap. Provenance

@@ -351,21 +351,36 @@ jobs:
           echo "no stale architecture strings; current is: $arch"
 
       - name: No retracted accuracy figure in shipped copy
-        # "97.5%+" survived in two onboarding strings after the READMEs were
-        # corrected. The project states it has no held-out evaluation on
-        # photographed pages, so a precision figure in the UI cannot be sourced.
+        # The project states it has no held-out evaluation on photographed pages,
+        # so a precision figure in the UI cannot be sourced.
         #
-        # `//` lines are skipped on purpose. The comments that record the
-        # retraction quote the old number, and that is the point of them — a
-        # check that forbids naming the retracted value would delete its own
-        # audit trail.
+        # This check was blind twice over until 2026-08-27, and both blind spots
+        # had live strings behind them.
+        #
+        # 1. FILE TYPES. It covered .kt/.swift/.ts/.svelte, so it never looked at
+        #    Android string resources or an iOS string catalogue — which is where
+        #    user-facing copy actually lives. Four shipped strings were hiding
+        #    there: values/strings.xml, values-my, values-mnw, and an orphaned
+        #    Localizable.xcstrings entry carrying two translations of the claim.
+        #
+        # 2. NUMERALS. Three of those wrote it as (၉၇.၅%+) in Myanmar digits —
+        #    U+1049 U+1047 U+1045. No pattern for "97.5" can match that in any
+        #    file type. A check for a number, on a project whose users read a
+        #    script with its own digits, has to know both forms.
+        #
+        # Comment lines are skipped on purpose, in both `//` and `<!-- -->` form.
+        # The comments that record the retraction quote the old number, and that
+        # is the point of them — a check forbidding the retracted value outright
+        # would delete its own audit trail.
         run: |
           set -euo pipefail
-          hits="$(grep -rn '97\.5' \
+          hits="$(grep -rnE '97\.5|၉၇\.၅' \
             --include='*.kt' --include='*.swift' --include='*.ts' --include='*.svelte' \
-            apps/ 2>/dev/null | grep -v ':[[:space:]]*//' || true)"
+            --include='*.xml' --include='*.xcstrings' --include='*.kts' \
+            apps/ 2>/dev/null \
+            | grep -v ':[[:space:]]*//' | grep -v ':[[:space:]]*<!--' || true)"
           if [ -n "$hits" ]; then
             echo "::error title=Unsourced accuracy claim::$hits"
             exit 1
           fi
-          echo "no unsourced accuracy figures in shipped strings"
+          echo "no unsourced accuracy figures in shipped strings, in either numeral system"

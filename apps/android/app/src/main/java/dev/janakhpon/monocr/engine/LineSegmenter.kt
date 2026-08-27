@@ -41,7 +41,10 @@ object LineSegmenter {
     private const val IMPLAUSIBLE_LINE_FRACTION = 0.40f
 
     /** Wider than this against its own height and it is line-shaped, whatever its height. */
-    private const val LINE_SHAPE_ASPECT = 4.0f
+    // Not private: `SegmentationMode.forGalleryImage` needs the same number for the
+    // same judgement. Two constants for one question drift apart, and this
+    // ecosystem has a documented history of exactly that.
+    const val LINE_SHAPE_ASPECT = 4.0f
 
     /**
      * Is this band shaped like one line of text, or is it a fused block?

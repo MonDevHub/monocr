@@ -61,7 +61,6 @@
     <string name="docs_sdks">SDK ဂမၠိုင်</string>
     <string name="docs_sdks_desc">Library ဍေံမလုပ်သၞောဝ် မစကာဂွံ ဗွဲမပြဟ်။</string>
     <string name="docs_input_standards">သၞောတ်အစာံ သ္ဂောံသုၚ်စောဲ</string>
-    <string name="docs_input_standards_desc">ကၠောန်ဗက်အတိုၚ် သၞောတ်အစာံတံဏံ သွက်ဂွံကိတ်ညဳ ဗွဲက္ဍိုပ်ကၠံ (၉၇.၅%+)။</string>
     <string name="docs_resolution">Resolution ဗီုရုပ်ကၠးကေဝ်</string>
     <string name="docs_resolution_desc">အောန်အိုတ် 300 DPI။ သွက်လိခ်ကၞပ် 600 DPI။</string>
     <string name="docs_lighting">လျး</string>

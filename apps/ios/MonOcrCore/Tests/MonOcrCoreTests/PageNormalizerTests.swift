@@ -32,6 +32,27 @@ struct PageNormalizerTests {
 
     // MARK: - Polarity
 
+    /// The sentinel case. `lower` used 0 for both "not found yet" and a legal luminance
+    /// of 0, so on a page whose lower order statistic is genuinely black the sentinel
+    /// never cleared, the median came back half a level high, and it landed on the
+    /// wrong side of `darkBackgroundMedian`. Found on the web port, which copied this
+    /// code line for line.
+    @Test func aPageWhoseCornersAreHalfBlackReadsAsDark() {
+        // Left half black, right half white: two corner patches are pure 0 and two
+        // pure 255, so the lower order statistic is exactly 0 and the true median is
+        // 127.5 — just below the threshold.
+        let w = 200
+        let h = 200
+        var pixels = [UInt8](repeating: 0, count: w * h)
+        for y in 0..<h {
+            for x in 0..<w {
+                pixels[y * w + x] = x < w / 2 ? 0 : 255
+            }
+        }
+        let page = GreyImage(pixels: pixels, width: w, height: h)
+        #expect(PageNormalizer.backgroundIsDark(page))
+    }
+
     @Test func darkBackgroundIsDetected() {
         let darkMode = Self.makePage(width: 400, height: 300, background: 18, ink: 235, inkEvery: 9)
         #expect(PageNormalizer.backgroundIsDark(darkMode))

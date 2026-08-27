@@ -66,7 +66,15 @@ export default defineConfig({
 					'client/**/*.{js,css,ico,png,svg,webp,avif,jpg,jpeg,json,woff,woff2,ttf}',
 					'prerendered/**/*.{html,json}'
 				],
-				globIgnores: ['**/node_modules/**/*', '**/.git/**/*'],
+				globIgnores: [
+					'**/node_modules/**/*',
+					'**/.git/**/*',
+					// Committed but referenced by no CSS — a numerals-only Pyidaungsu variant.
+					// Adding `ttf` to the globs above swept it into the offline bundle, costing
+					// ~185 KiB for a face nothing can select. Regular and Bold are both used and
+					// both stay. Delete the file and this line together if it is ever pruned.
+					'**/Pyidaungsu-Numbers.ttf'
+				],
 				maximumFileSizeToCacheInBytes: 100 * 1024 * 1024, // 100 MB for WASM files
 				runtimeCaching: [
 					{

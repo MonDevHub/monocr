@@ -79,7 +79,7 @@
     <string name="docs_sdks">Multi-Platform SDKs</string>
     <string name="docs_sdks_desc">Official libraries for high-performance inference.</string>
     <string name="docs_input_standards">Input Standards</string>
-    <string name="docs_input_standards_desc">Follow these standards to achieve maximum recognition accuracy (97.5%+).</string>
+    <string name="docs_input_standards_desc">Follow these standards to give the model the best chance of reading a page.</string>
     <string name="docs_resolution">Resolution</string>
     <string name="docs_resolution_desc">300 DPI min. 600 DPI for manuscripts.</string>
     <string name="docs_lighting">Lighting</string>

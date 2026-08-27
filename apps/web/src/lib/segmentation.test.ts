@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import fixture from '../../../../shared/segmentation-fixtures/tiling-cases.json';
-import { cutColumn, tileLine } from './segmentation';
+import {
+	backgroundIsDark,
+	cutColumn,
+	looksLikeALine,
+	normalizePagePolarity,
+	segmentLines,
+	tileLine
+} from './segmentation';
 
 /**
  * Tiling parity with the Python binding.
@@ -163,5 +170,179 @@ describe('tileLine matches the Python binding it was ported from', () => {
 
 		expect(tiles.length).toBeGreaterThan(0);
 		expect(tiles.every((t) => t.width >= 1)).toBe(true);
+	});
+});
+
+/**
+ * The fused-block flag.
+ *
+ * Cases and reasons are lifted verbatim from `mon_OCR`
+ * `tests/test_segmenter.py::test_a_fused_block_is_not_a_line`, so this port and the
+ * canonical implementation are pinned to the same evidence rather than to two
+ * separately chosen rules. It takes both axes: page fraction alone rejects the
+ * first two, which are genuine single lines filling their own image, and aspect
+ * alone rejects the third, a short word taller than it is wide.
+ */
+describe('looksLikeALine', () => {
+	const cases: [number, number, number, boolean, string][] = [
+		[1024, 160, 160, true, 'a single-line crop is 100% of its own image'],
+		[693, 128, 128, true, 'the digit strip: its band is 693px wide, not the full 1024'],
+		[200, 220, 2200, true, 'a short word on a page is taller than it is wide'],
+		[1000, 339, 1524, true, 'the tallest band on a readable screenshot'],
+		[1200, 493, 760, false, 'the fused band that returned confident fiction'],
+		[1200, 476, 760, false, 'its neighbour on the same photo'],
+		[2048, 1366, 1366, false, 'a whole page returned as one band']
+	];
+
+	for (const [width, height, page, expected, why] of cases) {
+		it(`${width}x${height} on a ${page}px page -> ${expected}: ${why}`, () => {
+			expect(looksLikeALine({ x: 0, y: 0, width, height }, page)).toBe(expected);
+		});
+	}
+
+	it('a degenerate box is not a line', () => {
+		expect(looksLikeALine({ x: 0, y: 0, width: 100, height: 0 }, 100)).toBe(false);
+		expect(looksLikeALine({ x: 0, y: 0, width: 100, height: 50 }, 0)).toBe(false);
+	});
+
+	it('segmentLines flags every segment it returns', () => {
+		// One wide dark band on a white page: a plain, unambiguous line.
+		const w = 400;
+		const h = 200;
+		const data = new Uint8ClampedArray(w * h * 4).fill(255);
+		for (let y = 80; y < 120; y++) {
+			for (let x = 20; x < 380; x += 8) {
+				const i = (y * w + x) * 4;
+				data[i] = data[i + 1] = data[i + 2] = 0;
+			}
+		}
+		const segments = segmentLines({ width: w, height: h, data } as ImageData);
+		expect(segments.length).toBeGreaterThan(0);
+		for (const seg of segments) {
+			expect(typeof seg.lineShaped).toBe('boolean');
+		}
+	});
+});
+
+/**
+ * Page polarity, decided once.
+ *
+ * Cases mirror iOS `PageNormalizerTests`. The one that matters is
+ * `segmentationFindsTextNotGapsOnADarkPage`: it demonstrates the defect this
+ * function exists for, rather than only testing the function in isolation.
+ */
+describe('page polarity', () => {
+	/** A page of `bg`, with evenly spaced full-height bars of `ink` in one band. */
+	function page(w: number, h: number, bg: number, ink: number, band: [number, number]) {
+		const data = new Uint8ClampedArray(w * h * 4);
+		for (let i = 0; i < w * h; i++) {
+			const o = i * 4;
+			data[o] = data[o + 1] = data[o + 2] = bg;
+			data[o + 3] = 255;
+		}
+		for (let y = band[0]; y < band[1]; y++) {
+			for (let x = 20; x < w - 20; x += 8) {
+				const o = (y * w + x) * 4;
+				data[o] = data[o + 1] = data[o + 2] = ink;
+			}
+		}
+		return { width: w, height: h, data } as ImageData;
+	}
+
+	it('detects a dark background', () => {
+		expect(backgroundIsDark(page(200, 200, 20, 240, [80, 120]))).toBe(true);
+	});
+
+	it('leaves a light background alone', () => {
+		const light = page(200, 200, 250, 10, [80, 120]);
+		expect(backgroundIsDark(light)).toBe(false);
+		expect(normalizePagePolarity(light)).toBe(false);
+	});
+
+	it('a dark page comes out dark ink on white', () => {
+		const dark = page(200, 200, 20, 240, [80, 120]);
+		expect(normalizePagePolarity(dark)).toBe(true);
+		// A corner was background (20) and is now paper (235).
+		expect(dark.data[0]).toBe(235);
+		// The alpha channel is untouched.
+		expect(dark.data[3]).toBe(255);
+	});
+
+	it('samples corners, not a global mean', () => {
+		// Light paper, but the middle 60% is solid ink — a global mean would call this
+		// dark. The corners are what make it light, which is the reason for the patches.
+		const w = 200;
+		const h = 200;
+		const data = new Uint8ClampedArray(w * h * 4);
+		for (let i = 0; i < w * h; i++) {
+			const o = i * 4;
+			data[o] = data[o + 1] = data[o + 2] = 250;
+			data[o + 3] = 255;
+		}
+		// Ink must cover MORE THAN HALF the page, or a global median would also call
+		// it light and the test would not discriminate. 160x160 of 200x200 is 64%, and
+		// it stops short of the 20px corner patches on every side.
+		for (let y = 20; y < 180; y++) {
+			for (let x = 20; x < 180; x++) {
+				const o = (y * w + x) * 4;
+				data[o] = data[o + 1] = data[o + 2] = 0;
+			}
+		}
+		expect(backgroundIsDark({ width: w, height: h, data } as ImageData)).toBe(false);
+	});
+
+	/**
+	 * The sentinel case. `lower` used 0 for both "not found yet" and a legal luma of
+	 * 0, so on a page whose lower order statistic is genuinely black the sentinel
+	 * never cleared and the median came back half a level high — enough to land on
+	 * the wrong side of the 128 threshold and read an inverted scan as a light page.
+	 */
+	it('a page whose corners are half black reads as dark', () => {
+		// Left half black, right half white. Two corner patches are pure 0 and two are
+		// pure 255, so the lower order statistic is exactly 0 and the true median is
+		// 127.5 — just below the threshold.
+		const w = 200;
+		const h = 200;
+		const data = new Uint8ClampedArray(w * h * 4);
+		for (let y = 0; y < h; y++) {
+			for (let x = 0; x < w; x++) {
+				const o = (y * w + x) * 4;
+				const v = x < w / 2 ? 0 : 255;
+				data[o] = data[o + 1] = data[o + 2] = v;
+				data[o + 3] = 255;
+			}
+		}
+		expect(backgroundIsDark({ width: w, height: h, data } as ImageData)).toBe(true);
+	});
+
+	it('a degenerate image is not called dark', () => {
+		expect(
+			backgroundIsDark({ width: 0, height: 0, data: new Uint8ClampedArray(0) } as ImageData)
+		).toBe(false);
+	});
+
+	/**
+	 * The defect, demonstrated. On a dark page the projection profile measures the
+	 * BACKGROUND as ink, so the bands it returns are the gaps between lines — and
+	 * inverting afterwards, per tile, cannot undo that.
+	 */
+	it('segmentation finds text not gaps on a dark page', () => {
+		const band: [number, number] = [80, 120];
+		const dark = page(200, 200, 20, 240, band);
+
+		// Un-normalised: whatever it finds, it is not the one band of text.
+		const before = segmentLines(dark);
+
+		const normalised = page(200, 200, 20, 240, band);
+		expect(normalizePagePolarity(normalised)).toBe(true);
+		const after = segmentLines(normalised);
+
+		expect(after.length).toBeGreaterThan(0);
+		// The text band is covered by a returned segment.
+		const mid = (band[0] + band[1]) / 2;
+		const covers = after.some((s) => s.y <= mid && s.y + s.height >= mid);
+		expect(covers).toBe(true);
+		// And the two differ, which is the whole point of doing it before segmenting.
+		expect(JSON.stringify(before)).not.toBe(JSON.stringify(after));
 	});
 });

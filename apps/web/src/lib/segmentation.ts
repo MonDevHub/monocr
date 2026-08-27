@@ -14,6 +14,167 @@ export interface LineSegment {
 	y: number;
 	width: number;
 	height: number;
+	/**
+	 * False when the band is not shaped like a line — read that before trusting
+	 * the text. Optional so existing callers that construct a segment by hand
+	 * still typecheck; `segmentLines` always sets it.
+	 */
+	lineShaped?: boolean;
+}
+
+/**
+ * Is this band plausibly one line of text, or a fused block of several?
+ *
+ * A port of `looks_like_a_line` in `mon_OCR/src/monocr/segmenter.py:181-215`, with
+ * the same two constants. iOS (`LineSegmenter.looksLikeALine`) and the Rust CLI
+ * (`apps/cli/src/mode.rs:161-168`) both already carry it; the web app was the only
+ * surface with no equivalent and no field to report one, so a fused band was
+ * rendered as ordinary output.
+ *
+ * Confidence cannot substitute for this. Upstream measured a photograph where five
+ * lines fused into one band and the recogniser returned fluent Mon that appears
+ * nowhere on the page, **at confidence 0.83** — while a genuinely blank crop scores
+ * 0.00. The signal is the wrong way round, which is why this is geometric.
+ */
+export function looksLikeALine(segment: LineSegment, pageHeight: number): boolean {
+	if (segment.height <= 0 || pageHeight <= 0) return false;
+	// A band can be line-shaped, or it can be small relative to the page. It is
+	// only implausible when it is neither: tall enough to be a block AND not
+	// elongated enough to be a line.
+	const fillsThePage = segment.height > pageHeight * IMPLAUSIBLE_LINE_FRACTION;
+	const lineShaped = segment.width / segment.height >= LINE_SHAPE_ASPECT;
+	return lineShaped || !fillsThePage;
+}
+
+/**
+ * Bands shorter than this are discarded, silently and with no signal to the
+ * caller. Exported so `capture-quality` can warn about text that is close to it
+ * rather than letting lines vanish — a page captured too small loses text here and
+ * nowhere else reports it.
+ *
+ * The canonical value is 20 (`mon_OCR` `_MIN_LINE_HEIGHT`); this port has always
+ * used 10. That divergence is recorded in the "Canonical Algorithm Spec v1" header
+ * at `mon_OCR/src/monocr/segmenter.py:7-78`, which also forbids reconciling it by
+ * editing a constant: which value is right is a measurement question and nothing in
+ * this ecosystem can yet measure it.
+ */
+export const MIN_LINE_HEIGHT = 10;
+
+/** Padded bands smaller than this in either axis are noise, not text. See the use
+ * site: this is a bound on the padded bbox, not on the raw run MIN_LINE_HEIGHT
+ * governs, so the shared value 10 is a coincidence rather than a link. */
+const NOISE_SPECK_PX = 10;
+
+/** A band taller than this fraction of the page is suspect unless it is elongated. */
+const IMPLAUSIBLE_LINE_FRACTION = 0.4;
+/** Minimum width-to-height ratio for a band to read as a line regardless of size. */
+const LINE_SHAPE_ASPECT = 4.0;
+
+/** Background luminance below this reads as a dark background to invert. */
+const DARK_BACKGROUND_MEDIAN = 128;
+/** Corner patch size as a fraction of each page dimension, floored at 3px. */
+const CORNER_FRACTION = 10;
+const CORNER_FLOOR = 3;
+
+/** Rec.601 luma, the same weights `segmentLines` uses. */
+function luma(data: Uint8ClampedArray, pixel: number): number {
+	const o = pixel * 4;
+	return 0.299 * data[o] + 0.587 * data[o + 1] + 0.114 * data[o + 2];
+}
+
+/**
+ * Is this page light text on a dark background?
+ *
+ * Sampled from the four corner patches rather than a global mean: page corners are
+ * almost always background, so their median survives a dense, text-heavy page
+ * where a mean would be dragged down by ink.
+ *
+ * Ported from iOS `PageNormalizer.backgroundIsDark`, itself from mon_OCR
+ * `utils.to_normalized_grayscale`. The median averages the two middle values, as
+ * numpy does, and the sample is always even (four patches of equal size).
+ */
+export function backgroundIsDark(image: ImageData): boolean {
+	const { width, height, data } = image;
+	if (width <= 0 || height <= 0) return false;
+
+	const patchH = Math.min(Math.max(CORNER_FLOOR, Math.floor(height / CORNER_FRACTION)), height);
+	const patchW = Math.min(Math.max(CORNER_FLOOR, Math.floor(width / CORNER_FRACTION)), width);
+
+	// Counting sort, not a real sort: four patches of a 12MP photo is ~4% of it and
+	// only two order statistics are needed.
+	const histogram = new Int32Array(256);
+	let count = 0;
+	const rowBands: [number, number][] = [
+		[0, patchH],
+		[height - patchH, height]
+	];
+	const colBands: [number, number][] = [
+		[0, patchW],
+		[width - patchW, width]
+	];
+	for (const [y0, y1] of rowBands) {
+		for (const [x0, x1] of colBands) {
+			for (let y = y0; y < y1; y++) {
+				for (let x = x0; x < x1; x++) {
+					histogram[Math.round(luma(data, y * width + x))]++;
+					count++;
+				}
+			}
+		}
+	}
+	if (count === 0) return false;
+
+	const lowerRank = (count - 1) >> 1;
+	const upperRank = count >> 1;
+	let seen = 0;
+	// -1, not 0, as the "not found yet" sentinel. 0 is a legal luma — a genuinely
+	// black corner — and using it for both meanings meant the sentinel never cleared
+	// on such a page, so `lower` was reassigned once more and came out 1 instead of 0.
+	// Measured: a page half black and half white reported median 128 against a true
+	// 127.5, which is on the wrong side of the threshold, so the inverted scan this
+	// function exists to catch was read as a light page. iOS PageNormalizer.swift
+	// carries the same defect.
+	let lower = -1;
+	let upper = -1;
+	for (let value = 0; value < 256; value++) {
+		seen += histogram[value];
+		if (lower === -1 && seen > lowerRank) lower = value;
+		if (seen > upperRank) {
+			upper = value;
+			break;
+		}
+	}
+	return (lower + upper) / 2 < DARK_BACKGROUND_MEDIAN;
+}
+
+/**
+ * Put the page into the polarity the model was trained on, **once**, before
+ * anything reads it. Mutates `image` and reports whether it inverted.
+ *
+ * WHY THIS IS A PAGE-LEVEL OPERATION. Inversion used to happen per *tile*, inside
+ * `processLine`, after `segmentLines` had already run on the un-inverted pixels. On
+ * a dark-mode screenshot or an inverted scan the segmenter therefore measured the
+ * BACKGROUND as ink and returned the gaps between lines. Inverting afterwards
+ * cannot undo that. Worse than the iOS bug it mirrors: because the decision was
+ * per tile, two tiles of one line could invert differently.
+ *
+ * iOS removed exactly this and recorded why (`ImagePreprocessor.swift:108-113`).
+ *
+ * NOT PORTED: background levelling. iOS's `PageNormalizer` also divides out a
+ * dilated background estimate to flatten sepia paper and grey panels. That is a
+ * separate enhancement, it is the expensive half, and it is explicitly not
+ * idempotent — mixing it in here without the memory work this file already needs
+ * would trade one silent bug for another.
+ */
+export function normalizePagePolarity(image: ImageData): boolean {
+	if (!backgroundIsDark(image)) return false;
+	const { data } = image;
+	for (let i = 0; i < data.length; i += 4) {
+		data[i] = 255 - data[i];
+		data[i + 1] = 255 - data[i + 1];
+		data[i + 2] = 255 - data[i + 2];
+	}
+	return true;
 }
 
 export function segmentLines(
@@ -168,7 +329,6 @@ export function segmentLines(
 		nonZeroHist.length > 0 ? nonZeroHist.reduce((a, b) => a + b, 0) / nonZeroHist.length : 0;
 	// Use extreme low threshold (3%) to ensure faint diacritics spanning valleys don't get cut
 	const threshold = meanDensity * 0.03;
-	const MIN_LINE_HEIGHT = 10;
 
 	const segments: LineSegment[] = [];
 	let startY: number | null = null;
@@ -245,7 +405,13 @@ export function segmentLines(
 		if (ratio < 0.2) return false;
 
 		// Drop tiny noise specks
-		if (seg.width < 10 || seg.height < 10) return false;
+		// Not MIN_LINE_HEIGHT, deliberately, and not a copy of it either. This tests
+		// the PADDED bbox where MIN_LINE_HEIGHT tests the raw run, so they are
+		// thresholds on two different quantities that happen to share a number — the
+		// core-vs-padded confusion `capture-quality.ts` documents in the canonical
+		// segmenter. Named here rather than unified, because unifying them changes
+		// which bands survive and that needs a measurement.
+		if (seg.width < NOISE_SPECK_PX || seg.height < NOISE_SPECK_PX) return false;
 
 		// Reject logos/images:
 		// If it's squarish (not a distinct wide line) AND much taller than normal text
@@ -256,7 +422,10 @@ export function segmentLines(
 		return true;
 	});
 
-	return finalSegments;
+	// Flag rather than drop. A fused block still carries text a reader may want,
+	// and `mon_OCR`'s api.read_page makes the same choice: return it, mark it, let
+	// the caller decide.
+	return finalSegments.map((seg) => ({ ...seg, lineShaped: looksLikeALine(seg, height) }));
 }
 
 /**
