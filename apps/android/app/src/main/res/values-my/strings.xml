@@ -68,7 +68,6 @@
     <string name="docs_sdks">ပလက်ဖောင်းစုံ SDK များ</string>
     <string name="docs_sdks_desc">စွမ်းဆောင်ရည်မြင့်မားသော တရားဝင် Library များ။</string>
     <string name="docs_input_standards">အသုံးပြုမှု စံနှုန်းများ</string>
-    <string name="docs_input_standards_desc">တိကျမှု (၉၇.၅%+) ရရှိစေရန် ဤစံနှုန်းများကို လိုက်နာပါ။</string>
     <string name="docs_resolution">ကြည်လင်ပြတ်သားမှု</string>
     <string name="docs_resolution_desc">အနည်းဆုံး 300 DPI လိုအပ်သည်။ ပေမူများအတွက် 600 DPI လိုအပ်သည်။</string>
     <string name="docs_lighting">အလင်းရောင်</string>
