@@ -40,12 +40,12 @@ assumed: `mon_OCR/docs/LIMITATIONS.md:304-334` found the low gap ratio recoverin
 at the low ratio and all 6, read correctly, at 0.50**. The ordering reverses by input class, and
 the response is not monotone.
 
-| `--mode` | For | What it does |
-|---|---|---|
-| `page` | PDF renders, scans, page screenshots | Segment into lines, tile, recognise. The default behaviour |
-| `sparse` | Photos, posters, slides, signage | A far more permissive line-gap threshold |
-| `line` | An image that is already one cropped line | Skips segmentation; tiles and recognises |
-| `auto` | Default | Decides per input, and `inspect` shows you the reasoning |
+| `--mode` | For                                       | What it does                                               |
+| -------- | ----------------------------------------- | ---------------------------------------------------------- |
+| `page`   | PDF renders, scans, page screenshots      | Segment into lines, tile, recognise. The default behaviour |
+| `sparse` | Photos, posters, slides, signage          | A far more permissive line-gap threshold                   |
+| `line`   | An image that is already one cropped line | Skips segmentation; tiles and recognises                   |
+| `auto`   | Default                                   | Decides per input, and `inspect` shows you the reasoning   |
 
 `auto` decides on **provenance and shape, never on confidence**. A PDF page is known to be a
 page. A standalone image is treated as a page unless it is both shorter than 320 px and at least
@@ -110,6 +110,33 @@ corrupting the fixture "fails all four", counting this crate among them. `apps/c
 crate, which `cargo test` here does not compile. This crate's own tests — 37 of them across
 `discover`, `mode`, `output`, `state` and `render` — cover input classification, output and
 PDF rendering. None covers tiling, because there is none here to cover.
+
+## Configuration
+
+**Every option is a flag. There is no config file.** `main.rs` has no `--config`
+argument and the crate parses no TOML or YAML — the surface is
+`--output`, `--recursive`, `--mode`, `--resume`, `--json`, `--dry-run` and `--dpi`
+on `run`, and `--recursive`/`--json` on `inspect`.
+
+That is fine for one-off runs and poor for repeatable ones: a book extraction is a
+fixed set of choices you want under version control, not a shell line to
+reconstruct. `pdf2audio` solves the same problem with a `config.yaml` at the repo
+root, and a request to follow that pattern here is **open and not implemented**.
+
+What it would need, so the next person does not have to re-derive it:
+
+- a `--config <path>` argument, with flags overriding file values rather than the
+  reverse — the flag is the exception, the file is the baseline;
+- the file to carry `mode` and `dpi` at minimum, since those are the two that
+  change per document class and are the easiest to get silently wrong;
+- and `inspect` to report which values came from the file and which from flags.
+  `mode.rs` already returns a `Decision { mode, reason }` for exactly this kind of
+  "why did it do that" question, and the same shape applies to provenance of
+  settings.
+
+Recorded here rather than in a tracker because this file is what a reader consults
+before running the tool, and an absent feature is worth knowing about at that
+moment.
 
 ## Known limits
 
