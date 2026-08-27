@@ -12,6 +12,7 @@
 //! sixth copy of that logic here is exactly what se-brain
 //! `standards/delivery-surfaces.md` §1 exists to prevent.
 
+mod config;
 mod discover;
 mod mode;
 mod output;
@@ -48,9 +49,14 @@ struct Cli {
 enum Command {
     /// Extract text from files or directories.
     Extract {
-        /// Files, directories, or a mix of both.
-        #[arg(required = true)]
+        /// Files, directories, or a mix of both. Optional when a config file
+        /// supplies `input.paths`; giving any here replaces the file's list.
         paths: Vec<PathBuf>,
+
+        /// Read settings from this YAML file. Defaults to `monocr.yaml` in the
+        /// working directory when one exists. See `config.rs` for the merge rule.
+        #[arg(long, value_name = "PATH")]
+        config: Option<PathBuf>,
 
         /// Where to write results. Required unless --dry-run.
         #[arg(short, long)]
@@ -61,8 +67,9 @@ enum Command {
         recursive: bool,
 
         /// Segmentation regime. `auto` decides per input; see `inspect`.
-        #[arg(long, value_enum, default_value_t = ModeArg::Auto)]
-        mode: ModeArg,
+        /// Unset means "take the config file's value", then `auto`.
+        #[arg(long, value_enum)]
+        mode: Option<ModeArg>,
 
         /// Skip inputs already completed in this output directory.
         #[arg(long)]
@@ -76,9 +83,10 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
 
-        /// Rasterisation resolution for PDF pages.
-        #[arg(long, default_value_t = render::default_dpi())]
-        dpi: u32,
+        /// Rasterisation resolution for PDF pages. Unset means "take the config
+        /// file's value", then the built-in default.
+        #[arg(long)]
+        dpi: Option<u32>,
     },
 
     /// Report what a path contains and which mode `auto` would choose.
@@ -103,6 +111,30 @@ enum ModeArg {
     Page,
     Sparse,
     Line,
+}
+
+impl ModeArg {
+    /// The spelling this mode has in a config file. Paired with
+    /// `from_config_str` so the two directions cannot drift apart, and with
+    /// `config::VALID_MODES`, which is what refuses a bad value while loading.
+    fn as_config_str(self) -> &'static str {
+        match self {
+            ModeArg::Auto => "auto",
+            ModeArg::Page => "page",
+            ModeArg::Sparse => "sparse",
+            ModeArg::Line => "line",
+        }
+    }
+
+    /// `None` means `auto`; `config::merge` normalises the two to one.
+    fn from_config_str(s: Option<&str>) -> ModeArg {
+        match s {
+            Some("page") => ModeArg::Page,
+            Some("sparse") => ModeArg::Sparse,
+            Some("line") => ModeArg::Line,
+            _ => ModeArg::Auto,
+        }
+    }
 }
 
 impl ModeArg {
@@ -174,6 +206,7 @@ async fn run(cli: Cli, interrupted: std::sync::Arc<std::sync::atomic::AtomicBool
         } => inspect(&paths, recursive, json),
         Command::Extract {
             paths,
+            config,
             output,
             recursive,
             mode,
@@ -182,15 +215,41 @@ async fn run(cli: Cli, interrupted: std::sync::Arc<std::sync::atomic::AtomicBool
             dry_run,
             dpi,
         } => {
+            // The file is the baseline; a flag is the exception. The merge rule
+            // itself lives in `config::merge`, a pure function of its inputs, so
+            // it is tested without a filesystem, a model or a subprocess.
+            let file = config::resolve(config.as_deref())?.unwrap_or_default();
+            let resolved = config::merge(
+                config::Flags {
+                    paths,
+                    output,
+                    recursive,
+                    mode: mode.map(|m| m.as_config_str().to_string()),
+                    resume,
+                    json,
+                    dry_run,
+                    dpi,
+                },
+                file,
+            );
+
+            if resolved.paths.is_empty() {
+                anyhow::bail!(
+                    "no inputs. Give paths on the command line, or set `input.paths` \
+                     in {} (or the file named by --config)",
+                    config::DEFAULT_CONFIG
+                );
+            }
+
             extract(ExtractArgs {
-                paths,
-                output,
-                recursive,
-                mode,
-                resume,
-                json,
-                dry_run,
-                dpi,
+                paths: resolved.paths,
+                output: resolved.output,
+                recursive: resolved.recursive,
+                mode: ModeArg::from_config_str(resolved.mode.as_deref()),
+                resume: resolved.resume,
+                json: resolved.json,
+                dry_run: resolved.dry_run,
+                dpi: resolved.dpi.unwrap_or_else(render::default_dpi),
                 interrupted,
             })
             .await

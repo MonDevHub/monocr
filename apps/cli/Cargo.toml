@@ -38,6 +38,13 @@ tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "process", "fs"] }
 image = "0.24"
 walkdir = "2"
+# YAML for the config file, matching pdf2audio's `config.yaml` so the two tools
+# read the same way. 0.9.34 is published as "+deprecated": the author archived it
+# rather than breaking it, and it is frozen rather than abandoned mid-change.
+# Chosen over the community forks (serde_yml, serde_norway) on the same reasoning
+# the `ort` pin above records — a frozen dependency is more predictable than a
+# young fork, and this crate only needs to parse a dozen scalar fields.
+serde_yaml = "0.9"
 
 [dev-dependencies]
 assert_fs = "1"

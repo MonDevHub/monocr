@@ -69,11 +69,11 @@ not monotone — on one photograph 0.5 gave 5 lines, 0.7 gave 4, 1.3 gave 1.
 
 So the CLI dispatches a mode instead of applying one set:
 
-| Mode | For | Ratio |
-|---|---|---|
-| `page` | PDF renders, scans, page screenshots | 0.05, the library default — unchanged behaviour |
-| `sparse` | photos, posters, slides, signage | 0.50 |
-| `line` | an already-cropped line | segmentation skipped entirely |
+| Mode     | For                                  | Ratio                                           |
+| -------- | ------------------------------------ | ----------------------------------------------- |
+| `page`   | PDF renders, scans, page screenshots | 0.05, the library default — unchanged behaviour |
+| `sparse` | photos, posters, slides, signage     | 0.50                                            |
+| `line`   | an already-cropped line              | segmentation skipped entirely                   |
 
 `auto` decides on provenance and shape, never on confidence. A PDF page is known to be a page.
 A standalone image is a page unless it is both shorter than `2 x 160` px **and** at least 4.0
@@ -131,3 +131,28 @@ absences. The tiling fix landed in the library, so the published Rust binding im
 - **Build release for real work.** Measured on the same 5-page book at 150 dpi: 33.3 s release
   against 100.9 s debug, 216 ms/line against 677. The hot non-model work is per-pixel Rust, so
   `opt-level = 0` costs 3x. Peak RSS stays flat either way (215 MB at 5 pages, 221 at 20).
+
+---
+
+## Amendment, 2026-08-27: the surface is a config file as well as flags
+
+This ADR described a flag-only surface, which is what existed when it was written.
+`monocr-cli extract` now also reads a sectioned `monocr.yaml`, with `--config` to
+name another file, because a book extraction is a fixed set of choices worth
+keeping under version control rather than reconstructing from shell history. The
+shape follows `pdf2audio`'s `config.yaml` so the two tools read the same way.
+
+**The file is the baseline; a flag is the exception.** `--output`, `--mode` and
+`--dpi` override it; positional paths replace `input.paths` rather than adding to
+it; and the four switches are OR-ed, so a switch can turn a setting on but never
+off. That asymmetry is the only one, and it is deliberate — `clap` reports the same
+`false` for "omitted" as for "meant to disable", so a switch able to cancel a file
+setting would make `--dry-run` unsafe to add out of habit.
+
+Nothing that changes what the model sees is configurable. Input height, width,
+normalisation and the pinned revision remain one contract with the exported graph.
+
+The decision this ADR records is unchanged: the CLI stays a delivery surface over
+the library, and the config file is a way to describe a run rather than a place to
+re-specify the recogniser. See `apps/cli/README.md` § Configuration and
+`apps/cli/monocr.example.yaml`, which documents every key with its reason.

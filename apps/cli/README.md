@@ -40,12 +40,12 @@ assumed: `mon_OCR/docs/LIMITATIONS.md:304-334` found the low gap ratio recoverin
 at the low ratio and all 6, read correctly, at 0.50**. The ordering reverses by input class, and
 the response is not monotone.
 
-| `--mode` | For | What it does |
-|---|---|---|
-| `page` | PDF renders, scans, page screenshots | Segment into lines, tile, recognise. The default behaviour |
-| `sparse` | Photos, posters, slides, signage | A far more permissive line-gap threshold |
-| `line` | An image that is already one cropped line | Skips segmentation; tiles and recognises |
-| `auto` | Default | Decides per input, and `inspect` shows you the reasoning |
+| `--mode` | For                                       | What it does                                               |
+| -------- | ----------------------------------------- | ---------------------------------------------------------- |
+| `page`   | PDF renders, scans, page screenshots      | Segment into lines, tile, recognise. The default behaviour |
+| `sparse` | Photos, posters, slides, signage          | A far more permissive line-gap threshold                   |
+| `line`   | An image that is already one cropped line | Skips segmentation; tiles and recognises                   |
+| `auto`   | Default                                   | Decides per input, and `inspect` shows you the reasoning   |
 
 `auto` decides on **provenance and shape, never on confidence**. A PDF page is known to be a
 page. A standalone image is treated as a page unless it is both shorter than 320 px and at least
@@ -110,6 +110,79 @@ corrupting the fixture "fails all four", counting this crate among them. `apps/c
 crate, which `cargo test` here does not compile. This crate's own tests — 37 of them across
 `discover`, `mode`, `output`, `state` and `render` — cover input classification, output and
 PDF rendering. None covers tiling, because there is none here to cover.
+
+## Configuration
+
+Every option is a flag, and every option is also a config file key. Flags suit a
+one-off run; a book extraction is a fixed set of choices you want to repeat and
+review, so it belongs in a file under version control rather than a shell line
+reconstructed from history. `pdf2audio` solves the same problem the same way, and
+this follows its shape: one sectioned YAML file, commented with the reason for
+each value, validated on load.
+
+```bash
+cp monocr.example.yaml monocr.yaml   # then edit
+monocr-cli extract                   # reads ./monocr.yaml
+monocr-cli extract --config ci.yaml  # or name another file
+```
+
+`monocr.example.yaml` is the reference: it documents every key, and it is the file
+to read rather than this table.
+
+| section        | keys                                        |
+| :------------- | :------------------------------------------ |
+| `input`        | `paths`, `recursive`                        |
+| `output`       | `path`, `json`                              |
+| `segmentation` | `mode` — `auto`, `page`, `sparse` or `line` |
+| `render`       | `dpi`                                       |
+| `run`          | `resume`, `dry_run`                         |
+
+Every section is optional, and **an empty file behaves exactly like no file** — so
+adding one to a repository cannot change how the tool runs until you put something
+in it.
+
+### The merge rule
+
+**The file is the baseline; a flag is the exception.**
+
+- `--output`, `--mode` and `--dpi` **override** the file. They can express "unset",
+  so absent means "use the file's value".
+- `paths` given as positional arguments **replace** `input.paths` rather than
+  adding to it. `monocr-cli extract one.pdf` reads one.pdf and nothing else, so a
+  configured batch can be overridden for a single run without editing it.
+- `--recursive`, `--resume`, `--json` and `--dry-run` are switches, and **a switch
+  can turn a setting on but never off.**
+
+That last one is deliberate rather than an oversight, and it is the only asymmetry
+here. A switch cannot say "false": `clap` reports the same `false` whether it was
+omitted or you meant to disable something. The cases where you reach for these
+flags are "also do a dry run this time" and "also descend today", so they are
+OR-ed with the file. A switch that could silently cancel a file setting would make
+`--dry-run` unsafe to add to a command line out of habit. **To turn one off, edit
+the file.**
+
+### What is not configurable
+
+Nothing that changes what the model sees. The input height, the width, the
+normalisation and the pinned model revision are one contract with the exported
+graph — `mon_OCR/docs/CHARSET.md` records what happened the last time part of that
+contract moved without the rest. They are not options, and this file does not make
+them look like options.
+
+### Errors it refuses rather than absorbs
+
+- **A `--config` path that does not exist** is an error. You named a file; running
+  with defaults instead would silently ignore every setting you meant to apply. A
+  _missing_ `monocr.yaml` is fine — the tool works with no config at all.
+- **An unknown or misplaced key** is an error, not an ignored line.
+  `input: {recursiv: true}` reports `unknown field \`recursiv\`, expected \`paths\`
+  or \`recursive\``. A key under the wrong section would otherwise read as
+  configured and do nothing.
+- **A bad `mode`** names the valid values: `segmentation.mode is "pages", expected
+one of auto, page, sparse, line`.
+- **A `dpi` outside 72..=1200** is refused with the reason, not clamped.
+
+## Known limits
 
 ## Known limits
 
