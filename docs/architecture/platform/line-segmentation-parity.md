@@ -1,9 +1,11 @@
-# Line segmentation: three ports, two real divergences
+# Line segmentation: four surfaces, and three real divergences
 
-**Status:** recorded, not resolved. Measured 2026-08-15.
+**Status:** recorded, not resolved. Measured 2026-08-15, corrected 2026-08-27.
 
 Web, Android and iOS each carry their own port of the same horizontal
-projection-profile line segmenter. They are meant to be the same algorithm, and
+projection-profile line segmenter, and the CLI delegates to a fourth in
+`monocr-onnx/rust`. This document said "three ports" and left the CLI out; it was
+written before `apps/cli` had a mode enum. They are meant to be the same algorithm, and
 on two parameters they are not, so **the same page can produce different line
 sets on different platforms**. That is a correctness property of the product —
 a user photographing one page on two devices can get two different transcripts —
@@ -11,28 +13,47 @@ and nothing in the repository currently notices it.
 
 ## Where the code is
 
-| Platform | File |
-|---|---|
-| Web | [`apps/web/src/lib/segmentation.ts`](../../../apps/web/src/lib/segmentation.ts) |
-| Android | [`apps/android/app/src/main/java/dev/janakhpon/monocr/engine/LineSegmenter.kt`](../../../apps/android/app/src/main/java/dev/janakhpon/monocr/engine/LineSegmenter.kt) |
-| iOS | [`apps/ios/monocr-ios/LineSegmenter.swift`](../../../apps/ios/monocr-ios/LineSegmenter.swift) |
+| Platform | File                                                                                                                                                                  |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web      | [`apps/web/src/lib/segmentation.ts`](../../../apps/web/src/lib/segmentation.ts)                                                                                       |
+| Android  | [`apps/android/app/src/main/java/dev/janakhpon/monocr/engine/LineSegmenter.kt`](../../../apps/android/app/src/main/java/dev/janakhpon/monocr/engine/LineSegmenter.kt) |
+| iOS      | [`apps/ios/monocr-ios/LineSegmenter.swift`](../../../apps/ios/monocr-ios/LineSegmenter.swift)                                                                         |
+| CLI      | delegates to `monocr-onnx/rust/src/segmenter.rs`; sets its ratio in [`apps/cli/src/mode.rs`](../../../apps/cli/src/mode.rs)                                           |
 
 ## What agrees
 
-Adaptive threshold window 25 and constant 8; horizontal smear kernel 11;
-vertical smear kernel 5; density ratio 0.03; minimum line height 10; padding 25%
-vertical and 20% horizontal; and the same three outlier rejections.
+Across **web, Android and iOS**: adaptive threshold window 25 and constant 8;
+horizontal smear kernel 11; vertical smear kernel 5; density ratio 0.03; minimum
+line height 10; padding 25% vertical and 20% horizontal; and the same three
+outlier rejections.
+
+**The CLI shares almost none of it**, because it is a different implementation
+rather than a port of these: a flat global threshold at 128 instead of an adaptive
+one, no morphological smear at all, a fixed 4px pad on both axes, and smoothing 3.
 
 ## What does not
 
-| | Web | Android | iOS |
-|---|---|---|---|
-| Histogram smoothing kernel | 3 | **5** | 3 |
-| Grayscale blur | 3×3 | **5×5** | 3×3 |
-| Binarizes against | **unblurred** grayscale | blurred | blurred |
+|                            | Web                     | Android            | iOS                | CLI                         |
+| -------------------------- | ----------------------- | ------------------ | ------------------ | --------------------------- |
+| Histogram smoothing kernel | 3                       | **5**              | 3                  | 3                           |
+| Grayscale blur             | 3×3                     | **5×5**            | 3×3                | **none**                    |
+| Binarizes against          | **unblurred** grayscale | blurred            | blurred            | **global 128**              |
+| Density ratio, page mode   | 0.03                    | 0.03               | 0.03               | **0.05**                    |
+| Mode selection             | **none**                | provenance + shape | provenance + shape | `--mode`, `auto`, `inspect` |
 
-Two of these are Android against the other two; the third is web against the
-other two. So no platform is the reference, and no two agree completely.
+Two of the first three are Android against the others; the third is web against
+the others. So no surface is the reference, and no two agree completely.
+
+**The 0.03-against-0.05 row is a correction.** This document previously listed the
+density ratio under "what agrees", which was true of the three apps and never of
+the CLI. `apps/cli/src/mode.rs:39` calls 0.05 "the library default" and pins it by
+test, so the two values are each deliberate and simply were never compared.
+
+**Web has no mode at all**, which is worth stating beside the rest: it is the one
+surface where a fused-block reading cannot be retried, because there is no other
+parameter set to retry with. Its `lineShaped` flag also stops at
+`console.warn` — the worker posts a bare string — so a user sees fused text as
+ordinary output.
 
 **Why it matters more than the numbers suggest.** The smoothing kernel is
 applied to the row-ink profile before bands are detected, so it decides directly
@@ -49,10 +70,27 @@ book pages, and its own documentation records that the ratio suits books at 0.12
 and posters at 0.50. There is no single correct setting across document types,
 which is part of why this is recorded rather than unified.
 
+## A fifth divergence, newer and larger than any above
+
+`mon_OCR`'s segmenter gained printed-rule suppression on 2026-08-27 (step 3.5) and
+**no surface here has it**. Measured on twelve real MNEC papers: nine collapsed to
+a single band without it, seven of those returning 0–2 characters, and the twelve
+together went from 3,846 characters to 5,924. Pages carrying no rules come back
+byte-identical, so it is not a trade-off between document types the way the
+density ratio is.
+
+That makes it different in kind from everything above. The rows in the table are
+unresolved because picking a winner needs ground truth nobody has; this one is
+unresolved only because it has not been ported. `mon_OCR`'s ROADMAP 4.5.7 tracks
+it.
+
 ## What would close it
 
-A page set with counted lines, run through all three ports. That is the same
+A page set with counted lines, run through all four surfaces. That is the same
 missing artifact as `mon_OCR`'s `DATA_STRATEGY.md` rung D2 — real page images
 with ground truth — and it closes several open questions at once. Until it
-exists, aligning the three would be choosing one arbitrary setting over two
-others and calling it parity.
+exists, aligning them would be choosing one arbitrary setting over three others
+and calling it parity.
+
+That argument does **not** cover step 3.5 above, which needs no ground truth to
+justify: a page returning zero characters is measurable without a baseline.
