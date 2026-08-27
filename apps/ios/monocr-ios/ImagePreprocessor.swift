@@ -25,9 +25,15 @@ nonisolated enum ImagePreprocessor {
 
      `source` must be a polarity-normalised page (see `PageNormalizer`), and
      `segment` is in that page's pixel coordinates. Wide lines are cut into tiles
-     by `LineTiler` before they get here, so the width clamp below is now a
-     backstop rather than the normal path: squeezing a wide line into the window
-     measured CER 0.1434 against 0.0795 tiled on the graph this app ships.
+     by `LineTiler` before they get here, so the width clamp below is a backstop
+     rather than the normal path.
+
+     That clamp used to be priced at `CER 0.1434 against 0.0795 tiled`. Retired
+     2026-08-22 — harness never committed, figures do not reproduce. What the
+     clamp actually costs is width-dependent and unbounded: at four model windows
+     a squeezed line scores 0.21 CER against tiling's 0.06, and by six it is above
+     0.83 (`mon_OCR/eval/tiling-ab-2026-08-22.md`). It stays as a backstop
+     precisely because reaching it means something upstream failed to tile.
      */
     static func processLine(source: UIImage, segment: LineSegment) -> [Float]? {
         guard segment.width > 0, segment.height > 0 else {

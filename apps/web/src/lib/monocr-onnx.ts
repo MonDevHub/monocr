@@ -603,10 +603,14 @@ export class MonOcrOnnx {
 		// 4. Process each line
 		try {
 			for (const seg of segments) {
-				// A line wider than the window was squeezed into it, which on the
-				// pinned v3.5 graph measured CER 0.1434 against 0.0795 tiled. Tiles
-				// are read separately and joined with no separator: the cut lands at
-				// a white column inside a word, so a space there would be wrong.
+				// A line wider than the window was squeezed into it. The cost of that
+				// was quoted here as CER 0.1434 against 0.0795 tiled; retired
+				// 2026-08-22, harness never committed, figures do not reproduce. It is
+				// width-dependent and unbounded — 0.21 CER at 4 model windows against
+				// tiling's 0.06, above 0.83 by 6 (mon_OCR/eval/tiling-ab-2026-08-22.md).
+				// Tiles are
+				// read separately and joined with no separator: the cut lands at a
+				// white column inside a word, so a space there would be wrong.
 				const tiles = tileLine(imageData, seg, this.TARGET_HEIGHT, this.TARGET_WIDTH);
 				const parts: string[] = [];
 

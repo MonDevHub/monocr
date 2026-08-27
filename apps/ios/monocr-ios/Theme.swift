@@ -22,9 +22,22 @@ struct MonTheme {
         static let secondary = Font.system(size: 12, weight: .medium)   // Reduced from 13
         static let meta      = Font.system(size: 11, weight: .regular)  // Reduced from 12
         
-        // Mon script requires specialized font handling
+        /// Mon text. The name must be the font's own, and `Font.custom` fails
+        /// **silently** to the system font when it is not.
+        ///
+        /// This read `"PyidaungSu-Regular"` until 2026-08-26. No name record in
+        /// `pyidaungsu_regular.ttf` carries that string — nameID 1 and nameID 6 are
+        /// both `Pyidaungsu`, and the only record containing "Regular" is the bare
+        /// subfamily. So both call sites (`HistoryViews`, `FeedbackView`) rendered
+        /// recognised Mon in Myanmar Sangam MN, whose Mon coverage is thin, with
+        /// nothing logged. `MonTextView` used the correct name, which is why the
+        /// main result card looked right and these two did not.
+        ///
+        /// Keep this string equal to nameID 6. Read it back with:
+        ///   python3 -c "from fontTools.ttLib import TTFont; \
+        ///     print([str(r) for r in TTFont('Fonts/pyidaungsu_regular.ttf')['name'].names if r.nameID==6])"
         static func monBody(size: CGFloat = 18) -> Font {
-            return Font.custom("PyidaungSu-Regular", size: size)
+            return Font.custom("Pyidaungsu", size: size)
         }
     }
 }

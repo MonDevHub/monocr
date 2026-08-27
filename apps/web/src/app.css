@@ -207,6 +207,41 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
+/* Mon script. Global, and here rather than in a component, because Svelte scopes
+   component styles: the `@font-face` and `.font-mon` rule used to live in
+   `routes/+page.svelte`, so `.font-mon` on `contribute/+page.svelte` matched no
+   rule at all (its own <style> block held only a comment), and `HistorySection`
+   carried a copy of the rule but no `@font-face` — so history Mon text on
+   /contribute and /report asked for a family with no webfont behind it. Corrected
+   2026-08-26.
+
+   Pyidaungsu 2.053 covers the Mon block this model emits (U+1039, U+103A,
+   U+105A-U+1060) and registers Myanmar shaping under `mym2`, which is what makes
+   stacked consonants and medials render rather than sit side by side. */
+@font-face {
+	font-family: 'PyidaungSu';
+	/* No `local()` first, deliberately. Pyidaungsu 1.x is widely installed and has
+	   incomplete Mon coverage; preferring a local copy would silently downgrade the
+	   vetted 2.053 that ships in static/. */
+	src: url('/fonts/PyidaungSu/Pyidaungsu-Regular.ttf') format('truetype');
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'PyidaungSu';
+	/* The Bold TTF was committed and never referenced, so bold Mon was synthetically
+	   emboldened — which smears virama stacks and medials rather than thickening
+	   them. */
+	src: url('/fonts/PyidaungSu/Pyidaungsu-Bold.ttf') format('truetype');
+	font-weight: 700;
+	font-display: swap;
+}
+
+.font-mon {
+	font-family: 'PyidaungSu', 'Myanmar Text', 'Padauk', 'Noto Sans Myanmar', sans-serif;
+}
+
 ::selection {
 	background-color: var(--primary);
 	color: #ffffff;

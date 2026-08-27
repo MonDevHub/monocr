@@ -157,11 +157,35 @@ Muted: #6B7280
 
 Fonts must support Mon script well.
 
-Primary font stack:
+**Corrected 2026-08-26. This section used to specify "Noto Sans Mon / Noto Serif /
+Inter". Do not follow it.** Two things were wrong:
 
-Noto Sans Mon
-Noto Serif
-Inter
+- **"Noto Sans Mon" is not a font.** The Noto family for this script is Noto Sans
+  Myanmar.
+- **Noto Sans Myanmar cannot render this app's output.** Measured against the
+  model's 276-character charset with fontTools: it covers **96 of 276**, and the
+  180 it misses include **every ASCII letter and every ASCII digit** — it is a
+  script-only font with no Latin alphabet. English and numbers in a recognised
+  page would render as tofu. Its Mon coverage is fine (9/9); Latin is the problem.
+
+What actually ships on all three apps, and what to keep using:
+
+| | Font | Charset coverage | Mon block | Shaping |
+|---|---|---|---|---|
+| Primary | **Pyidaungsu 2.053** (bundled) | 213 / 276 | 9 / 9 | `mym2`, full feature set |
+| Latin/UI | Inter | Latin only, no Myanmar | — | — |
+
+Pyidaungsu's 63 uncovered codepoints are all accented Latin and symbols
+(`é ü ñ ç ø š ² § π`), not Mon or Burmese: Mon is complete, Burmese U+1000–U+103F
+is complete, and ASCII is 95/95. If those accented characters ever need to render,
+**Padauk** covers 274/276 under the same OFL 1.1 licence and is already vendored at
+`MonFontsArchive/unicode/Padauk/` — that is the fallback to reach for, not Noto.
+
+**Never select a font by coverage alone.** `MonFontsArchive/zawgyi/UniMon.ttf`
+scores 275/276 — better than anything else measured — and is unusable: it is
+Zawgyi-encoded, registers its OpenType features under the **Arabic** script tag,
+and puts a medial-YA glyph at U+103A where ASAT belongs. Check the GSUB script tag
+is `mymr` or `mym2` before trusting a number.
 
 Use:
 

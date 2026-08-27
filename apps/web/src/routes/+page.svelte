@@ -542,17 +542,9 @@
 </div>
 
 <style>
-	/* Add any custom font imports here if needed for Mon language */
-	@font-face {
-		font-family: 'PyidaungSu';
-		src:
-			local('PyidaungSu'),
-			url('/fonts/PyidaungSu/Pyidaungsu-Regular.ttf') format('truetype');
-		font-display: swap;
-	}
-	.font-mon {
-		font-family: 'PyidaungSu', 'Myanmar Text', sans-serif;
-	}
+	/* `@font-face` and `.font-mon` moved to src/app.css on 2026-08-26. Scoped here,
+	   they applied only to this route, so the contribute textarea and the history
+	   list asked for a font nothing had declared. */
 
 	@keyframes pulse-subtle {
 		0%,
