@@ -177,6 +177,97 @@ export function normalizePagePolarity(image: ImageData): boolean {
 	return true;
 }
 
+/**
+ * A printed rule spans at least this fraction of the page in one direction.
+ *
+ * Deliberately coarse: no Mon, Burmese or Latin glyph holds an unbroken stroke
+ * half a page long, so the false-positive risk against text is structural rather
+ * than merely small. Lowering it toward a glyph's width is what would make rule
+ * suppression dangerous.
+ */
+const RULE_SPAN = 0.5;
+
+/**
+ * Suppression that would remove more than this share of the page's ink has found
+ * text, not rules, and is abandoned.
+ *
+ * RULE_SPAN is a fraction of the page, so on a SHORT page a tall block of text
+ * exceeds it vertically and every glyph column reads as a rule. Upstream this was
+ * caught by an existing test losing 98.7% of its ink and returning zero lines.
+ *
+ * The threshold sits in a measured gap rather than on a round number: real framed
+ * pages classify 21.5%–58.8% of their ink as rules, pages with no rules 0.00%,
+ * and that false positive 98.7%.
+ */
+const RULE_MAX_INK_SHARE = 0.8;
+
+/**
+ * Remove printed rules — page borders, table rules, underlines — from a text mask.
+ *
+ * A printed page border adds a constant ink floor to every row it spans, and once
+ * that floor clears the gap threshold no in-frame row reads as a gap: the page
+ * comes back as one band and is squeezed into the model window.
+ *
+ * Measured 2026-08-27 with THIS parameter set over twelve real MNEC page-ones:
+ * nine collapsed to three bands or fewer, and the twelve together went from 68
+ * bands to 160. Pages carrying no rules are untouched to the pixel, which is what
+ * makes the pass safe to run unconditionally.
+ *
+ * Implemented as a run-length scan rather than a generic erode-then-dilate. An
+ * opening with a 1×L line kernel keeps exactly those ink runs at least L long, and
+ * a run-length pass computes that directly in one sweep per axis instead of two
+ * passes over an L-wide window.
+ *
+ * There is deliberately NO thickness test. "A rule is long AND thin" was written,
+ * measured and deleted upstream: the rule pixels found with a thickness limit and
+ * with none were identical across twelve real pages, and it cannot work anyway —
+ * an adaptive threshold compares against a LOCAL mean, so the interior of a thick
+ * ink region is not ink and only its edges are.
+ *
+ * Mutates `binary` in place and returns whether anything was removed.
+ */
+export function suppressPageRules(binary: Uint8Array, width: number, height: number): boolean {
+	const minH = Math.max(15, Math.floor(width * RULE_SPAN));
+	const minV = Math.max(15, Math.floor(height * RULE_SPAN));
+	const rules = new Uint8Array(width * height);
+
+	// Horizontal runs: mark any unbroken run of at least minH.
+	for (let y = 0; y < height; y++) {
+		const row = y * width;
+		let start = 0;
+		for (let x = 0; x <= width; x++) {
+			if (x < width && binary[row + x]) continue;
+			if (x - start >= minH) for (let i = start; i < x; i++) rules[row + i] = 1;
+			start = x + 1;
+		}
+	}
+	// Vertical runs: the same scan down each column.
+	for (let x = 0; x < width; x++) {
+		let start = 0;
+		for (let y = 0; y <= height; y++) {
+			if (y < height && binary[y * width + x]) continue;
+			if (y - start >= minV) for (let i = start; i < y; i++) rules[i * width + x] = 1;
+			start = y + 1;
+		}
+	}
+
+	let ink = 0;
+	for (let i = 0; i < binary.length; i++) if (binary[i]) ink++;
+	if (ink === 0) return false;
+
+	let ruleInk = 0;
+	for (let i = 0; i < rules.length; i++) if (rules[i]) ruleInk++;
+	if (ruleInk === 0) return false;
+	if (ruleInk > ink * RULE_MAX_INK_SHARE) {
+		// Found the text. Leaving the page alone is strictly better than emptying
+		// it, and the caller is no worse off than before this step existed.
+		return false;
+	}
+
+	for (let i = 0; i < rules.length; i++) if (rules[i]) binary[i] = 0;
+	return true;
+}
+
 export function segmentLines(
 	imageData: ImageData,
 	smoothKernel: number = 3 // Default changed to 3 to match Android/Python
@@ -253,6 +344,14 @@ export function segmentLines(
 			const mean = getSum(x1, y1, x2, y2) / count;
 			binaryData[y * width + x] = grayData[y * width + x] < mean - C ? 1 : 0;
 		}
+	}
+
+	// 2.5 Printed-rule suppression. Before the smear, because the smear widens a
+	// rule into something no line kernel matches cleanly, and because the crop's
+	// column extents come from the smeared mask — removing rules first also keeps
+	// the border out of the crops.
+	if (suppressPageRules(binaryData, width, height)) {
+		console.info('[segmentation] printed rules removed before the projection profile');
 	}
 
 	// 3. Morphological Filtering (2D Smearing / Dilation)
