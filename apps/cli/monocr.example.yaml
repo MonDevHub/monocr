@@ -1,0 +1,78 @@
+# MonOCR CLI configuration
+#
+# Copy this to `monocr.yaml` next to the files you are extracting, edit it, and run
+# `monocr-cli extract`. The CLI looks for `monocr.yaml` in the working directory;
+# `--config <path>` names a different file.
+#
+# WHY A FILE RATHER THAN FLAGS. A book extraction is a fixed set of choices you
+# want to repeat and review, not a shell line to reconstruct from history. Every
+# setting here is also a flag, and a flag wins — see "Configuration" in README.md
+# for the exact rule, including the one asymmetry worth knowing about.
+#
+# Every section is optional. An empty file behaves exactly like no file.
+
+# ── What to read ─────────────────────────────────────────────────────────────
+input:
+  # Files, directories, or a mix. Positional arguments REPLACE this list rather
+  # than adding to it: `monocr-cli extract one.pdf` reads one.pdf and nothing else,
+  # so you can override a configured batch for a single run without editing it.
+  paths:
+    - books/
+
+  # Descend into subdirectories. Off by default, because a recursive run over a
+  # large archive is minutes of work and should be asked for.
+  recursive: true
+
+# ── Where results go ─────────────────────────────────────────────────────────
+output:
+  # One .txt per input, plus manifest.jsonl recording what was read and how.
+  # Required unless run.dry_run is set.
+  path: out/
+
+  # Emit one JSON object per input on stdout instead of plain text. Off unless you
+  # are piping into something.
+  json: false
+
+# ── How pages are split into lines ───────────────────────────────────────────
+segmentation:
+  # auto | page | sparse | line
+  #
+  #   auto    decide per input from its type and shape. PDFs are pages; an image
+  #           short enough to hold one line and at least 4x as wide as it is tall
+  #           is a line; anything else is a page.
+  #   page    a document scan or a book page. The default regime.
+  #   sparse  a photograph, a slide, a poster — anything with wide gaps between
+  #           lines. NEVER chosen by `auto`, deliberately: a photograph and a scan
+  #           are indistinguishable from the file header, and guessing wrong is
+  #           worse than asking. Reach for it when a photo comes back as one
+  #           fused block.
+  #   line    the image is already a single cropped line. Skips segmentation.
+  #
+  # `monocr-cli inspect <path>` reports which mode `auto` would choose and why,
+  # without loading the model.
+  mode: auto
+
+# ── Rasterisation ────────────────────────────────────────────────────────────
+render:
+  # DPI for PDF pages. 300 is the default and suits letter or A4.
+  #
+  # What actually matters is text height in PIXELS, not DPI: the segmenter's
+  # kernels are absolute pixel counts, so a small page at 300 DPI renders smaller
+  # text than a letter page at the same setting. Measured on a 3.9 x 6.2 in book,
+  # characters returned: 515 at 150 DPI, 419 at 200, 590 at 300, 635 at 400, 637
+  # at 500, 632 at 600 — the knee is where the page reaches roughly 2400px tall.
+  # If a small-format book reads poorly, raise this before changing anything else.
+  #
+  # Refused outside 72..=1200: below 72 the text is smaller than the segmenter is
+  # tuned for, and above 1200 a large sheet allocates tens of gigabytes.
+  dpi: 300
+
+# ── Run behaviour ────────────────────────────────────────────────────────────
+run:
+  # Skip inputs already completed in the output directory. Safe to leave on for a
+  # long batch you expect to interrupt.
+  resume: false
+
+  # Resolve and report the work without loading the model or writing a file. Use
+  # it to check which mode each input will get before spending the time.
+  dry_run: false

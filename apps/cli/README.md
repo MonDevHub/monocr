@@ -113,30 +113,76 @@ PDF rendering. None covers tiling, because there is none here to cover.
 
 ## Configuration
 
-**Every option is a flag. There is no config file.** `main.rs` has no `--config`
-argument and the crate parses no TOML or YAML — the surface is
-`--output`, `--recursive`, `--mode`, `--resume`, `--json`, `--dry-run` and `--dpi`
-on `run`, and `--recursive`/`--json` on `inspect`.
+Every option is a flag, and every option is also a config file key. Flags suit a
+one-off run; a book extraction is a fixed set of choices you want to repeat and
+review, so it belongs in a file under version control rather than a shell line
+reconstructed from history. `pdf2audio` solves the same problem the same way, and
+this follows its shape: one sectioned YAML file, commented with the reason for
+each value, validated on load.
 
-That is fine for one-off runs and poor for repeatable ones: a book extraction is a
-fixed set of choices you want under version control, not a shell line to
-reconstruct. `pdf2audio` solves the same problem with a `config.yaml` at the repo
-root, and a request to follow that pattern here is **open and not implemented**.
+```bash
+cp monocr.example.yaml monocr.yaml   # then edit
+monocr-cli extract                   # reads ./monocr.yaml
+monocr-cli extract --config ci.yaml  # or name another file
+```
 
-What it would need, so the next person does not have to re-derive it:
+`monocr.example.yaml` is the reference: it documents every key, and it is the file
+to read rather than this table.
 
-- a `--config <path>` argument, with flags overriding file values rather than the
-  reverse — the flag is the exception, the file is the baseline;
-- the file to carry `mode` and `dpi` at minimum, since those are the two that
-  change per document class and are the easiest to get silently wrong;
-- and `inspect` to report which values came from the file and which from flags.
-  `mode.rs` already returns a `Decision { mode, reason }` for exactly this kind of
-  "why did it do that" question, and the same shape applies to provenance of
-  settings.
+| section        | keys                                        |
+| :------------- | :------------------------------------------ |
+| `input`        | `paths`, `recursive`                        |
+| `output`       | `path`, `json`                              |
+| `segmentation` | `mode` — `auto`, `page`, `sparse` or `line` |
+| `render`       | `dpi`                                       |
+| `run`          | `resume`, `dry_run`                         |
 
-Recorded here rather than in a tracker because this file is what a reader consults
-before running the tool, and an absent feature is worth knowing about at that
-moment.
+Every section is optional, and **an empty file behaves exactly like no file** — so
+adding one to a repository cannot change how the tool runs until you put something
+in it.
+
+### The merge rule
+
+**The file is the baseline; a flag is the exception.**
+
+- `--output`, `--mode` and `--dpi` **override** the file. They can express "unset",
+  so absent means "use the file's value".
+- `paths` given as positional arguments **replace** `input.paths` rather than
+  adding to it. `monocr-cli extract one.pdf` reads one.pdf and nothing else, so a
+  configured batch can be overridden for a single run without editing it.
+- `--recursive`, `--resume`, `--json` and `--dry-run` are switches, and **a switch
+  can turn a setting on but never off.**
+
+That last one is deliberate rather than an oversight, and it is the only asymmetry
+here. A switch cannot say "false": `clap` reports the same `false` whether it was
+omitted or you meant to disable something. The cases where you reach for these
+flags are "also do a dry run this time" and "also descend today", so they are
+OR-ed with the file. A switch that could silently cancel a file setting would make
+`--dry-run` unsafe to add to a command line out of habit. **To turn one off, edit
+the file.**
+
+### What is not configurable
+
+Nothing that changes what the model sees. The input height, the width, the
+normalisation and the pinned model revision are one contract with the exported
+graph — `mon_OCR/docs/CHARSET.md` records what happened the last time part of that
+contract moved without the rest. They are not options, and this file does not make
+them look like options.
+
+### Errors it refuses rather than absorbs
+
+- **A `--config` path that does not exist** is an error. You named a file; running
+  with defaults instead would silently ignore every setting you meant to apply. A
+  _missing_ `monocr.yaml` is fine — the tool works with no config at all.
+- **An unknown or misplaced key** is an error, not an ignored line.
+  `input: {recursiv: true}` reports `unknown field \`recursiv\`, expected \`paths\`
+  or \`recursive\``. A key under the wrong section would otherwise read as
+  configured and do nothing.
+- **A bad `mode`** names the valid values: `segmentation.mode is "pages", expected
+one of auto, page, sparse, line`.
+- **A `dpi` outside 72..=1200** is refused with the reason, not clamped.
+
+## Known limits
 
 ## Known limits
 
