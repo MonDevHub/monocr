@@ -370,9 +370,18 @@ describe('page polarity', () => {
  *   - its two-lines-apart case is refused by the same ceiling, so weakening the
  *     fragment ratio from 2x to 1x survives.
  *
- * Every fixture below therefore carries ordinary full-height lines as well as the
- * pair under test, which puts the median where a real page would put it. All
- * three mutations die here. Verified by running them.
+ * Every fixture whose verdict depends on the median therefore carries ordinary
+ * full-height lines as well as the pair under test, which puts the median where a
+ * real page would put it, and all three of those mutations die here — verified by
+ * running them.
+ *
+ * The first two fixtures are the exception and ARE the Rust geometry verbatim, on
+ * purpose: they are the two cases that were actually measured on a real page, so
+ * they are kept exactly as measured rather than reshaped. Both are degenerate in
+ * the sense above — the dip fixture has a median of 44, so `2 * 20 <= 44` fires
+ * the fragment clause alongside the ink clause — and neither is what kills a
+ * mutation. They are regression anchors for the measurement, and the isolating
+ * cases follow.
  *
  * These pass the RAW profile, which in this module is `rawHist` — `hist` is the
  * smoothed one, inverted from every other port's naming.
@@ -567,15 +576,36 @@ describe('mergeRuns', () => {
 describe('a diacritic strip comes back joined to its line', () => {
 	/**
 	 * A page of Mon-shaped lines: a sparse strip of upper marks, `gap` source rows,
-	 * then a solid consonant body.
+	 * then a solid consonant body, with `stems` word positions whose stroke crosses
+	 * the gap.
 	 *
 	 * Sparse marks, not a solid bar. The segmenter binarizes against a 25px local
 	 * mean, so the inside of a solid bar is not darker than its own neighbourhood
 	 * and only its edges register as ink — the same reason the Android fixtures draw
 	 * strokes. Words rather than a full-width ribbon, because a ribbon this wide
 	 * reads as a printed rule and `suppressPageRules` removes it.
+	 *
+	 * `stems` picks which clause the case exercises, and both are needed: 0 leaves a
+	 * gap of genuinely zero ink, which only the fragment clause can cross, and 1
+	 * puts 12 ink columns in the dip row, which is under the threshold and is what
+	 * the ink clause is for. The figures in `segmentation.ts`'s MIN_GAP_MERGE table
+	 * come from this fixture at stems 0, 1 and 2.
+	 *
+	 * ONE ROW OF MARGIN, at `stripH` 20. This port binarizes the RAW grey against
+	 * the smoothed local mean, so only the reach-2 smear grows the runs: strip
+	 * 20 -> 24, body 45 -> 49, median 49, and `2 * 24 = 48 <= 49` is true by a
+	 * single row. Android and iOS binarize the SMOOTHED grey, their runs grow by
+	 * six or seven instead, and the same geometry falls the other side of the same
+	 * test — which is why their zero-ink integration case uses `stems: 1`. If this
+	 * port is ever aligned to theirs (see `LineSegmenter.swift` MIN_GAP_MERGE, which
+	 * defers that), the zero-ink case here will start returning 20 bands and the
+	 * fixture needs a shorter strip, not a changed threshold.
 	 */
-	function monPage(gap: number, lines: number): ImageData {
+	function monPage(
+		gap: number,
+		lines: number,
+		opts: { stems?: number; stripH?: number } = {}
+	): ImageData {
 		const w = 900;
 		const h = 1200;
 		const data = new Uint8ClampedArray(w * h * 4).fill(255);
@@ -583,7 +613,8 @@ describe('a diacritic strip comes back joined to its line', () => {
 			const i = (y * w + x) * 4;
 			data[i] = data[i + 1] = data[i + 2] = 0;
 		};
-		const STRIP_H = 20;
+		const stems = opts.stems ?? 0;
+		const STRIP_H = opts.stripH ?? 20;
 		const BODY_H = 45;
 		for (let l = 0; l < lines; l++) {
 			const y0 = 100 + l * 100;
@@ -597,6 +628,12 @@ describe('a diacritic strip comes back joined to its line', () => {
 				}
 				if (g % 3 === 0) {
 					for (let y = y0; y < y0 + STRIP_H; y++) {
+						ink(x, y);
+						ink(x + 1, y);
+					}
+				}
+				if ((x - 60) / 60 < stems && (x - 60) % 60 === 0) {
+					for (let y = y0; y < bodyStart; y++) {
 						ink(x, y);
 						ink(x + 1, y);
 					}
@@ -616,6 +653,35 @@ describe('a diacritic strip comes back joined to its line', () => {
 		// drawn line box is 70 source rows; dilation and 25% padding make the band
 		// taller than that, and a body-only band would be 75px.
 		for (const b of bands) expect(b.height).toBeGreaterThan(100);
+	});
+
+	it('a sub-threshold dip holding ink: 10 lines, 10 bands', () => {
+		// The ink clause reached end to end, which is what Android and iOS pin and
+		// what this port was missing. One bridging stroke puts 12 ink columns in the
+		// dip row against a threshold of 15.60 — the port's analogue of the
+		// reference's measured row 280 carrying 6 ink pixels against 7.0.
+		const bands = segmentLines(monPage(5, 10, { stems: 1 }));
+
+		expect(bands.length).toBe(10);
+		for (const b of bands) expect(b.height).toBeGreaterThan(100);
+	});
+
+	it('a strip shorter than MIN_LINE_HEIGHT survives, so the order is pinned', () => {
+		// The merge must run BEFORE the height filter, and this is the only case
+		// where the two orders differ — so without it, moving the filter ahead of
+		// the merge is a one-line change no test notices.
+		//
+		// A 4-row source strip becomes an 8-row run, one short of MIN_LINE_HEIGHT
+		// 10. Measured both ways on this port: filtering first returns 10 bands 75px
+		// tall, this order returns 10 bands 88px tall, and the 13px difference IS the
+		// strip of upper marks. The COUNT is 10 either way, which is exactly why the
+		// assertion below is on height.
+		const bands = segmentLines(monPage(5, 10, { stripH: 4 }));
+
+		expect(bands.length).toBe(10);
+		for (const b of bands) {
+			expect(b.height).toBeGreaterThan(80);
+		}
 	});
 
 	it('a 4-row gap is closed by the dilation, so the merge changes nothing', () => {
