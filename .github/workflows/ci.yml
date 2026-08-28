@@ -218,9 +218,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: poppler
-        # pdftoppm and pdfinfo are runtime dependencies of the PDF path, and the
-        # renderer's tests skip themselves without them — which would make this
-        # job pass while testing nothing.
+        # pdftoppm and pdfinfo are runtime dependencies of the PDF path. The
+        # renderer's tests used to skip themselves without them, which would have
+        # made this job pass while testing nothing; since 2026-08-28 they FAIL
+        # instead, so this step is what keeps the job green rather than what keeps
+        # it honest. `MONOCR_SKIP_E2E=1` is the deliberate opt-out and is not set
+        # here on purpose.
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
 
       - name: cargo fmt

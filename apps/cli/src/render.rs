@@ -211,6 +211,141 @@ fn find_single_output(dir: &Path, prefix: &str) -> Result<PathBuf> {
 mod tests {
     use super::*;
 
+    /// The PDF these tests rasterise. It lives in the sibling `monocr-onnx`
+    /// checkout, which CI clones and a fresh laptop may not have.
+    const FIXTURE: &str = "../../../monocr-onnx/data/pdfs/Mon_E_library.pdf";
+
+    /// Exact `"1"`, matching mon_OCR's `os.environ.get(...) == "1"`, so a stray
+    /// `REQUIRE_E2E=0` cannot read as "yes".
+    fn env_is_one(name: &str) -> bool {
+        std::env::var(name).as_deref() == Ok("1")
+    }
+
+    /// What a missing precondition means for the test that asked.
+    #[derive(Debug, PartialEq, Eq)]
+    enum Verdict {
+        Run,
+        Skip,
+        /// Absent, and nobody said that was acceptable.
+        Fail,
+        /// Absent, and `REQUIRE_E2E=1` says the opt-out does not apply.
+        FailRequired,
+    }
+
+    /// The policy, as a pure function of its inputs.
+    ///
+    /// Split from the environment lookup for the reason `config::merge` records
+    /// (`main.rs:219`): the rule that decides whether coverage may be dropped is
+    /// exactly the rule worth testing directly, and setting process-wide
+    /// environment variables from inside a parallel test run is how a suite
+    /// starts lying in a different way.
+    fn verdict(met: bool, require_e2e: bool, opted_out: bool) -> Verdict {
+        if met {
+            Verdict::Run
+        } else if require_e2e {
+            // Outranks the opt-out. This is the switch mon_OCR's Makefile sets
+            // and the one for this repo's CI to set, and a green run under it must
+            // not be purchasable with a second environment variable.
+            Verdict::FailRequired
+        } else if opted_out {
+            Verdict::Skip
+        } else {
+            Verdict::Fail
+        }
+    }
+
+    /// Gate for the tests that need real poppler and a real PDF.
+    ///
+    /// It used to be no gate at all. Three of this file's four PDF tests printed
+    /// `skipping: ...` and `return Ok(())`, so running the test binary with
+    /// `PATH=/nonexistent` still reported `55 passed; 0 failed; 0 ignored` and
+    /// `a_real_pdf_reports_its_page_count_and_renders_one_page` "passed" in
+    /// 0.00s having asserted nothing. libtest has no runtime skip channel, so
+    /// the summary was identical whether the coverage ran or evaporated — the
+    /// false negative se-brain `standards/testing.md` §20 names: "N passed, M
+    /// skipped" with an unnoticed M is not a pass.
+    ///
+    /// mon_OCR spells this guard `requires()` (`tests/e2e/test_pipeline.py:30`)
+    /// and defaults to `pytest.skip`, which is honest there because pytest
+    /// prints the skip count. With no such channel here the default is inverted:
+    /// a missing precondition fails, and dropping the coverage is something an
+    /// operator has to type.
+    ///
+    /// CI already knew the risk and covered only half of it: the `poppler` step
+    /// in `.github/workflows/ci.yml` installs the binaries because "the
+    /// renderer's tests skip themselves without them — which would make this
+    /// job pass while testing nothing". Installing poppler made the skip
+    /// unlikely. It did not make it visible, and it did nothing for the fixture,
+    /// which comes from the sibling monocr-onnx checkout.
+    fn precondition(met: bool, why: &str) -> Result<bool> {
+        act_on(
+            verdict(
+                met,
+                env_is_one("REQUIRE_E2E"),
+                env_is_one("MONOCR_SKIP_E2E"),
+            ),
+            why,
+        )
+    }
+
+    /// What to do with a verdict, split out from where the verdict comes from.
+    ///
+    /// `verdict` was pure and tested; `precondition` read the environment and was
+    /// not. A swap of those two lookups, or one arm returning `Ok(false)` instead
+    /// of failing, would have restored the invisible skip this whole change exists
+    /// to remove while every test stayed green. That is the same false negative one
+    /// layer out, so the mapping is testable too and the untested part is now the
+    /// two `env_is_one` calls and nothing else.
+    fn act_on(v: Verdict, why: &str) -> Result<bool> {
+        match v {
+            Verdict::Run => Ok(true),
+            Verdict::Skip => {
+                eprintln!("skipping (MONOCR_SKIP_E2E=1): {why}");
+                Ok(false)
+            }
+            Verdict::FailRequired => {
+                bail!("REQUIRE_E2E=1 but precondition not met: {why}")
+            }
+            Verdict::Fail => bail!(
+                "{why}. This test rasterises a real PDF with real poppler, and a \
+                 pass bought without one is a green light for code nothing ran. \
+                 Install poppler: `brew install poppler` on macOS, `apt-get \
+                 install poppler-utils` on Debian, and keep a monocr-onnx \
+                 checkout beside this repo for the PDF. Set MONOCR_SKIP_E2E=1 to \
+                 drop this coverage deliberately."
+            ),
+        }
+    }
+
+    /// Whether a poppler binary is runnable at all. `-v` is the cheapest
+    /// invocation that proves the exec succeeded.
+    async fn is_runnable(tool: &str) -> bool {
+        Command::new(tool)
+            .arg("-v")
+            .stdin(Stdio::null())
+            .output()
+            .await
+            .is_ok()
+    }
+
+    #[test]
+    fn a_missing_precondition_fails_unless_it_was_opted_out_of() {
+        // The defect, first line: this case used to be a skip, and libtest
+        // reported it as a pass. Three tests in this file asserted nothing while
+        // the summary read `0 failed; 0 ignored`.
+        assert_eq!(verdict(false, false, false), Verdict::Fail);
+        // Dropping the coverage stays possible, but only on purpose.
+        assert_eq!(verdict(false, false, true), Verdict::Skip);
+        // And the opt-out does not reach CI.
+        assert_eq!(verdict(false, true, true), Verdict::FailRequired);
+        assert_eq!(verdict(false, true, false), Verdict::FailRequired);
+        // A precondition that is met runs whatever the environment says.
+        assert_eq!(verdict(true, false, false), Verdict::Run);
+        assert_eq!(verdict(true, false, true), Verdict::Run);
+        assert_eq!(verdict(true, true, false), Verdict::Run);
+        assert_eq!(verdict(true, true, true), Verdict::Run);
+    }
+
     #[tokio::test]
     async fn an_empty_file_is_rejected_before_poppler_is_asked() -> Result<()> {
         let tmp = tempfile::tempdir()?;
@@ -228,9 +363,7 @@ mod tests {
         let p = tmp.path().join("not-a.pdf");
         std::fs::write(&p, b"this is plain text, not a PDF")?;
 
-        // Requires poppler; skip rather than fail if the environment lacks it.
-        if Command::new("pdfinfo").arg("-v").output().await.is_err() {
-            eprintln!("skipping: pdfinfo not installed");
+        if !precondition(is_runnable("pdfinfo").await, "pdfinfo is not installed")? {
             return Ok(());
         }
 
@@ -244,13 +377,14 @@ mod tests {
 
     #[tokio::test]
     async fn a_real_pdf_reports_its_page_count_and_renders_one_page() -> Result<()> {
-        let fixture = Path::new("../../../monocr-onnx/data/pdfs/Mon_E_library.pdf");
-        if !fixture.exists() {
-            eprintln!("skipping: fixture not present at {}", fixture.display());
+        let fixture = Path::new(FIXTURE);
+        if !precondition(
+            fixture.exists(),
+            &format!("the test PDF is not present at {FIXTURE}"),
+        )? {
             return Ok(());
         }
-        if Command::new("pdftoppm").arg("-v").output().await.is_err() {
-            eprintln!("skipping: pdftoppm not installed");
+        if !precondition(is_runnable("pdftoppm").await, "pdftoppm is not installed")? {
             return Ok(());
         }
 
@@ -270,14 +404,41 @@ mod tests {
 
     #[tokio::test]
     async fn a_page_outside_the_document_is_an_error() -> Result<()> {
-        let fixture = Path::new("../../../monocr-onnx/data/pdfs/Mon_E_library.pdf");
-        if !fixture.exists() || Command::new("pdftoppm").arg("-v").output().await.is_err() {
-            eprintln!("skipping: fixture or poppler not present");
+        let fixture = Path::new(FIXTURE);
+        if !precondition(
+            fixture.exists() && is_runnable("pdftoppm").await,
+            &format!("the test PDF at {FIXTURE} or pdftoppm is not present"),
+        )? {
             return Ok(());
         }
         let doc = PdfDocument::open(fixture, 72).await?;
         assert!(doc.render_page(0).await.is_err());
         assert!(doc.render_page(doc.pages() + 1).await.is_err());
         Ok(())
+    }
+
+    /// Every verdict maps to the right action.
+    ///
+    /// Pairs with `a_missing_precondition_fails_unless_it_was_opted_out_of`, which
+    /// covers `verdict`. Between them the only untested step left is reading the
+    /// two environment variables.
+    #[test]
+    fn each_verdict_maps_to_the_right_action() {
+        assert!(
+            act_on(Verdict::Run, "why").expect("Run must not fail"),
+            "Run means the test body executes"
+        );
+        assert!(
+            !act_on(Verdict::Skip, "why").expect("Skip must not fail"),
+            "Skip means the body is not executed, and it must not be reported as run"
+        );
+        assert!(
+            act_on(Verdict::Fail, "why").is_err(),
+            "an unmet precondition with no opt-out must FAIL, not skip silently"
+        );
+        assert!(
+            act_on(Verdict::FailRequired, "why").is_err(),
+            "REQUIRE_E2E=1 must outrank the opt-out"
+        );
     }
 }

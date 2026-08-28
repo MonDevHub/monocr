@@ -32,6 +32,12 @@ cargo build --release
 ./target/release/monocr-cli download   # prime the model cache before a long run
 ```
 
+Without poppler the renderer's tests **fail** rather than skipping. That is
+deliberate: they used to return early and the suite still reported
+`0 ignored`, so a machine with no poppler got a green run over code nothing had
+executed. Drop that coverage on purpose with `MONOCR_SKIP_E2E=1`, which prints a
+loud skip line per test; `REQUIRE_E2E=1` overrides the opt-out again, for CI.
+
 ## Page-level and image-level segmentation
 
 One parameter set does not read both a book page and a photo of a sign. This is measured, not
