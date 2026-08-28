@@ -177,95 +177,128 @@ nonisolated enum PageNormalizer {
     }
 
     /**
-     Grey dilation with a square kernel, clamped at the page edge so pixels
-     outside the image never win — the same border rule as OpenCV's dilate,
-     whose default border value for dilation is effectively minus infinity.
+     Dilate with a DISK, matching `cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))`.
 
-     Deviation from the port, deliberate and the only one: upstream uses an
-     ellipse (`MORPH_ELLIPSE`) and this uses the ellipse's bounding square. A
-     square max filter is separable, so it costs two passes whose cost does not
-     grow with the kernel; an exact ellipse needs one horizontal pass per
-     distinct row half-width plus one vertical pass per band of equal ones.
-     Measured on this implementation for a 288 DPI A4 render, which downsamples
-     to 595x842 and gives a kernel of 211: the two square passes take 5.6ms, and
-     the ellipse's 63 + 125 passes extrapolate to ~0.52s per page — against 62ms
-     for this whole function. OpenCV hides that cost behind SIMD; scalar Swift
-     does not.
+     **This was a square until 2026-08-28, and that was wrong.** The reference
+     (`mon_OCR/src/monocr/utils.py`, `_level_background`) asks cv2 for `MORPH_ELLIPSE`,
+     and Android's `PageNormalizer.dilateDisk` has always matched it. A square contains
+     the inscribed disk, so the square propagated more background over the ink, the
+     estimate came back brighter, and dividing by it made every iOS page 0.13%-0.34%
+     darker than the same page on Android. Measured over eight synthetic pages, seven
+     disagreed; only the 1x1 case matched.
 
-     The square is a superset of the ellipse, so the estimate is never darker
-     than upstream's and ink comes out marginally darker. Nothing measures the
-     kernel shape; the CER numbers that justify this change came from tiling.
+     The old test did not catch it because it compared this function against a naive
+     max filter that was also a square: it pinned the sliding-window optimisation
+     correctly and never asked what shape was being optimised.
+
+     cv2's ellipse is not the geometric disk `dx^2 + dy^2 <= r^2` — that disagrees with
+     it at every kernel size tested. It is the per-row half-width `round(sqrt(r^2 - dy^2))`,
+     which agrees at all of them, so that is what this builds.
+
+     Ported from Android's implementation, which is the one already verified against
+     cv2, rather than rewritten: two independent derivations of the same shape is how
+     the ports drifted apart in the first place.
+
+     **It costs more than the square did, and the old comment here was right to say
+     so.** A square max filter is separable, so two monotonic-deque passes cost the
+     same whatever the radius; a disk needs one horizontal growth pass per radius
+     plus one vertical fold per kernel row. Measured on this machine with `swiftc -O`
+     at the size a 12 MP photo actually produces — 3024x4032 downsamples to 756x1008,
+     and `max(7, (1008 / 4) | 1)` gives a kernel of 253:
+
+         square, separable      10.5 ms
+         disk                  125.8 ms
+
+     That is the price of computing what the reference computes, and Android has
+     always paid it — its own comment budgets "a few hundred milliseconds" for this
+     function on a 300 DPI page. The old comment used this cost to justify the square;
+     the cost was real and the conclusion was not, because it traded a correctness
+     property nothing was measuring for milliseconds nothing was waiting on.
+
+     The 125.8 ms is with `UInt8` buffers rather than `Int` (a third of the memory
+     traffic: three 762k arrays at 1 byte instead of 8), `swap` rather than array
+     assignment, and clipped `y` ranges instead of a per-row bounds test. The
+     straightforward form measured 188.5 ms and produces bit-identical output.
      */
     static func dilate(_ src: GreyImage, kernel: Int) -> GreyImage {
-        let radius = max(0, kernel / 2)
-        guard radius > 0, src.width > 0, src.height > 0 else { return src }
+        let r = max(0, kernel / 2)
+        guard r > 0, src.width > 0, src.height > 0 else { return src }
 
-        let horizontal = slidingMaxRows(src.pixels, width: src.width, height: src.height, radius: radius)
-        let both = slidingMaxColumns(horizontal, width: src.width, height: src.height, radius: radius)
-        return GreyImage(pixels: both, width: src.width, height: src.height)
-    }
+        let w = src.width
+        let h = src.height
 
-    /// Sliding-window maximum along each row, window `[x-radius, x+radius]`
-    /// clipped to the row. Monotonic deque, so the cost does not grow with the
-    /// window.
-    private static func slidingMaxRows(
-        _ src: [UInt8], width: Int, height: Int, radius: Int
-    ) -> [UInt8] {
-        var out = [UInt8](repeating: 0, count: src.count)
-        var deque = [Int](repeating: 0, count: width)
+        // Half-width of the disk on each row of the structuring element.
+        var halfWidth = [Int](repeating: 0, count: 2 * r + 1)
+        for i in 0...(2 * r) {
+            let dy = Double(i - r)
+            halfWidth[i] = Int((Double(r * r) - dy * dy).squareRoot().rounded())
+        }
 
-        for y in 0..<height {
-            let row = y * width
-            var head = 0
-            var tail = 0
-            var next = 0
-            for x in 0..<width {
-                let hi = min(x + radius, width - 1)
-                while next <= hi {
-                    let value = src[row + next]
-                    while tail > head && src[row + deque[tail - 1]] <= value { tail -= 1 }
-                    deque[tail] = next
-                    tail += 1
-                    next += 1
+        // `current` holds src dilated horizontally by d, grown one step per pass.
+        // 0 is the identity for a maximum over 0...255 data, so no sentinel is needed
+        // and these can stay UInt8.
+        var current = src.pixels
+        var next = [UInt8](repeating: 0, count: w * h)
+        var out = [UInt8](repeating: 0, count: w * h)
+
+        for d in 0...r {
+            if d >= 1 && w > 1 {
+                current.withUnsafeBufferPointer { cur in
+                    next.withUnsafeMutableBufferPointer { nxt in
+                        for y in 0..<h {
+                            let base = y * w
+                            // Half-width d covers [x-d, x+d]. For d == 1 that needs
+                            // the centre too; from d == 2 on, the two half-width
+                            // d-1 windows either side of x already cover it.
+                            var first: UInt8 = d == 1 ? cur[base] : 0
+                            if cur[base + 1] > first { first = cur[base + 1] }
+                            nxt[base] = first
+
+                            if w > 2 {
+                                for x in 1..<(w - 1) {
+                                    var m: UInt8 = d == 1 ? cur[base + x] : 0
+                                    let left = cur[base + x - 1]
+                                    let right = cur[base + x + 1]
+                                    if left > m { m = left }
+                                    if right > m { m = right }
+                                    nxt[base + x] = m
+                                }
+                            }
+
+                            var last: UInt8 = d == 1 ? cur[base + w - 1] : 0
+                            if cur[base + w - 2] > last { last = cur[base + w - 2] }
+                            nxt[base + w - 1] = last
+                        }
+                    }
                 }
-                let lo = max(0, x - radius)
-                while deque[head] < lo { head += 1 }
-                out[row + x] = src[row + deque[head]]
+                // `next` is fully overwritten on every pass, so swapping is safe and
+                // avoids the copy an assignment would make.
+                swap(&current, &next)
+            }
+
+            for i in 0...(2 * r) where halfWidth[i] == d {
+                let dy = i - r
+                let yLo = max(0, -dy)
+                let yHi = min(h, h - dy)
+                if yLo >= yHi { continue }
+                current.withUnsafeBufferPointer { cur in
+                    out.withUnsafeMutableBufferPointer { o in
+                        for y in yLo..<yHi {
+                            let dstRow = y * w
+                            let srcRow = (y + dy) * w
+                            for x in 0..<w {
+                                let v = cur[srcRow + x]
+                                if v > o[dstRow + x] { o[dstRow + x] = v }
+                            }
+                        }
+                    }
+                }
             }
         }
-        return out
+
+        return GreyImage(pixels: out, width: w, height: h)
     }
 
-    /// The same window, down each column.
-    private static func slidingMaxColumns(
-        _ src: [UInt8], width: Int, height: Int, radius: Int
-    ) -> [UInt8] {
-        var out = [UInt8](repeating: 0, count: src.count)
-        var deque = [Int](repeating: 0, count: height)
-
-        for x in 0..<width {
-            var head = 0
-            var tail = 0
-            var next = 0
-            for y in 0..<height {
-                let hi = min(y + radius, height - 1)
-                while next <= hi {
-                    let value = src[next * width + x]
-                    while tail > head && src[deque[tail - 1] * width + x] <= value { tail -= 1 }
-                    deque[tail] = next
-                    tail += 1
-                    next += 1
-                }
-                let lo = max(0, y - radius)
-                while deque[head] < lo { head += 1 }
-                out[y * width + x] = src[deque[head] * width + x]
-            }
-        }
-        return out
-    }
-
-    /// Bilinear upsample to the full page, using OpenCV's half-pixel centres so
-    /// the estimate lines up with the pixels it will divide.
     static func upsampleBilinear(_ src: GreyImage, width: Int, height: Int) -> [Float] {
         var out = [Float](repeating: 0, count: width * height)
         guard src.width > 0, src.height > 0, width > 0, height > 0 else { return out }

@@ -11,11 +11,15 @@ import Testing
  to return the gaps between lines as the lines. Polarity therefore has to be
  settled before segmentation, and these tests pin that it is.
 
- The dilate equivalence check is the load-bearing one. `PageNormalizer.dilate`
- replaced a square-kernel max filter with two monotonic-deque passes for a ~90x
- speedup on a 288 DPI page; nothing else in this codebase would notice if a deque
- pass went subtly wrong, because a slightly wrong background estimate still
- produces a plausible-looking page.
+ The dilate check here pins the ALGORITHM and not the kernel shape, and the
+ difference is not academic. `dilate` was a square-kernel max filter until
+ 2026-08-28, against an elliptical reference, and this file was green for six days
+ because its oracle was a square too — an implementation and its oracle agreeing
+ about a shape neither had checked. The shape is pinned by
+ `PageNormalizerFixtureTests` against cv2; nothing here can catch a wrong one.
+
+ The reason it stayed invisible is that a slightly wrong background estimate still
+ produces a plausible-looking page, so nothing downstream complains.
  */
 struct PageNormalizerTests {
 
@@ -113,17 +117,51 @@ struct PageNormalizerTests {
 
     // MARK: - Dilation parity
 
-    /// Square max filter, written the obvious way. Slow enough to be useless in
-    /// production and simple enough to be obviously correct, which is exactly
-    /// what an oracle needs to be.
+    /// A black region larger than the dilation kernel must come back black.
+    ///
+    /// This is where `levelBackground`'s `max(estimate, 1.0)` earns its place. Inside a
+    /// black area wider than the kernel the background estimate is 0 and the pixel is
+    /// 0, so without the guard the division is 0/0 — and Swift's `min(255, NaN)`
+    /// returns 255, so the block comes out WHITE. Kotlin clamps the same NaN to 0.
+    /// Same expression, same inputs, opposite answers, and neither port can see it
+    /// alone: the identical case in `PageNormalizerTest.kt` passes with or without
+    /// the guard, because on the JVM `NaN.toInt()` is already 0.
+    @Test func aBlackRegionLargerThanTheKernelStaysBlack() {
+        let w = 120
+        let h = 120
+        var px = [UInt8](repeating: 245, count: w * h)
+        for y in 40..<80 { for x in 40..<80 { px[y * w + x] = 0 } }
+
+        let out = PageNormalizer.normalize(GreyImage(pixels: px, width: w, height: h))
+
+        // Deep inside the black square, well clear of its edges.
+        #expect(out.pixel(x: 60, y: 60) == 0, "the middle of a black block must not come back white")
+        #expect(out.pixel(x: 5, y: 5) > 200, "and the paper around it must stay light")
+    }
+
+    /// A naive max filter over the SAME disk, written as a plain double loop.
+    ///
+    /// This pins the incremental radius-growing algorithm in `dilate`, not the shape
+    /// of the kernel — both sides build the half-width table the same way, so a wrong
+    /// shape would agree with itself here. The shape is pinned independently by
+    /// `PageNormalizerFixtureTests`, whose expectations come from cv2.
+    ///
+    /// It was a naive SQUARE until 2026-08-28, which is how iOS shipped a square
+    /// kernel against an elliptical reference with a green test beside it.
     static func naiveDilate(_ src: GreyImage, kernel: Int) -> GreyImage {
         let r = kernel / 2
+        var halfWidth = [Int](repeating: 0, count: 2 * r + 1)
+        for i in 0...(2 * r) {
+            let dy = Double(i - r)
+            halfWidth[i] = Int((Double(r * r) - dy * dy).squareRoot().rounded())
+        }
         var out = [UInt8](repeating: 0, count: src.width * src.height)
         for y in 0..<src.height {
             for x in 0..<src.width {
                 var best: UInt8 = 0
                 for dy in -r...r {
-                    for dx in -r...r {
+                    let hw = halfWidth[dy + r]
+                    for dx in -hw...hw {
                         let ny = y + dy
                         let nx = x + dx
                         guard src.contains(x: nx, y: ny) else { continue }
@@ -157,7 +195,7 @@ struct PageNormalizerTests {
     /// the 7 floor. 41 is wider than the 47-row test image's half-height, so it
     /// also covers a window clipped on both ends at once.
     @Test(arguments: [7, 9, 15, 41])
-    func slidingWindowDilateMatchesTheNaiveMaxFilter(kernel: Int) {
+    func diskDilateMatchesANaiveDiskFilter(kernel: Int) {
         var generator = SeededRandom(seed: 0x5EED_0000 | UInt64(kernel))
         var px = [UInt8]()
         px.reserveCapacity(63 * 47)
