@@ -27,9 +27,17 @@ import Testing
  - its two-lines-apart case is refused by the same ceiling, so weakening the
    fragment ratio from 2x to 1x survives.
 
- Every fixture below therefore carries ordinary full-height lines as well as the
- pair under test, which puts the median where a real page would put it. All three
- mutations die here; verified by running them.
+ Every fixture below whose verdict depends on the median therefore carries
+ ordinary full-height lines as well as the pair under test, which puts the median
+ where a real page would put it, and all three of those mutations die here;
+ verified by running them.
+
+ The first two fixtures are the exception and ARE the Rust geometry verbatim, on
+ purpose: they are the two cases actually measured on a real page, so they are
+ kept exactly as measured rather than reshaped. Both are degenerate in the sense
+ above - the dip fixture has a median of 44, so `2 * 20 <= 44` fires the fragment
+ clause alongside the ink clause - and neither is what kills a mutation. They are
+ regression anchors for the measurement, and the isolating cases follow.
  */
 struct LineMergeTests {
 
@@ -166,6 +174,31 @@ struct LineMergeTests {
         for b in bands {
             // A body-only band is 77px.
             #expect(b.height > 100, "band is \(b.height)px, so it is the body without its marks")
+        }
+    }
+
+    /**
+     The merge must run BEFORE the height filter, and this is the only case where
+     the two orders differ - so without it, moving the filter ahead of the merge is
+     a one-line change no test notices.
+
+     A 3-row source strip becomes a 9-row run, one short of `minLineHeight` 10.
+     Measured both ways on this port: filtering first returns 10 bands 77px tall,
+     this order returns 10 bands 94px tall, and the 17px difference IS the strip of
+     upper marks. The COUNT is 10 either way, which is why the assertion is on
+     height.
+     */
+    @Test func aStripShorterThanTheHeightFloorSurvivesSoTheOrderIsPinned() {
+        let bands = LineSegmenter.segment(
+            page: Self.monPage(gap: 8, stems: 0, stripH: 3), densityThresholdRatio: 0.03
+        )
+
+        #expect(bands.count == 10, "got \(bands.count)")
+        for b in bands {
+            #expect(
+                b.height > 85,
+                "band is \(b.height)px; filtering before the merge drops the strip and returns 77"
+            )
         }
     }
 

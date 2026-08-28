@@ -188,9 +188,10 @@ nonisolated enum LineSegmenter {
      inflates a short strip proportionally far more than a full line: measured, a
      20-row strip above a 45-row body becomes a 26-row run against a 51-row one, and
      `2 * 26 > 51` so the fragment clause declines and the line stays split. At an
-     18-row strip - a 24-row run - it merges, returning 10 bands of 117px. Rust's
-     own measured pair, 19 rows against 42, would become 25 against 49 here and
-     would not qualify either. That is the clause behaving as specified rather than a
+     18-row strip - a 24-row run - it merges, returning 10 bands of 117px. Applying
+     the measured +6 to Rust's own pair, 19 rows against 42, gives 25 against 48
+     here, which would not qualify either; that last pair is an inference from the
+     growth above rather than a measurement of that pair. That is the clause behaving as specified rather than a
      porting error: a run more than half a typical line IS a line by this test. It is
      recorded because it means the ink clause carries more of the load on the
      dilating ports than it does in Rust, and because raising the ratio to cover it
@@ -264,7 +265,11 @@ nonisolated enum LineSegmenter {
                 // inked, which treats them as already one line.
                 var gapHasInk = true
                 if gapStart < r0 {
-                    for y in gapStart..<r0 where y < 0 || y >= rawHist.count || rawHist[y] <= 0 {
+                    // Negated rather than `<= 0`, so a NaN reads as "no ink" the way
+                    // Rust's `v > 0.0` and web's `!(rawHist[y] > 0)` do. A row count
+                    // cannot be NaN today; the four are kept identical because
+                    // divergence between them is the defect this pass exists to stop.
+                    for y in gapStart..<r0 where y < 0 || y >= rawHist.count || !(rawHist[y] > 0) {
                         gapHasInk = false
                         break
                     }
