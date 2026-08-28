@@ -33,6 +33,30 @@ object LineSegmenter {
     private const val MIN_LINE_HEIGHT = 10
 
     /**
+     * A printed rule spans at least this fraction of the page in one direction.
+     *
+     * Deliberately coarse: no Mon, Burmese or Latin glyph holds an unbroken stroke
+     * half a page long, so the false-positive risk against text is structural rather
+     * than merely small. Lowering it toward a glyph's width is what would make rule
+     * suppression dangerous.
+     */
+    const val RULE_SPAN = 0.5f
+
+    /**
+     * Suppression that would remove more than this share of the page's ink has found
+     * text, not rules, and is abandoned.
+     *
+     * [RULE_SPAN] is a fraction of the page, so on a SHORT page a tall block of text
+     * exceeds it vertically and every glyph column reads as a rule. Upstream this was
+     * caught by an existing test losing 98.7% of its ink and returning zero lines.
+     *
+     * The threshold sits in a measured gap rather than on a round number: real framed
+     * pages classify 21.5%-58.8% of their ink as rules, pages with no rules 0.00%,
+     * and that false positive 98.7%.
+     */
+    const val RULE_MAX_INK_SHARE = 0.8f
+
+    /**
      * A band taller than this fraction of the page is too tall to be one line.
      * Upstream, across the sample images and both PDFs, the tallest band on a
      * readable multi-line page was 29% of page height, against 65% and 100% on the
@@ -76,6 +100,78 @@ object LineSegmenter {
      *   density. See [SegmentationMode] for why this is a parameter and not a
      *   constant: no single value works on both book pages and photographs.
      */
+    /**
+     * Remove printed rules - page borders, table rules, underlines - from a text mask.
+     *
+     * A printed page border adds a constant ink floor to every row it spans, and once
+     * that floor clears the gap threshold no in-frame row reads as a gap: the page
+     * comes back as one band and is squeezed into the model window.
+     *
+     * Measured upstream 2026-08-27 over twelve real MNEC page-ones: nine collapsed to
+     * three bands or fewer, and the twelve together went from 68 bands to 160. Pages
+     * carrying no rules are untouched to the pixel, which is what makes the pass safe
+     * to run unconditionally.
+     *
+     * Implemented as a run-length scan rather than a generic erode-then-dilate. An
+     * opening with a 1xL line kernel keeps exactly those ink runs at least L long, and
+     * a run-length pass computes that directly in one sweep per axis instead of two
+     * passes over an L-wide window.
+     *
+     * There is deliberately NO thickness test. "A rule is long AND thin" was written,
+     * measured and deleted upstream: the rule pixels found with a thickness limit and
+     * with none were identical across twelve real pages, and it cannot work anyway -
+     * an adaptive threshold compares against a LOCAL mean, so the interior of a thick
+     * ink region is not ink and only its edges are.
+     *
+     * Ported from `mon_OCR/src/monocr/segmenter.py` (`_suppress_page_rules`) via
+     * `apps/web/src/lib/segmentation.ts` (`suppressPageRules`), whose run-length form
+     * this follows exactly so the three stay comparable.
+     *
+     * Mutates [binary] in place and returns whether anything was removed.
+     */
+    fun suppressPageRules(binary: BooleanArray, width: Int, height: Int): Boolean {
+        if (width <= 0 || height <= 0) return false
+        val minH = maxOf(15, (width * RULE_SPAN).toInt())
+        val minV = maxOf(15, (height * RULE_SPAN).toInt())
+        val rules = BooleanArray(width * height)
+
+        // Horizontal runs: mark any unbroken run of at least minH.
+        for (y in 0 until height) {
+            val row = y * width
+            var start = 0
+            for (x in 0..width) {
+                if (x < width && binary[row + x]) continue
+                if (x - start >= minH) for (i in start until x) rules[row + i] = true
+                start = x + 1
+            }
+        }
+        // Vertical runs: the same scan down each column.
+        for (x in 0 until width) {
+            var start = 0
+            for (y in 0..height) {
+                if (y < height && binary[y * width + x]) continue
+                if (y - start >= minV) for (i in start until y) rules[i * width + x] = true
+                start = y + 1
+            }
+        }
+
+        var ink = 0
+        for (v in binary) if (v) ink++
+        if (ink == 0) return false
+
+        var ruleInk = 0
+        for (v in rules) if (v) ruleInk++
+        if (ruleInk == 0) return false
+        if (ruleInk > ink * RULE_MAX_INK_SHARE) {
+            // Found the text. Leaving the page alone is strictly better than emptying
+            // it, and the caller is no worse off than before this step existed.
+            return false
+        }
+
+        for (i in rules.indices) if (rules[i]) binary[i] = false
+        return true
+    }
+
     suspend fun segment(
         page: GreyImage,
         densityThresholdRatio: Float
@@ -150,6 +246,12 @@ object LineSegmenter {
                 binary[y * width + x] = activeGray[y * width + x] < (mean - C_THRESHOLD)
             }
         }
+
+        // 2.5 Printed-rule suppression. Before the smear, because the smear widens a
+        // rule into something no line kernel matches cleanly, and because the crop's
+        // column extents come from the smeared mask - removing rules first also keeps
+        // them out of the returned bounding boxes.
+        suppressPageRules(binary, width, height)
 
         // 3. Separable 2D Morphological Filtering (Smearing)
         val smearedH = BooleanArray(width * height)
