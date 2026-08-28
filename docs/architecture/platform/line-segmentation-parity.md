@@ -7,8 +7,8 @@ projection-profile line segmenter, and the CLI delegates to a fourth in
 `monocr-onnx/rust`. This document said "three ports" and left the CLI out; it was
 written before `apps/cli` had a mode enum. They are meant to be the same algorithm, and
 on two parameters they are not, so **the same page can produce different line
-sets on different platforms**. That is a correctness property of the product —
-a user photographing one page on two devices can get two different transcripts —
+sets on different platforms**. That is a correctness property of the product:
+a user photographing one page on two devices can get two different transcripts,
 and nothing in the repository currently notices it.
 
 ## Where the code is
@@ -76,8 +76,8 @@ delegates to, and it is blocked on a linker rather than a decision.
 **Web has no mode at all**, which is worth stating beside the rest: it is the one
 surface where a fused-block reading cannot be retried, because there is no other
 parameter set to retry with. Its `lineShaped` flag also stops at
-`console.warn` — the worker posts a bare string — so a user sees fused text as
-ordinary output.
+`console.warn`, because the worker posts a bare string, so a user sees fused text
+as ordinary output.
 
 **Why it matters more than the numbers suggest.** The smoothing kernel is
 applied to the row-ink profile before bands are detected, so it decides directly
@@ -88,9 +88,9 @@ merges more. Android merges more readily than web and iOS, on the same page.
 
 **Which one is right.** Nothing has measured these three against a page with a
 known line count, so picking a winner would be taste presented as a result. The
-upstream trainer, `mon_OCR`, uses different values again — smoothing 15,
-adaptive window 31, constant 15, density ratio 0.12 — tuned against rendered
-book pages, and its own documentation records that the ratio suits books at 0.12
+upstream trainer, `mon_OCR`, uses different values again: smoothing 15,
+adaptive window 31, constant 15, density ratio 0.12, tuned against rendered
+book pages. Its own documentation records that the ratio suits books at 0.12
 and posters at 0.50. There is no single correct setting across document types,
 which is part of why this is recorded rather than unified.
 
@@ -168,8 +168,8 @@ port could be verified. `mon_OCR`'s ROADMAP 4.5.7 tracks the remainder.
 ## What would close it
 
 A page set with counted lines, run through all four surfaces. That is the same
-missing artifact as `mon_OCR`'s `DATA_STRATEGY.md` rung D2 — real page images
-with ground truth — and it closes several open questions at once. Until it
+missing artifact as `mon_OCR`'s `DATA_STRATEGY.md` rung D2, real page images
+with ground truth, and it closes several open questions at once. Until it
 exists, aligning them would be choosing one arbitrary setting over three others
 and calling it parity.
 
