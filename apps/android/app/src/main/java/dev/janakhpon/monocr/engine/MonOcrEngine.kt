@@ -66,7 +66,20 @@ class MonOcrEngine(private val context: Context) {
 
         // Load charset
         try {
-            charset = context.assets.open("charset.txt").bufferedReader(Charsets.UTF_8).readText()
+            // Only the TRAILING end is trimmed: a leading newline would shift every
+            // index by one and silently change what every class decodes to, so
+            // stripping it would hide a corrupt file rather than fail on it.
+            //
+            // This was a bare readText(). It fails closed, because the class-count
+            // check below would refuse a charset one character too long, but the
+            // message blames the model for a mismatch the file introduced. iOS and
+            // web have both trimmed since they were written; this port was the
+            // outlier, and the four shipped charset.txt files happen to carry no
+            // trailing newline today, which is the only reason it never fired.
+            charset = context.assets.open("charset.txt")
+                .bufferedReader(Charsets.UTF_8)
+                .readText()
+                .trimEnd('\n', '\r')
         } catch (e: Exception) {
             MonLogger.e("Failed to load charset", e)
             throw e

@@ -95,6 +95,13 @@ nonisolated enum LineSegmenter {
      */
     static func suppressPageRules(_ binary: inout [Bool], width: Int, height: Int) -> Bool {
         guard width > 0, height > 0 else { return false }
+        // Stated rather than left to an index trap further in, the same argument
+        // GreyImage's init makes. The web port used to return a plausible result
+        // here, having silently skipped the rows it could not reach.
+        precondition(
+            binary.count == width * height,
+            "rule mask is \(binary.count) long but \(width)x\(height) needs \(width * height)"
+        )
         let minH = max(15, Int(Float(width) * ruleSpan))
         let minV = max(15, Int(Float(height) * ruleSpan))
         var rules = [Bool](repeating: false, count: width * height)

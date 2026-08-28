@@ -126,6 +126,14 @@ object LineSegmenter {
      */
     fun suppressPageRules(binary: BooleanArray, width: Int, height: Int): Boolean {
         if (width <= 0 || height <= 0) return false
+        // Stated rather than left to an index error further in, the same argument
+        // GreyImage's init makes: a buffer that does not match its dimensions
+        // produces a wrong answer at some later offset instead of a failure at the
+        // mistake. The web port used to return a plausible result here, having
+        // silently skipped the rows it could not reach.
+        require(binary.size == width * height) {
+            "rule mask is ${binary.size} long but ${width}x$height needs ${width * height}"
+        }
         val minH = maxOf(15, (width * RULE_SPAN).toInt())
         val minV = maxOf(15, (height * RULE_SPAN).toInt())
         val rules = BooleanArray(width * height)

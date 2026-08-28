@@ -167,7 +167,7 @@ struct RuleSuppressionTests {
      be visible in the result at all.
      */
     @Test func aPrintedFrameDoesNotChangeTheReading() {
-        let ratio = SegmentationMode.page.densityThresholdRatio
+        let ratio = SegmentationMode.page.densityThresholdRatio!  // page always has one
         let w = 300
         let h = 200
         let stripes = [40...52, 90...102, 140...152]

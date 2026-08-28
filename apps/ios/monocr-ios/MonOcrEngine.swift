@@ -272,14 +272,19 @@ actor MonOcrEngine {
 
         let wholePage = LineSegment(x: 0, y: 0, width: page.width, height: page.height)
         var bands: [LineSegment]
-        if mode == .line {
-            bands = [wholePage]
-        } else {
-            bands = LineSegmenter.segment(page: page, densityThresholdRatio: mode.densityThresholdRatio)
+        // A mode with no ratio never runs the profile, so the absence of one IS the
+        // branch. This compared against `.line` while the ratio was non-optional,
+        // which meant the two could drift: a new mode that should skip segmenting
+        // would have been segmented anyway. `OcrRepository.performOcr` reads the
+        // same way on Android.
+        if let ratio = mode.densityThresholdRatio {
+            bands = LineSegmenter.segment(page: page, densityThresholdRatio: ratio)
             if bands.isEmpty {
                 MonLog_i("no lines found; reading the whole page as one line")
                 bands = [wholePage]
             }
+        } else {
+            bands = [wholePage]
         }
         MonLog_d("segmented into \(bands.count) bands")
 
