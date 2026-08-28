@@ -330,7 +330,7 @@ export function suppressPageRules(binary: Uint8Array, width: number, height: num
  * `merge_runs`), which took it from `mon_OCR` `segmenter.py` step 8. The value is
  * the reference's.
  */
-const MIN_GAP_MERGE = 10;
+export const MIN_GAP_MERGE = 10;
 
 /**
  * Fuse runs that a sub-threshold dip or a few empty rows split apart.
@@ -357,11 +357,26 @@ const MIN_GAP_MERGE = 10;
 export function mergeRuns(
 	runs: readonly (readonly [number, number])[],
 	rawHist: Float32Array | readonly number[],
-	maxGap: number
+	maxGap: number,
+	minLine: number
 ): [number, number][] {
 	if (runs.length === 0) return [];
 
-	const heights = runs.map(([a, b]) => b - a).sort((a, b) => a - b);
+	// Median over runs that could BE a line, not over every run. The merge
+	// deliberately runs before the height filter, so `runs` still holds every
+	// speckle the profile picked up, and medianing over all of them lets noise
+	// decide what a typical line is. On a heavily speckled scan the noise wins:
+	// measured on a sibling port, 30% of collected runs were under the minimum, and
+	// on 8 of 55 pages that drove `typical` below 10 — one page reached 2, and a
+	// ceiling of 4, against a real line height of 35. The ceiling then refuses every
+	// merge, so the pass switches itself off on exactly the pages that need it most.
+	//
+	// Falling back to the unfiltered median when nothing clears the minimum is safe
+	// rather than principled: on such a page the height filter discards everything
+	// anyway, so no crop depends on the value.
+	const allHeights = runs.map(([a, b]) => b - a);
+	const qualifying = allHeights.filter((h) => h >= minLine);
+	const heights = (qualifying.length > 0 ? qualifying : allHeights).sort((a, b) => a - b);
 	const typical = Math.max(1, heights[Math.floor(heights.length / 2)]);
 	const ceiling = typical * 2;
 
@@ -381,7 +396,21 @@ export function mergeRuns(
 					break;
 				}
 			}
-			const fragment = 2 * (r1 - r0) <= typical || 2 * (last[1] - last[0]) <= typical;
+			// A run at most half a typical line is a fragment of a line, not a line,
+			// and this is the clause that crosses a gap of genuinely ZERO ink — which
+			// `gapHasInk` refuses and which a floating Mon diacritic produces. Two
+			// REAL lines two rows apart are each a full line by this test, so they
+			// stay apart.
+			//
+			// A fragment attaches to a LINE, never to another fragment. Without the
+			// `minLine` half, a run of speckle merges with itself: measured on a
+			// 12-speck fixture, twelve 2-row specks fused into one 46-row band, which
+			// then CLEARS the height filter and is sent to the recogniser as a line.
+			// Two pieces that are both too short to be a line do not become one by
+			// being adjacent.
+			const ha = last[1] - last[0];
+			const hb = r1 - r0;
+			const fragment = 2 * Math.min(ha, hb) <= typical && Math.max(ha, hb) >= minLine;
 
 			if (gapSize <= maxGap && (gapHasInk || fragment) && r1 - last[0] <= ceiling) {
 				last[1] = r1;
@@ -598,7 +627,7 @@ export function segmentLines(
 	// the height filter then drops: filtering first returned 10 bands 75px tall, this
 	// order returns 10 bands 88px tall, and the 13px difference IS the strip of upper
 	// marks. Both counts are 10, so no band count can catch this.
-	for (const [r0, r1] of mergeRuns(runs, rawHist, MIN_GAP_MERGE)) {
+	for (const [r0, r1] of mergeRuns(runs, rawHist, MIN_GAP_MERGE, MIN_LINE_HEIGHT)) {
 		if (r1 - r0 >= MIN_LINE_HEIGHT) {
 			addSegment(r0, r1);
 		}

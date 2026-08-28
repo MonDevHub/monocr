@@ -407,6 +407,7 @@ describe('mergeRuns', () => {
 					[281, 325]
 				],
 				hist,
+				10,
 				10
 			)
 		).toEqual([[260, 325]]);
@@ -427,6 +428,7 @@ describe('mergeRuns', () => {
 					[362, 404]
 				],
 				hist,
+				10,
 				10
 			)
 		).toEqual([[341, 404]]);
@@ -452,6 +454,7 @@ describe('mergeRuns', () => {
 					[260, 320]
 				],
 				hist,
+				10,
 				10
 			)
 		).toEqual([
@@ -484,6 +487,7 @@ describe('mergeRuns', () => {
 					[300, 360]
 				],
 				hist,
+				10,
 				10
 			)
 		).toEqual([
@@ -515,6 +519,7 @@ describe('mergeRuns', () => {
 					[260, 320]
 				],
 				hist,
+				10,
 				10
 			)
 		).toEqual([
@@ -550,12 +555,12 @@ describe('mergeRuns', () => {
 		}
 		const hist = profile(700, fills);
 		expect(
-			mergeRuns([[0, 20], [22, 42], [44, 64], [66, 86], [88, 108], ...lines], hist, 10)
+			mergeRuns([[0, 20], [22, 42], [44, 64], [66, 86], [88, 108], ...lines], hist, 10, 10)
 		).toEqual([[0, 86], [88, 108], ...lines]);
 	});
 
 	it('leaves an empty page alone', () => {
-		expect(mergeRuns([], new Float32Array(10), 10)).toEqual([]);
+		expect(mergeRuns([], new Float32Array(10), 10, 10)).toEqual([]);
 	});
 });
 
