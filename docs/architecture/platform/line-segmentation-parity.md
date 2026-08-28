@@ -157,12 +157,37 @@ height, `looks_like_a_line` in the CLI, flags rather than filters and stores its
 verdict as an advisory field. So the narrowing is unobserved, and where it does
 change that flag it moves it toward the band's true extent.
 
-**One risk this created, not yet closed.** A band that used to fuse can now split
-into pieces that are each shorter than the minimum line height, and both are then
-dropped rather than one being kept — turning a fused, badly-read line into no line
-at all. The CLI's tests all use bands far above the floor, so none exercises it.
-Recorded here because the shape of the fix is a merge step the reference has
-(`MIN_GAP_MERGE`) and no port does, which is a larger change than this row was.
+**The risk this created is no longer a risk. It was measured on 2026-08-28 and it
+is worse than the fusing this row fixed.** Full finding: `mon_OCR`
+`docs/AUDIT-2026-08-B.md` F-69.
+
+Mon stacks diacritics above and below the base line, and at print resolution the
+gap between a diacritic row and its base clears zero in the **raw** profile — so
+raw detection splits one text line into two. Measured through the CLI at its
+default 300 DPI over a 145-page Mon book scan: **45 of 145 pages have more than
+40% of their bands decoding to majority-digit nonsense.** On one clean page of
+about 22 text lines:
+
+| render DPI | bands, detect on raw | bands, detect on smoothed |
+| ---------- | -------------------: | ------------------------: |
+| 150        |                   20 |                        21 |
+| 200        |               **29** |                        21 |
+| 300        |               **40** |                        24 |
+
+The median band height halves, 94 px to 35 px, and the fragments overlap once
+padded — the CLI's own manifest shows gaps of −5 to −7 px between consecutive
+bands, each crop carrying its neighbour's ink. **The effect is absent at 150 DPI**,
+which is why no fixture in this repository caught it: they all draw one band height
+at one scale.
+
+**The reference does not have this defect because it pairs raw detection with a
+bounded merge** — `MIN_GAP_MERGE`, fuse when the gap is ≤ 10 px and the raw
+histogram is non-zero throughout. The gaps here are 1–3 px. No port has any merge
+step. So this row closed half of a pair, and the missing half is what these four
+surfaces now need.
+
+**Interim mitigation, free today:** `--dpi 150` on the CLI. The apps have no
+equivalent knob, because they segment whatever the camera hands them.
 
 The lesson for the rest of the table is to check which kind of divergence each row
 is before filing it here. A value with no ground truth is one thing; a documented
