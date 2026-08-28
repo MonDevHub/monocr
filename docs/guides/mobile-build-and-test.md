@@ -170,11 +170,20 @@ cd apps/ios
 sh Scripts/swift-test.sh          # Test run with 35 tests in 5 suites passed
 ```
 
-`DEVELOPER_DIR` is not required here, and setting it does no harm. That was
-measured: the script's candidate loop finds `Testing.framework` under both
-toolchains, and `DEVELOPER_DIR=... sh Scripts/swift-test.sh` also reports 35 tests
-passing. An earlier version of this guide said "do not export it for this
-command", which was wrong.
+**Do not export `DEVELOPER_DIR` for this command** unless you also wipe
+`MonOcrCore/.build` first.
+
+The script itself is toolchain-agnostic: its candidate loop finds
+`Testing.framework` under either, and from an empty `.build` it passes under both. But `.build` holds objects compiled by whichever Swift last ran, so
+switching toolchains against a warm one fails at the link step:
+`clang: error: linker command failed`, and the script's own guard reports "the
+run reported no test count, so it ran no tests."
+
+This guide has now had it wrong in both directions. It first said "do not export
+it", an audit called that false because the script passes under either toolchain
+from clean, and the correction was published without re-testing on a checkout
+that had already been built. The condition is `.build`'s state, not the
+script's capability.
 
 Do not substitute a bare `swift test` — it fails with `error: no such module
 'Testing'`. The wrapper exists for two reasons documented in its own header: the
@@ -208,9 +217,10 @@ the machine's global state, which is reason enough to prefer it — `sudo
 xcode-select -s` changes the toolchain for every tool and every other project on
 the machine.
 
-This guide previously justified that preference by claiming a global switch would
-break `Scripts/swift-test.sh`. It would not: that script passes under either
-toolchain.
+A global `sudo xcode-select -s` would also make every subsequent
+`Scripts/swift-test.sh` run link against a `.build` compiled by the other Swift,
+which is the failure described above — so the preference for the scoped variable
+is practical, not only tidy.
 
 ### Clean build
 
@@ -360,11 +370,11 @@ Only two things, and neither is a toolchain gap:
 - **Physical-device iOS builds and App Store distribution** — no development team
   or signing identity is configured.
 - **Android release artifacts** — `assembleRelease`/`bundleRelease` were not
-  attempted. `local.properties` supplies the three passwords but **not** the
-  keystore path: there is no `RELEASE_STORE_FILE` key, and
-  `app/build.gradle.kts:59-63` falls back to a hardcoded
-  `/Users/zinmin/Documents/ocrandroid.jks`. That file exists on this machine and
-  will exist on no other, so a release build is machine-specific until the path
-  moves into `local.properties` or the environment. Minification plus
-  `ndk.debugSymbolLevel = "FULL"` is also unverified, and the SDK has no `ndk/`
+  attempted. `local.properties` carries `RELEASE_STORE_PASSWORD`,
+  `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` but no `RELEASE_STORE_FILE`.
+  `app/build.gradle.kts` already reads that key from `local.properties` and then
+  the environment, falling back to a hardcoded absolute path only third — so the
+  mechanism exists and only the value is unset. Set `RELEASE_STORE_FILE` and the
+  build stops being machine-specific; no code change is owed. Minification plus
+  `ndk.debugSymbolLevel = "FULL"` is unverified, and the SDK has no `ndk/`
   directory.

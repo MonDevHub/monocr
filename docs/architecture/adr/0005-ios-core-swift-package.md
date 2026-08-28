@@ -10,15 +10,15 @@ Two facts, both verified:
 
 - `monocr-ios.xcodeproj/project.pbxproj` declares exactly **one** native target, the app, as a
   `PBXFileSystemSynchronizedRootGroup` on `path = "monocr-ios"`. The string `monocr-iosTests`
-  has never appeared in that file in its entire git history, so `CtcDecoderTests.swift` — added
-  in the foundational commit — belonged to no target from the day it was written.
+  has never appeared in that file in its entire git history. `CtcDecoderTests.swift`, added in
+  the foundational commit, belonged to no target from the day it was written.
 - `apps/ios/package.json` ran `xcodebuild test -project ... -scheme monocr-ios`, naming a scheme
   that is not checked in (`xcshareddata/xcschemes` does not exist), against that target with no
   tests. It reported success.
 
 So the repository had a green iOS test command that executed nothing, for months. That is the
-same failure shape se-brain `standards/testing.md` calls a vacuous test, one level up: not a test
-that cannot fail, but a *suite* that cannot run.
+failure shape se-brain `standards/testing.md` guards against, one level up: not a test that
+cannot fail, but a *suite* that cannot run.
 
 Two further constraints:
 
@@ -32,11 +32,14 @@ Two further constraints:
 **`apps/ios/MonOcrCore` — a Swift package whose sources are symlinks into `monocr-ios/`, tested
 with Swift Testing.**
 
-- `Sources/MonOcrCore/` holds relative symlinks to the 12 Foundation-only files (`LineTiler`,
-  `GreyImage`, `PageNormalizer`, `LineSegmenter`, `CtcDecoder`, `Logger`, `LogitsLayout`,
-  `ModelWindow`, `LineSegment`, `SegmentationMode`, `EngineStatus` — 977 lines).
-- `Tests/MonOcrCoreTests/` holds the two former XCTest files rewritten with `import Testing`,
-  plus `PageNormalizerTests`.
+- `Sources/MonOcrCore/` holds relative symlinks to the 12 Foundation-only files
+  (`CaptureQuality`, `CtcDecoder`, `EngineStatus`, `GreyImage`, `LineSegment`,
+  `LineSegmenter`, `LineTiler`, `Logger`, `LogitsLayout`, `ModelWindow`, `PageNormalizer`,
+  `SegmentationMode` — 1,132 lines). An earlier revision of this line said 11 files and
+  977 lines; a later edit corrected the count and left the list at 11, so `CaptureQuality`
+  was missing from it.
+- `Tests/MonOcrCoreTests/` holds five suites: `CaptureQualityTests`, `CtcDecoderTests`,
+  `LineTilingTests`, `PageNormalizerTests` and `SegmentationModeTests`.
 - `project.pbxproj` is **not touched.**
 
 **Symlinks rather than moving the files.** The app target is a synchronized group on the
@@ -50,9 +53,7 @@ nothing needs to become `public`.
 `File > Open` on that folder open the package instead of the project. It also stays out of the
 pnpm workspace, whose glob is `apps/*`, one level deep.
 
-**Not `path:` + `sources:` on the app directory.** That directory holds 48 non-Swift files —
-`monocr.mlpackage/`, `Assets.xcassets/`, `Fonts/`, a 110 KB `Localizable.xcstrings` — plus 31
-platform Swift files. Every one would need an `exclude:` entry, updated whenever a UI file is
+**Not `path:` + `sources:` on the app directory.** That directory holds 48 non-Swift files (`monocr.mlpackage/`, `Assets.xcassets/`, `Fonts/`, a 110 KB `Localizable.xcstrings`) plus 30 platform Swift files. Every one would need an `exclude:` entry, updated whenever a UI file is
 added. The symlink directory changes only when a *pure* file is added.
 
 ### The wrapper script is load-bearing, not convenience

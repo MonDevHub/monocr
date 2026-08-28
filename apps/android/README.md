@@ -6,7 +6,7 @@ For mission context, community guidelines, and cross-platform information, pleas
 
 ## Overview
 
-By implementing a **hardware-accelerated native inference** model, MonOCR Android leverages **ONNX Runtime** with NNAPI integration to perform all character recognition on-device. This ensures high-throughput, low-latency performance while maintaining a zero-leak privacy model—guaranteeing that linguistic data remains within the localized secure environment.
+MonOCR Android runs **ONNX Runtime** with NNAPI, so every character is recognised on the device. The model ships as `assets/monocr.onnx`. No image and no recognised text leaves the device: there is no network call on the recognition path.
 
 ## Key Features
 
@@ -18,7 +18,7 @@ By implementing a **hardware-accelerated native inference** model, MonOCR Androi
 - **Script Fidelity**: Integration of PyidaungSu fonts for accurate Mon/Myanmar rendering.
 
 > [!TIP]
-> File size is limited to 50MB for web and 20MB for mobile. For processing larger files or leveraging more powerful hardware, please use the CLI or package directly via `uv add monocr` or `pip install monocr`.
+> File size is limited to 50MB for web and 20MB for mobile. For larger files, or to use a machine with more memory, use the CLI or the package directly: `uv add monocr` or `pip install monocr`.
 
 ## Architecture
 
