@@ -6,20 +6,16 @@
 # control: an API key sat in two tracked source files for four months under a
 # SECURITY.md promising secrets are never committed.
 #
-# Android is excluded, and the reason this comment used to give is no longer true.
-# It read "there is no Gradle wrapper in the tree" — but `apps/android/gradlew`,
-# `gradlew.bat` and `gradle/wrapper/gradle-wrapper.jar` are all tracked now, and
-# the `# gradle/wrapper/` line in apps/android/.gitignore is commented out.
+# Android was excluded for most of this repository's life, first because the tree
+# was said to have no Gradle wrapper (it did), then because
+# gradle/gradle-daemon-jvm.properties demands vendor `jetbrains` at 21 and that
+# looked unportable. setup-java ships a `jetbrains` distribution, so it was a
+# decision rather than an impossibility, and the job below now takes it.
 #
-# The live blocker is the toolchain pin: gradle/gradle-daemon-jvm.properties
-# demands vendor `jetbrains` at version 21, which on a dev machine is satisfied
-# only by the JDK inside Android Studio. A runner would need a JetBrains Runtime
-# 21 provisioned explicitly — setup-java can do it, so this is now a decision
-# rather than an impossibility. docs/guides/mobile-build-and-test.md has the
-# measurements.
-#
-# Until then `apps/android/app/src/test/` runs locally only. Run it before
-# touching a decoder or a segmenter.
+# Android is no longer excluded. The `android` job below runs the unit tests with
+# a JetBrains Runtime from setup-java, which is what the toolchain pin needs. The
+# app itself is still not built and there are no instrumented tests, so this is
+# the same shape as ios-core: the pure logic runs, the app target does not.
 #
 # That exclusion got more expensive on 2026-08-28. Android's suite went from 22
 # tests to 50: the printed-rule port added ten, PageNormalizer's newly-testable
@@ -352,6 +348,77 @@ jobs:
         # the flags on the command line and fails the run unless a test count was
         # actually reported.
         run: sh Scripts/swift-test.sh
+
+  android:
+    # Android's unit tests ran on one developer's machine only until 2026-08-28.
+    # Fifty tests, six of them the shared-fixture parity checks that are the only
+    # automated evidence that this app's segmenter and page normaliser still agree
+    # with web and iOS. The two ports CI already runs were both wrong at some point
+    # this month and their own tests could not see it; Android's were not running
+    # at all, which is strictly worse.
+    #
+    # Three things had to line up before this job could exist, and the workflow
+    # header used to record the first two as blockers:
+    #
+    #  1. A Gradle wrapper. `apps/android/gradlew` and `gradle/wrapper/*.jar` are
+    #     tracked; the `# gradle/wrapper/` line in apps/android/.gitignore is
+    #     commented out on purpose.
+    #  2. A JetBrains Runtime. `apps/android/gradle/gradle-daemon-jvm.properties`
+    #     pins `toolchainVendor=jetbrains` at 21, which on a dev machine is
+    #     satisfied only by the JDK inside Android Studio. setup-java ships a
+    #     `jetbrains` distribution, so the pin is portable after all.
+    #  3. The Android SDK. compileSdk is 36, newer than the runner image ships, so
+    #     the platform is installed explicitly rather than hoped for.
+    #
+    # Unit tests only: no emulator, no instrumented tests, no signing. There is no
+    # `app/src/androidTest/` in the tree, so nothing is being skipped silently.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: JetBrains Runtime 21
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: jetbrains
+          java-version: '21'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0'
+
+      - name: Unit tests
+        working-directory: apps/android
+        # Not `./gradlew test`: that resolves to the same task and this name says
+        # which variant ran. `--rerun-tasks` because a cached UP-TO-DATE run
+        # reports success without executing anything, which is how a green tick
+        # can mean nothing at all.
+        run: ./gradlew testDebugUnitTest --rerun-tasks
+
+      - name: A green run must have executed tests
+        working-directory: apps/android
+        # Gradle exits 0 when it runs zero tests. The suite is the point of the
+        # job, so assert a count rather than trusting the exit code — the same
+        # argument the ios-core wrapper makes for itself.
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob, sys, xml.etree.ElementTree as ET
+          files = glob.glob("app/build/test-results/testDebugUnitTest/*.xml")
+          if not files:
+              sys.exit("no JUnit XML was written: the suite did not run")
+          tests = failures = errors = 0
+          for f in files:
+              root = ET.parse(f).getroot()
+              tests += int(root.get("tests", 0))
+              failures += int(root.get("failures", 0))
+              errors += int(root.get("errors", 0))
+          print(f"{tests} tests in {len(files)} classes, {failures} failures, {errors} errors")
+          if tests < 40:
+              sys.exit(f"only {tests} tests ran; the suite has had 50 since 2026-08-28")
+          if failures or errors:
+              sys.exit("the suite reported failures")
+          PY
 
   model-consistency:
     # Toolchain-free invariants across the three apps, in the spirit of
