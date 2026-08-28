@@ -332,6 +332,66 @@ jobs:
           print(f"fixture ok: {len(d['cases'])} cases, {len(d['half_widths'])} kernel shapes")
           PY
 
+      - name: The line-merge fixture is not optional
+        # The strongest of the four gates, because this is the only fixture whose
+        # generator needs nothing but the standard library: `--check` re-derives
+        # every expectation from the specification, re-runs the twenty-mutation
+        # battery, re-runs the brute-force enumeration that cross-checks the greedy
+        # fold, and fails on any byte of difference. The other three need cv2 or a
+        # reference checkout, so CI can only gate them structurally.
+        #
+        # `merge_runs` is what stands between raw-profile boundary detection and a
+        # 22x garbage regression, and it exists ten times in five languages. Parity
+        # across those ten was checked once, by hand, before this fixture existed.
+        working-directory: monocr
+        run: |
+          set -euo pipefail
+          f=shared/segmentation-fixtures/merge-cases.json
+          test -s "$f"
+          python3 shared/segmentation-fixtures/generate-merge-cases.py "$f" --check
+          python3 - "$f" <<'PY'
+          import json, sys
+          d = json.load(open(sys.argv[1]))
+          assert d["cases"], "fixture has no cases"
+          assert d["min_gap_merge"] == 10, f"max mergeable gap moved to {d['min_gap_merge']}"
+          assert d["min_line_height"] == 10, f"min line height moved to {d['min_line_height']}"
+          assert d["mutations"], "fixture carries no mutation battery"
+          required = {
+              "name", "note", "profile_length", "profile_fills", "runs", "max_gap",
+              "min_line", "expected", "discriminates", "discriminates_combined",
+          }
+          for c in d["cases"]:
+              missing = required - c.keys()
+              assert not missing, f"{c['name']}: missing {sorted(missing)}"
+              assert c["discriminates"], f"{c['name']}: kills no mutation, so it is padding"
+          # Every deviation in the battery must be killed by some case. The generator
+          # refuses to write a fixture where one is not; asserting it again here is
+          # what catches a fixture edited by hand instead of regenerated.
+          killed = {m for c in d["cases"] for m in c["discriminates"]}
+          orphans = sorted(set(d["mutations"]) - killed)
+          assert not orphans, f"deviations no case kills: {orphans}"
+          # And the combined deviation, which a per-decision battery cannot see:
+          # single-decision deviations MASK each other, and the combination below is
+          # the state five of the ten implementations were actually in on 2026-08-29.
+          # Two independent killers, so deleting one case cannot un-gate it.
+          combined = [c["name"] for c in d["cases"] if c["discriminates_combined"]]
+          assert len(combined) >= 2, (
+              f"only {len(combined)} case(s) catch the combined deviation: {combined}"
+          )
+          # A case set where nothing ever merges would pass every port's test while
+          # proving only that the refuse path works, and the reverse is just as bad.
+          merges = sum(1 for c in d["cases"] if len(c["expected"]) < len(c["runs"]))
+          refuses = sum(
+              1 for c in d["cases"] if c["runs"] and len(c["expected"]) == len(c["runs"])
+          )
+          assert merges >= 3, f"only {merges} cases actually merge anything"
+          assert refuses >= 3, f"only {refuses} cases pin the refuse path"
+          print(
+              f"fixture ok: {len(d['cases'])} cases, {merges} merge, {refuses} refuse, "
+              f"{len(d['mutations'])} deviations all killed"
+          )
+          PY
+
   ios-core:
     # macOS runner, but only for `swift test` over the pure Swift package — no
     # simulator, no signing, no Xcode. Roughly the cost of the Linux jobs.

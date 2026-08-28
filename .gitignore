@@ -91,7 +91,8 @@ Thumbs.db
 
 .agents
 
-# Python — the only Python here is shared/segmentation-fixtures/generate.py, and
-# running it leaves a __pycache__ beside the fixture it just wrote.
+# Python — the only Python here is the fixture generators under
+# shared/segmentation-fixtures/, and running one leaves a __pycache__ beside the
+# fixture it just wrote.
 __pycache__/
 *.py[cod]
