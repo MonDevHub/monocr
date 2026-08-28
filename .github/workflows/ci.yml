@@ -19,8 +19,7 @@
 # measurements.
 #
 # Until then `apps/android/app/src/test/` runs locally only. Run it before
-# touching a decoder
-# or a segmenter.
+# touching a decoder or a segmenter.
 #
 # iOS is no longer excluded, but only its pure logic. `apps/ios/MonOcrCore` is a
 # Swift package over the Foundation-only files, so `swift test` needs no

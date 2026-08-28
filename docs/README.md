@@ -18,8 +18,8 @@ Machine-readable specifications and integration guides.
 ## Governance
 Project health, security, and contribution standards.
 
-- **[Contributing Guide](../CONTRIBUTING.md)**: Standards for adding features and translations.
-- **[Security Policy](../SECURITY.md)**: Vulnerability disclosure and secret management.
+- **[Contributing Guide](../.github/CONTRIBUTING.md)**: Standards for adding features and translations.
+- **[Security Policy](../.github/SECURITY.md)**: Vulnerability disclosure and secret management.
 
 ## Getting Started
 Onboarding for new developers.

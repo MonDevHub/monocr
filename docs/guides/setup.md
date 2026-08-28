@@ -4,15 +4,25 @@ This guide ensures you have a consistent development environment for the MonOCR 
 
 ## Prerequisites
 
-- **Node.js**: v24.0.0+ (LTS recommended)
-- **pnpm**: v10.0.0+ (Workspace support required)
-- **Go**: v1.23.0+ (For feedback service development)
-- **Android Studio**: Latest Jellyfish+ (For Android development). Required even
-  if you never open it: the Gradle build is pinned to the JetBrains Runtime 21
-  bundled inside it, and no Homebrew JDK satisfies that pin.
-- **Xcode**: v26.0+ (For iOS development). The `v15.0+` this line used to claim is
-  understated — `MonOcrCore` needs Swift 5.9+, but the app target is built against
-  the current Xcode and the two ship different Swift versions.
+- **Node.js**: **v22+**, per `apps/web/.nvmrc`, which is also what CI installs
+  (`node-version-file: apps/web/.nvmrc`). This line said `v24.0.0+`, which
+  contradicted the pin and would have told anyone on the version CI itself
+  uses that they were unsupported.
+- **pnpm**: v10+ (`packageManager: pnpm@10.25.0` in the root `package.json`)
+- **Go**: **v1.26+** (For feedback service development). `services/feedback/go.mod`
+  declares `go 1.26`; this line said `v1.23.0+`, which will not build it.
+- **Android Studio**: any release that bundles **JetBrains Runtime 21**
+  (2025.3 is known-good). Required even if you never open it: the Gradle build
+  pins `toolchainVendor=jetbrains`, `toolchainVersion=21`, and the JBR inside the
+  app bundle is the only JDK on a normal macOS machine that satisfies it — no
+  Homebrew JDK does, at any version. This line named a 2023 codename, which
+  predates the pin.
+- **Xcode**: **v26.2+** for the app target, **v16+** for `MonOcrCore` alone.
+  Both numbers come from the project rather than from whatever is installed:
+  `monocr-ios.xcodeproj` sets `IPHONEOS_DEPLOYMENT_TARGET = 26.2`, which needs the
+  iOS 26.2 SDK to build at all, and `MonOcrCore/Package.swift:1` declares
+  `swift-tools-version: 6.0`, which Xcode 16 was the first to ship. This line
+  previously said `v15.0+`, which no longer builds either target.
 
 > [!IMPORTANT]
 > Neither mobile app builds from a bare shell without one environment variable

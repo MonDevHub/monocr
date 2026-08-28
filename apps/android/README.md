@@ -66,9 +66,15 @@ MonOCR is a unified cross-platform ecosystem designed for parity and performance
 
 ### Prerequisites
 
-- **Android Studio** (Latest stable version)
-- **JDK 17+**
-- **Android SDK 35** (Min API 26)
+- **Android Studio** — any release bundling **JetBrains Runtime 21**. Required
+  even if you never open it, and `JAVA_HOME` must point at the JBR inside it:
+  `gradle/gradle-daemon-jvm.properties` pins `toolchainVendor=jetbrains`,
+  `toolchainVersion=21`.
+- **Android SDK 36** (`compileSdk = 36`, `targetSdk = 36`, `minSdk = 24`)
+
+These replace "JDK 17+" and "Android SDK 35 (Min API 26)". A generic JDK 17
+cannot satisfy a version-21 pin, and no Homebrew JDK satisfies the vendor half at
+any version. Full commands: `docs/guides/mobile-build-and-test.md`.
 
 ### Getting Started
 

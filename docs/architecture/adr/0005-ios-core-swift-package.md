@@ -32,7 +32,7 @@ Two further constraints:
 **`apps/ios/MonOcrCore` — a Swift package whose sources are symlinks into `monocr-ios/`, tested
 with Swift Testing.**
 
-- `Sources/MonOcrCore/` holds relative symlinks to the 11 Foundation-only files (`LineTiler`,
+- `Sources/MonOcrCore/` holds relative symlinks to the 12 Foundation-only files (`LineTiler`,
   `GreyImage`, `PageNormalizer`, `LineSegmenter`, `CtcDecoder`, `Logger`, `LogitsLayout`,
   `ModelWindow`, `LineSegment`, `SegmentationMode`, `EngineStatus` — 977 lines).
 - `Tests/MonOcrCoreTests/` holds the two former XCTest files rewritten with `import Testing`,
@@ -76,7 +76,10 @@ alone is what `xcodebuild test` was already trusting.
 
 ## Consequences
 
-**Good.** 20 tests across 3 suites now execute, including the tiling parity checks against
+**Good.** 35 tests across 5 suites now execute (20 across 3 when this ADR was
+written; the figure is updated rather than left in present tense, because a
+stale count under **Consequences** reads as a current measurement), including
+the tiling parity checks against
 `shared/segmentation-fixtures/tiling-cases.json` that the iOS port shares with web, Android and
 Rust — iOS was the only one of the four with a written test and no runner. A `macos-latest` CI
 job runs them with no simulator, no signing and no Xcode, which is why the cost objection in the

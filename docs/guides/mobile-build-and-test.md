@@ -45,21 +45,26 @@ cd apps/android
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 
 ./gradlew --stop                 # a warm daemon hides configuration problems — see below
-./gradlew clean                  # removes app/build (416 MB)
+./gradlew clean                  # removes app/build (hundreds of MB)
 rm -rf .gradle build .kotlin     # optional; all three are gitignored
 ./gradlew test                   # 22 tests, 0 failures
-./gradlew assembleDebug          # -> app/build/outputs/apk/debug/app-debug.apk (137 MB)
+./gradlew assembleDebug          # -> app/build/outputs/apk/debug/app-debug.apk (~137 MB)
 ```
 
-**Do not clear `~/.gradle/caches`** as part of a clean. It is ~2 GB of resolved
-dependencies, and keeping it is what lets the clean build above succeed with
+**Do not clear `~/.gradle/caches`** as part of a clean. It is gigabytes of resolved
+dependencies (2.1 GB here), and keeping it is what lets the clean build above succeed with
 `--offline`. Clearing it forces a full re-download and breaks offline builds. It
 is a dependency cache, not build output.
 
-`./gradlew clean` removes `app/build` only. The root `apps/android/build/`
-directory survives and does not matter — it holds one disposable HTML problems
-report and is not recreated by a test run. There is **no root-project `clean`
-task**; `./gradlew clean` resolves by name into `:app`.
+`./gradlew clean` removes `app/build` only. `apps/android/build/` does not exist
+on this checkout at all — checked after a test run, an `assembleDebug` and a
+*failed* `lint`, which is exactly when Gradle would write
+`build/reports/problems/`. So the `rm -rf .gradle build .kotlin` above silently
+no-ops on `build`, and that is fine; it is listed for the case where a previous
+tool did create one.
+
+There is **no root-project `clean` task** — `./gradlew clean --dry-run` reports
+`:app:clean SKIPPED` and nothing else, so the name resolves into `:app`.
 
 ### What the tests cover
 
@@ -96,9 +101,15 @@ Export `JAVA_HOME` as above. Two things about this message mislead:
 
 **`/usr/libexec/java_home -V` says "Unable to locate a Java Runtime"**
 
-Expected, and it does **not** mean you have no JDK. Homebrew's OpenJDK is not
-symlinked into `/Library/Java/JavaVirtualMachines/`, which is the only directory
-Gradle's macOS auto-detection scans. Ask Gradle what it can see instead:
+Expected, and it does **not** mean you have no JDK. `java_home` reports only
+JDKs registered under `/Library/Java/JavaVirtualMachines/`, and Homebrew's is not.
+
+Do not read that as "symlink it and you are done". The only Homebrew JDK here is
+**25, vendor Homebrew**, and the pin demands version 21 *and* vendor `jetbrains`
+— so it cannot satisfy the build from any location. Gradle also looks in more
+places than `java_home` does (`JAVA_HOME`, `JDK_*`, the current JVM, `~/.gradle/jdks`,
+SDKMAN/asdf), which is why exporting `JAVA_HOME` works at all. Ask Gradle what it
+can see rather than asking `java_home`:
 
 ```bash
 ./gradlew javaToolchains
@@ -112,7 +123,7 @@ on-disk lookup. So a build with no `JAVA_HOME` succeeds while a daemon started
 earlier by a correct invocation is still alive, then fails the moment that daemon
 is stopped or expires (3h idle default). Measured:
 
-```
+```console
 $ unset JAVA_HOME; pnpm test     # idle daemon from an earlier JBR run
 BUILD SUCCESSFUL in 524ms
 $ ./gradlew --stop
@@ -159,8 +170,11 @@ cd apps/ios
 sh Scripts/swift-test.sh          # Test run with 35 tests in 5 suites passed
 ```
 
-**Do not export `DEVELOPER_DIR` for this command.** The script relies on the
-Command Line Tools toolchain; see the version split below.
+`DEVELOPER_DIR` is not required here, and — measured — it does no harm either:
+the script's candidate loop finds `Testing.framework` under both toolchains, and
+`DEVELOPER_DIR=... sh Scripts/swift-test.sh` also reports 35 tests passing. An
+earlier version of this guide said "do not export it for this command"; that was
+wrong.
 
 Do not substitute a bare `swift test` — it fails with `error: no such module
 'Testing'`. The wrapper exists for two reasons documented in its own header: the
@@ -189,9 +203,14 @@ xcodebuild -project monocr-ios.xcodeproj -scheme monocr-ios -configuration Debug
 `DEVELOPER_DIR` is the whole trick, and it needs no `sudo`: `xcode-select -p`
 points at `/Library/Developer/CommandLineTools`, so `xcodebuild` reports
 `requires Xcode, but active developer directory is ...` even with Xcode fully
-installed. The environment variable overrides it for one command, without changing
-the machine's global state — which matters, because switching `xcode-select`
-globally would break `Scripts/swift-test.sh`.
+installed. The environment variable overrides it for one command without changing
+the machine's global state, which is reason enough to prefer it — `sudo
+xcode-select -s` changes the toolchain for every tool and every other project on
+the machine.
+
+This guide previously justified that preference by claiming a global switch would
+break `Scripts/swift-test.sh`. It would not: that script passes under either
+toolchain.
 
 ### Clean build
 
@@ -199,14 +218,20 @@ globally would break `Scripts/swift-test.sh`.
 cd apps/ios
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 
-rm -rf MonOcrCore/.build                 # 103 MB; see note below
-xcodebuild clean
+rm -rf MonOcrCore/.build                 # 100s of MB; see note below
 rm -rf /tmp/monocr-ios-dd                # or your -derivedDataPath
 ```
 
+A bare `xcodebuild clean` is **not** worth adding to that list, and
+`apps/ios/package.json`'s `clean` script is exactly that. With no
+`-configuration` it targets Release, and with no `-derivedDataPath` it never
+looks at the directory you built into — measured, it reports `** CLEAN
+SUCCEEDED **` and leaves both DerivedData and `/tmp/monocr-ios-dd` byte-for-byte
+unchanged. The `rm -rf` lines do all the real work.
+
 Prefer an explicit `-derivedDataPath` to a throwaway directory over relying on the
-shared `~/Library/Developer/Xcode/DerivedData`. That directory is 2.4 GB here and
-holds three stale `monocr-ios-*` trees from April; DerivedData staleness is the
+shared `~/Library/Developer/Xcode/DerivedData`. That directory is ~2.4 GB here and holds
+three `monocr-ios-*` trees, two of them from April; DerivedData staleness is the
 classic cause of iOS build failures that survive a "clean".
 
 `swift package clean` is **not** equivalent to `rm -rf .build` — it removes build
@@ -240,7 +265,7 @@ time-limit failure.
 ### What the 35 tests do not cover
 
 `MonOcrCore/Sources/MonOcrCore/` is 12 relative symlinks into
-`../../../monocr-ios/`. The app target has 42 Swift files, so **30 are
+`../../../monocr-ios/`. `monocr-ios/` holds 42 Swift files, so **30 are
 app-target-only and exercised by nothing**, including `ImagePreprocessor.swift`,
 `MonOcrEngine.swift`, `MainViewModel.swift`, `SyncService.swift`, `PdfUtil.swift`,
 and every SwiftUI view.
@@ -291,27 +316,39 @@ Swift change.** `turbo.json`'s `test` and `lint` tasks declare
 no `*.kt`, no `*.swift`, no Gradle or SwiftPM paths. Measured with
 `turbo run test --dry-run=json`:
 
-| edited file | task hash |
-|---|---|
-| `LineSegmenter.kt` | `27cd7f01…` → `27cd7f01…` unchanged |
-| `ImagePreprocessor.swift` | `ab667ac3…` → `ab667ac3…` unchanged |
-| `focus-trap.ts` (control) | `137d6b37…` → `369ecd8e…` changed |
+| edited file | baseline hash | after a one-line edit |
+|---|---|---|
+| `LineSegmenter.kt` | `27cd7f0162e8b59b` | **unchanged** |
+| `ImagePreprocessor.swift` | `ab667ac354a0dc7e` | **unchanged** |
+| `focus-trap.ts` (control) | `137d6b371e68db4d` | **changed** |
+
+The three baseline hashes are reproducible on an unmodified checkout. The
+control's post-edit hash is not quoted, because it is a function of the edit's
+content — any two people would get different values, and only the fact that it
+*moved* is the evidence.
 
 The control is what makes this conclusive: turbo's hashing works, it just cannot
-see native sources. Until the inputs are widened, **invoke Gradle and
+see native sources. Confirmed directly in the resolved task definition — the
+input set for both mobile packages comes out as literally `['package.json']`. Until the inputs are widened, **invoke Gradle and
 `Scripts/swift-test.sh` directly** when you have touched Kotlin or Swift, or pass
 `--force`.
 
-Two related gaps in the same area:
+Two related gaps in the same area, and one requirement that is easy to mistake
+for one:
 
 - `apps/ios/package.json` declares no `lint` script, so `pnpm lint:all` silently
   skips iOS entirely.
 - Root `pnpm clean` only removes `node_modules`. It touches none of
-  `apps/android/app/build` (416 MB), `apps/android/.gradle`,
-  `apps/ios/MonOcrCore/.build` (103 MB), or DerivedData.
-- Every Gradle script in `apps/android/package.json` inherits the `JAVA_HOME`
-  requirement, because `package.json` cannot set it. They are correct as written
-  and fail only for that reason — `lint` is the one genuinely broken script.
+  `apps/android/app/build`, `apps/android/.gradle`,
+  `apps/ios/MonOcrCore/.build`, or DerivedData — each of which reaches hundreds of
+  megabytes.
+- The Gradle-invoking scripts in `apps/android/package.json` — `build`, `clean`,
+  `test`, `lint` — all inherit the `JAVA_HOME` requirement and none of them sets
+  it. That is a choice, not a limitation: a script is a shell command, so
+  `"test": "JAVA_HOME='...' ./gradlew test"` would work. An earlier version of
+  this line said `package.json` *cannot* set it, which turned a decision into a
+  false impossibility. (`prebuild` is `chmod +x gradlew`, not a Gradle call.)
+  `lint` is the one script broken for a non-environment reason.
 
 ## What cannot be done on this machine
 
@@ -320,6 +357,11 @@ Only two things, and neither is a toolchain gap:
 - **Physical-device iOS builds and App Store distribution** — no development team
   or signing identity is configured.
 - **Android release artifacts** — `assembleRelease`/`bundleRelease` were not
-  attempted. The keystore and passwords are present in `local.properties`, but
-  minification plus `ndk.debugSymbolLevel = "FULL"` is unverified and the SDK has
-  no `ndk/` directory.
+  attempted. `local.properties` supplies the three passwords but **not** the
+  keystore path: there is no `RELEASE_STORE_FILE` key, and
+  `app/build.gradle.kts:59-63` falls back to a hardcoded
+  `/Users/zinmin/Documents/ocrandroid.jks`. That file exists on this machine and
+  will exist on no other, so a release build is machine-specific until the path
+  moves into `local.properties` or the environment. Minification plus
+  `ndk.debugSymbolLevel = "FULL"` is also unverified, and the SDK has no `ndk/`
+  directory.

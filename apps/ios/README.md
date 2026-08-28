@@ -81,13 +81,18 @@ MonOCR is a unified cross-platform ecosystem designed for parity and performance
 
 ### Prerequisites
 
-- **Xcode 15.0+**
-- **iOS 16.0+**
-- **Swift 5.9+**
+- **Xcode 26.2+** to build the app target — `project.pbxproj` sets
+  `IPHONEOS_DEPLOYMENT_TARGET = 26.2`, which needs that SDK.
+- **Xcode 16+** for `MonOcrCore` alone — `Package.swift:1` declares
+  `swift-tools-version: 6.0`.
+- **iOS 16.0+** is the package's own floor (`Package.swift:20`), but the app
+  target's deployment target is higher; the two are not the same number.
+
+These replace "Xcode 15.0+ / Swift 5.9+", which no longer build either target.
 
 ### Tests
 
-`npm test`, or `sh Scripts/swift-test.sh` directly. It runs the `MonOcrCore`
+`pnpm test`, or `sh Scripts/swift-test.sh` directly. It runs the `MonOcrCore`
 Swift package with SwiftPM, which needs neither Xcode nor a simulator.
 
 `MonOcrCore/Sources/MonOcrCore/` is **relative symlinks** into `monocr-ios/`, not
