@@ -215,6 +215,69 @@ had no tests at all because every internal was private. The shape is now pinned 
 both sides against `shared/segmentation-fixtures/dilate-cases.json`, generated from
 cv2.
 
+## Open, found 2026-08-28, not acted on
+
+Four more divergences from a sweep across the three apps and the reference. None is
+fixed here, because each changes what every page reads on at least one platform and
+that is the owner's call, not a sweep's.
+
+### The ports detect line boundaries on the smoothed histogram; the reference does not
+
+The highest-impact one. `mon_OCR/src/monocr/segmenter.py` calibrates its threshold
+from the smoothed row-ink profile and then detects runs on the **raw** one, and says
+why in the code:
+
+> the smoothed hist bleeds across true inter-line gaps when lines are tightly packed,
+> so using it for boundary detection would merge distinct lines. The raw hist has zero
+> rows between any lines that have a true ink gap after dilation.
+
+All three ports test `hist[y] > threshold` against the smoothed profile: web
+`segmentation.ts`, Android `LineSegmenter.kt`, iOS `LineSegmenter.swift`. They
+therefore all carry the line-merging behaviour that comment describes, and it is
+the failure `looksLikeALine` exists to flag after the fact.
+
+This one is different in kind from the density ratio. Which ratio suits a book page
+is a measurement question with no single answer; this is the reference stating that
+one of the two profiles is the wrong input for this decision and giving the reason.
+Changing it would change line splitting on every platform at once, which is why it is
+recorded rather than done.
+
+### Crop padding differs from the reference on both axes
+
+|            | ports (all three)    | reference                     |
+| ---------- | -------------------- | ----------------------------- |
+| vertical   | `ceil(coreH · 0.25)` | `ceil(coreH · 0.40)`          |
+| horizontal | `ceil(coreH · 0.20)` | `max(10, ceil(coreW · 0.05))` |
+
+The three ports agree with each other and differ from the reference twice: they crop
+tighter above and below, and they scale horizontal padding off the line's **height**
+where the reference scales it off the line's **width** with a 10px floor. The 0.40
+exists for stacked Mon diacritics above and below the core band, which is the script
+this model reads.
+
+### Vertical smear kernel: 5 in the ports, 3 in the reference
+
+Horizontal agrees at 11 everywhere. The ports agree with each other.
+
+### Capture quality exists in three different states
+
+| surface | computed?                   | reaches the user?                     |
+| ------- | --------------------------- | ------------------------------------- |
+| web     | yes, sharpness and no-lines | no: `console.warn` inside the worker  |
+| iOS     | yes, sharpness only         | no: `isSoft` has no caller in the app |
+| Android | no                          | n/a                                   |
+
+The one shared threshold matches exactly where both compute it. iOS's is dead code
+reached only by its own tests, and Android has no equivalent at all: it folds the
+zero-lines case into a whole-page fallback, so the case web reports as its
+highest-priority warning is the one Android cannot report.
+
+The fused-block warning is a separate flag and is in better shape than the above:
+Android surfaces it in `HomeScreen` and iOS in `ResultCardView`. Only web stops at a
+`console.warn` the user never sees. A first pass of this sweep recorded iOS as not
+surfacing it either, which was wrong, and it is noted because the difference between
+"computed" and "reaches a user" is exactly what this table is for.
+
 ## What would close it
 
 A page set with counted lines, run through all four surfaces. That is the same
