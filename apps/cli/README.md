@@ -192,8 +192,6 @@ one of auto, page, sparse, line`.
 
 ## Known limits
 
-## Known limits
-
 - **Runs are serial, and there is no `--jobs` flag.** An earlier version of this file claimed the
   flag was "accepted but not implemented", which was simply wrong — passing it is a usage error.
   It is not implemented on purpose: ONNX Runtime already parallelises within a single inference
