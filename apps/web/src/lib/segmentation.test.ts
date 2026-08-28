@@ -5,6 +5,7 @@ import {
 	backgroundIsDark,
 	cutColumn,
 	looksLikeALine,
+	mergeRuns,
 	normalizePagePolarity,
 	segmentLines,
 	tileLine
@@ -344,5 +345,283 @@ describe('page polarity', () => {
 		expect(covers).toBe(true);
 		// And the two differ, which is the whole point of doing it before segmenting.
 		expect(JSON.stringify(before)).not.toBe(JSON.stringify(after));
+	});
+});
+
+/**
+ * `mergeRuns`, on the cases that were measured rather than on invented ones.
+ *
+ * The same cases exist in `apps/android/.../LineSegmenterTest.kt` and in iOS
+ * `LineMergeTests.swift`. Written as a matching set on purpose: the defect this
+ * pass exists to stop is one algorithm's four ports drifting apart unnoticed, and
+ * a divergence is far easier to see in test files meant to read identically.
+ *
+ * The fixtures are NOT copies of `monocr-onnx` `rust/src/segmenter.rs`, and that
+ * is deliberate. Three of the Rust fixtures are degenerate against the mutation
+ * they are named for, because with only two runs on the page the median run
+ * height IS one of the two:
+ *
+ *   - its ink-alone case has runs of 40, 40, 82, 82, so the median is 82 and
+ *     `2 * 40 <= 82` makes the fragment clause fire too — dropping the ink clause
+ *     survives it;
+ *   - its wide-gap case has two runs of 40, so the ceiling is 80 and the merged
+ *     span would be 95 — the ceiling refuses it and dropping the size bound
+ *     survives;
+ *   - its two-lines-apart case is refused by the same ceiling, so weakening the
+ *     fragment ratio from 2x to 1x survives.
+ *
+ * Every fixture below therefore carries ordinary full-height lines as well as the
+ * pair under test, which puts the median where a real page would put it. All
+ * three mutations die here. Verified by running them.
+ *
+ * These pass the RAW profile, which in this module is `rawHist` — `hist` is the
+ * smoothed one, inverted from every other port's naming.
+ */
+describe('mergeRuns', () => {
+	/** A profile with the given [start, end) ranges filled to `value`. */
+	function profile(length: number, fills: [number, number, number][]): Float32Array {
+		const h = new Float32Array(length);
+		for (const [a, b, v] of fills) h.fill(v, a, b);
+		return h;
+	}
+
+	it('a sub-threshold dip does not end a line', () => {
+		// The measured case, in the reference's numbers: one line, rows 260-324,
+		// split by row 280 carrying 6 ink pixels against a threshold of 7.0. On this
+		// port the same shape is a dip row of 12 ink columns against 15.60.
+		const hist = profile(400, [[260, 325, 200]]);
+		hist[280] = 6; // above zero, below the gap threshold
+		expect(
+			mergeRuns(
+				[
+					[260, 280],
+					[281, 325]
+				],
+				hist,
+				10
+			)
+		).toEqual([[260, 325]]);
+	});
+
+	it('a zero-ink gap still merges a fragment into its line', () => {
+		// The other measured case: rows 341-360 are the upper marks and 362-404 the
+		// body of one line, separated by TWO rows of genuinely zero ink. The ink
+		// clause cannot cross that; the height ratio is what does.
+		const hist = profile(500, [
+			[341, 360, 40],
+			[362, 404, 300]
+		]);
+		expect(
+			mergeRuns(
+				[
+					[341, 360],
+					[362, 404]
+				],
+				hist,
+				10
+			)
+		).toEqual([[341, 404]]);
+	});
+
+	it('two real lines two rows apart stay separate', () => {
+		// The case the fragment clause must NOT swallow, and the reason it is a
+		// ratio: same gap, same emptiness, but both runs are full height against the
+		// page median. A vertical smear was tried instead and fused exactly this
+		// pair, which is why the fix is not a smear.
+		const hist = profile(400, [
+			[20, 60, 300],
+			[62, 102, 300],
+			[150, 210, 300],
+			[260, 320, 300]
+		]);
+		expect(
+			mergeRuns(
+				[
+					[20, 60],
+					[62, 102],
+					[150, 210],
+					[260, 320]
+				],
+				hist,
+				10
+			)
+		).toEqual([
+			[20, 60],
+			[62, 102],
+			[150, 210],
+			[260, 320]
+		]);
+	});
+
+	it('a wide gap is a line boundary however much ink it holds', () => {
+		// The size bound on its own. Overlapping diacritics can hold the raw profile
+		// above zero right across real inter-line spacing; upstream that collapsed 3
+		// PDF lines into 1. The two 60-row lines put the ceiling at 120, above the
+		// 95-row span a merge here would produce, so the size bound is the only thing
+		// refusing it.
+		const hist = profile(400, [
+			[20, 60, 300],
+			[60, 75, 5], // 15 rows of ink between two lines
+			[75, 115, 300],
+			[200, 260, 300],
+			[300, 360, 300]
+		]);
+		expect(
+			mergeRuns(
+				[
+					[20, 60],
+					[75, 115],
+					[200, 260],
+					[300, 360]
+				],
+				hist,
+				10
+			)
+		).toEqual([
+			[20, 60],
+			[75, 115],
+			[200, 260],
+			[300, 360]
+		]);
+	});
+
+	it('a dip between equal halves merges on the ink clause alone', () => {
+		// The ink clause isolated. In the dip case above the fragment clause ALSO
+		// fires, so dropping `gapHasInk` survives it. Here the two halves are 40 rows
+		// against a page median of 60, so `2 * 40 <= 60` is false and only the ink
+		// test can merge them.
+		const hist = profile(400, [
+			[20, 60, 300],
+			[60, 62, 5], // two rows of ink: below any threshold, above zero
+			[62, 102, 300],
+			[150, 210, 300],
+			[260, 320, 300]
+		]);
+		expect(
+			mergeRuns(
+				[
+					[20, 60],
+					[62, 102],
+					[150, 210],
+					[260, 320]
+				],
+				hist,
+				10
+			)
+		).toEqual([
+			[20, 102],
+			[150, 210],
+			[260, 320]
+		]);
+	});
+
+	it('a run of fragments cannot chain past twice a typical line', () => {
+		// The ceiling and the median, together, on the failure they exist for. Five
+		// 20-row fragments two empty rows apart would chain into one 108-row band,
+		// and this is the shape that cost 92% of a real page's characters when the
+		// fragment test compared against the NEIGHBOUR instead of the median: every
+		// merge makes the accumulated run taller, and a taller run makes the next
+		// line look more like a fragment.
+		//
+		// Against a page median of 45 the ceiling is 90, so the chain stops after
+		// four. Judging against the neighbour merges nothing here at all, so this
+		// case pins both halves of the correction.
+		const fills: [number, number, number][] = [
+			[0, 20, 200],
+			[22, 42, 200],
+			[44, 64, 200],
+			[66, 86, 200],
+			[88, 108, 200]
+		];
+		const lines: [number, number][] = [];
+		for (let i = 0; i < 5; i++) {
+			const y = 200 + i * 100;
+			fills.push([y, y + 45, 300]);
+			lines.push([y, y + 45]);
+		}
+		const hist = profile(700, fills);
+		expect(
+			mergeRuns([[0, 20], [22, 42], [44, 64], [66, 86], [88, 108], ...lines], hist, 10)
+		).toEqual([[0, 86], [88, 108], ...lines]);
+	});
+
+	it('leaves an empty page alone', () => {
+		expect(mergeRuns([], new Float32Array(10), 10)).toEqual([]);
+	});
+});
+
+/**
+ * The merge must be reached THROUGH `segmentLines`, not only unit-tested.
+ *
+ * In the Rust port a mutation that deleted the `merge_runs` call from the
+ * pipeline SURVIVED all four helper tests, because they call the helper directly
+ * and the call site was unguarded. That is the gap `se-brain`
+ * `rules/standards/testing.md` §23 names: a tested helper does not make its call
+ * site safe.
+ *
+ * Geometry is this port's measured one. Rust's is not reusable here: this port
+ * dilates the mask vertically with reach 2 before the profile, so a source gap
+ * under 5 rows never reaches the profile at all, and 5 rows is the tightest gap
+ * that still splits.
+ */
+describe('a diacritic strip comes back joined to its line', () => {
+	/**
+	 * A page of Mon-shaped lines: a sparse strip of upper marks, `gap` source rows,
+	 * then a solid consonant body.
+	 *
+	 * Sparse marks, not a solid bar. The segmenter binarizes against a 25px local
+	 * mean, so the inside of a solid bar is not darker than its own neighbourhood
+	 * and only its edges register as ink — the same reason the Android fixtures draw
+	 * strokes. Words rather than a full-width ribbon, because a ribbon this wide
+	 * reads as a printed rule and `suppressPageRules` removes it.
+	 */
+	function monPage(gap: number, lines: number): ImageData {
+		const w = 900;
+		const h = 1200;
+		const data = new Uint8ClampedArray(w * h * 4).fill(255);
+		const ink = (x: number, y: number) => {
+			const i = (y * w + x) * 4;
+			data[i] = data[i + 1] = data[i + 2] = 0;
+		};
+		const STRIP_H = 20;
+		const BODY_H = 45;
+		for (let l = 0; l < lines; l++) {
+			const y0 = 100 + l * 100;
+			const bodyStart = y0 + STRIP_H + gap;
+			let g = 0;
+			for (let x = 60; x < w - 60; x += 6, g++) {
+				if ((x - 60) % 60 >= 42) continue; // word spacing
+				for (let y = bodyStart; y < bodyStart + BODY_H; y++) {
+					ink(x, y);
+					ink(x + 1, y);
+				}
+				if (g % 3 === 0) {
+					for (let y = y0; y < y0 + STRIP_H; y++) {
+						ink(x, y);
+						ink(x + 1, y);
+					}
+				}
+			}
+		}
+		return { width: w, height: h, data } as ImageData;
+	}
+
+	it('a zero-ink gap: 10 lines come back as 10 bands, not 20', () => {
+		// Measured on this port before the merge existed: 20 bands, every line cut
+		// into a strip of glyph tops and a decapitated body.
+		const bands = segmentLines(monPage(5, 10));
+
+		expect(bands.length).toBe(10);
+		// And each band spans the marks AND the body, not just one of them. The
+		// drawn line box is 70 source rows; dilation and 25% padding make the band
+		// taller than that, and a body-only band would be 75px.
+		for (const b of bands) expect(b.height).toBeGreaterThan(100);
+	});
+
+	it('a 4-row gap is closed by the dilation, so the merge changes nothing', () => {
+		// The control. Below 5 source rows the vertical smear bridges the gap before
+		// the profile sees it, so this case never reached `mergeRuns` and must still
+		// return the drawn count.
+		expect(segmentLines(monPage(4, 10)).length).toBe(10);
 	});
 });

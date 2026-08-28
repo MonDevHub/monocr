@@ -286,6 +286,113 @@ export function suppressPageRules(binary: Uint8Array, width: number, height: num
 	return true;
 }
 
+/**
+ * Two runs separated by at most this many rows are one text line, provided the
+ * raw profile never reaches zero inside the gap.
+ *
+ * WHY THIS EXISTS. Boundaries come off the raw profile (see step 6), and on Mon
+ * text that splits a single line between the upper diacritic zone and the
+ * consonant bodies: the diacritics are sparse, so the rows between them and the
+ * bodies carry a little ink or none, and either way they fall under a threshold
+ * that is 3% of the mean. The strip of glyph tops then decodes as Mon digits,
+ * because a row of circle-tops IS digits, and the decapitated body decodes
+ * without its asats because the asat went with the strip.
+ *
+ * MEASURED ON THIS PORT, 2026-08-28, at ITS parameters — density ratio 0.03,
+ * MIN_LINE_HEIGHT 10, smear kernel 11x5 — over a page of 10 Mon-shaped lines: a
+ * 20-row sparse strip above a 45-row body. Rust's figures do not transfer,
+ * because this port dilates the mask vertically before the profile and Rust does
+ * not, so the source gap has to survive that dilation first:
+ *
+ *     source gap   dip row, raw ink columns   bands returned (10 drawn)
+ *     0-4 rows     372-624                    10   dilation closes it
+ *     5 rows       0 (no bridging stroke)     *20*  split, zero ink in the gap
+ *     5 rows       12 (one bridging stroke)   *20*  split, threshold was 15.60
+ *     5 rows       24 (two bridging strokes)  10   above threshold, no split
+ *
+ * So the split needs a source gap of 5 rows here rather than the 1 row it needs
+ * in Rust — reach-2 dilation fills anything narrower — and at 5 rows every line
+ * on the page splits in two. The 12-columns-against-15.60 row is this port's
+ * version of the reference's measured `row 280 carrying 6 ink pixels against a
+ * threshold of 7.0`.
+ *
+ * Two clauses, because one does not cover it. The ink test crosses a dip that
+ * stays above zero. The zero-ink row above it is a gap no ink test can cross, so
+ * the second clause is a height ratio: a run at most half a typical line is a
+ * fragment of a line, not a line. Two REAL lines 5 rows apart are each full
+ * height, so they stay apart.
+ *
+ * The size bound is the third condition and does a different job: it refuses to
+ * merge real inter-line spacing even when overlapping diacritics hold the raw
+ * profile above zero right across it.
+ *
+ * Ported from `monocr-onnx` `rust/src/segmenter.rs` (`MIN_GAP_MERGE`,
+ * `merge_runs`), which took it from `mon_OCR` `segmenter.py` step 8. The value is
+ * the reference's.
+ */
+const MIN_GAP_MERGE = 10;
+
+/**
+ * Fuse runs that a sub-threshold dip or a few empty rows split apart.
+ *
+ * `rawHist` is the RAW profile, and the name is deliberate: this module's `hist`
+ * is the SMOOTHED one, which is inverted from Rust's naming and from the
+ * reference's. Passing the smoothed profile here would test for ink in rows that
+ * only borrowed it from their neighbours.
+ *
+ * Exported so the arithmetic is testable without building a page, and called
+ * from `segmentLines` BEFORE the height filter — see the call site for why the
+ * order is load-bearing.
+ *
+ * Both tests are relative to the page's own median run height rather than to the
+ * neighbouring run, and that is a correction rather than a preference: judging a
+ * fragment against its neighbour CASCADES. The merge mutates the accumulated
+ * run, so every merge makes it taller, and a taller run makes the next line look
+ * more like a fragment. Measured in the Rust port on page 47 of a 56-page book:
+ * 36 bands collapsed to 10, with single bands of 534, 632 and 732 rows, and the
+ * page lost 92% of its readable characters. `ceiling` is the backstop for that,
+ * and twice a typical line rather than tighter because a legitimate merge of two
+ * halves lands at about one typical line and must not be refused.
+ */
+export function mergeRuns(
+	runs: readonly (readonly [number, number])[],
+	rawHist: Float32Array | readonly number[],
+	maxGap: number
+): [number, number][] {
+	if (runs.length === 0) return [];
+
+	const heights = runs.map(([a, b]) => b - a).sort((a, b) => a - b);
+	const typical = Math.max(1, heights[Math.floor(heights.length / 2)]);
+	const ceiling = typical * 2;
+
+	const merged: [number, number][] = [];
+	for (const [r0, r1] of runs) {
+		const last = merged[merged.length - 1];
+		if (last) {
+			const gapStart = last[1];
+			const gapSize = Math.max(0, r0 - gapStart);
+			// A caller can hand us touching runs; an empty range is vacuously inked,
+			// which treats them as already one line. Matches Rust's `all` over an
+			// empty range.
+			let gapHasInk = true;
+			for (let y = gapStart; y < r0; y++) {
+				if (!(rawHist[y] > 0)) {
+					gapHasInk = false;
+					break;
+				}
+			}
+			const fragment = 2 * (r1 - r0) <= typical || 2 * (last[1] - last[0]) <= typical;
+
+			if (gapSize <= maxGap && (gapHasInk || fragment) && r1 - last[0] <= ceiling) {
+				last[1] = r1;
+				continue;
+			}
+		}
+		merged.push([r0, r1]);
+	}
+	return merged;
+}
+
 export function segmentLines(
 	imageData: ImageData,
 	smoothKernel: number = 3 // Default changed to 3 to match Android/Python
@@ -448,6 +555,7 @@ export function segmentLines(
 	const threshold = meanDensity * 0.03;
 
 	const segments: LineSegment[] = [];
+	const runs: [number, number][] = [];
 	let startY: number | null = null;
 
 	for (let y = 0; y < height; y++) {
@@ -473,16 +581,27 @@ export function segmentLines(
 		if (isText && startY === null) {
 			startY = y;
 		} else if (!isText && startY !== null) {
-			const endY = y;
-			if (endY - startY >= MIN_LINE_HEIGHT) {
-				addSegment(startY, endY);
-			}
+			runs.push([startY, y]);
 			startY = null;
 		}
 	}
 
-	if (startY !== null && height - startY >= MIN_LINE_HEIGHT) {
-		addSegment(startY, height);
+	if (startY !== null) {
+		runs.push([startY, height]);
+	}
+
+	// 6.5 Fuse runs a sub-threshold dip or a few empty rows split apart, BEFORE
+	// the height filter. The order is the reference's and it matters: a diacritic
+	// strip can be shorter than MIN_LINE_HEIGHT, and filtering first would discard
+	// the strip and leave the decapitated body behind as a whole line. Measured on
+	// this port with a 4-row source strip, which reach-2 dilation grows to 8 rows and
+	// the height filter then drops: filtering first returned 10 bands 75px tall, this
+	// order returns 10 bands 88px tall, and the 13px difference IS the strip of upper
+	// marks. Both counts are 10, so no band count can catch this.
+	for (const [r0, r1] of mergeRuns(runs, rawHist, MIN_GAP_MERGE)) {
+		if (r1 - r0 >= MIN_LINE_HEIGHT) {
+			addSegment(r0, r1);
+		}
 	}
 
 	function addSegment(sY: number, eY: number) {
