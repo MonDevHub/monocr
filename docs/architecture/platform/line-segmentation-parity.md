@@ -368,14 +368,14 @@ arithmetic — a list of runs, a row profile, `max_gap`, `min_line` and the expe
 merged runs — so it costs nothing to consume in five languages and is immune to the
 rendering differences that make the other fixtures expensive.
 
-Four things about it are load-bearing, and each was a rebuild before it was a rule:
+Five things about it are load-bearing, and each was a rebuild before it was a rule:
 
 1. **The expectations come from the specification, not from a port.** The generator
    reimplements the four decisions from their statement. A fixture whose oracle is one
    of the implementations proves only that they agree with each other, and if two are
    wrong in the same way it certifies the bug — which is exactly the shape of the
    `PageNormalizer` defect one section up.
-2. **Every case must discriminate.** Generation fails unless each of twenty
+2. **Every case must discriminate.** Generation fails unless each of twenty-one
    single-decision deviations is caught by some case, and unless every case catches at
    least one. Each case's `discriminates` list is written by that battery rather than
    by hand, so it cannot go stale. A case that passes under every variant is padding,
@@ -385,7 +385,20 @@ Four things about it are load-bearing, and each was a rebuild before it was a ru
    Three fixtures in `monocr-onnx/rust/src/segmenter.rs` had that defect and were
    named for clauses they did not test. Every case here carries ordinary full-height
    companion lines, and the per-case `note` shows the arithmetic.
-4. **Deviations mask each other, so a per-decision battery is not enough.** Reverting
+4. **Carrying companions is not being isolated by them.** This fixture shipped
+   seventeen cases believing rule 3 was satisfied because the companions were
+   present. They were, but its flagship fragment case had heights 19/42/42/42/42:
+   the median the companions set was ALSO the tested run's own height, so
+   `2*min(ha,hb) <= typical` and `2*min(ha,hb) <= max(ha,hb)` agree on it. Every
+   other case coincided too — the pair sat at the median, or the fragment clause was
+   false both ways, or the `min_line` guard refused regardless — and the
+   neighbour-relative form, which the reference names as the cascade that took page
+   47 from 36 bands to 10 and cost 92% of its characters, survived the whole file
+   with nothing in `MUTATIONS` to notice. The test is not "are there companions" but
+   "would the verdict change if the companions were removed". An eighteenth case
+   answers yes for that clause; the two ceiling-boundary cases cannot, and their
+   notes now say so in those words rather than implying otherwise.
+5. **Deviations mask each other, so a per-decision battery is not enough.** Reverting
    decisions 1 and 4 together — the exact state five of the ten implementations were
    in — was caught by a single case, because the unfiltered median collapses `typical`
    far enough that the loosened fragment clause reproduces the right answer anyway.

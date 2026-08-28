@@ -71,6 +71,16 @@ fragment clause too. Every case below whose verdict depends on the median theref
 carries full-height companion lines, and the per-case `note` states the arithmetic.
 The mutation battery is what proves the claim rather than the note.
 
+Carrying companions is not the same as being isolated by them, and this file made
+exactly that mistake for its first seventeen cases. A review found that its flagship
+fragment case had heights 19/42/42/42/42: the companions are there, but the median
+they set is ALSO the tested run's own height, so `2*min <= typical` and
+`2*min <= max(ha, hb)` agree on it and the neighbour-relative form — the cascading
+bug the reference explicitly warns about — survived every case in the file. The test
+is not "are there companions" but "would the verdict change if the companions were
+removed". Where a case cannot meet that, as the two ceiling-boundary cases cannot,
+its note says so in those words instead of implying otherwise.
+
 Run:
     python3 generate-merge-cases.py merge-cases.json
 
@@ -129,6 +139,11 @@ class Variant:
     # Decision 4: fragment
     fragment_ratio: int = 2
     fragment_uses_max: bool = False  # max(ha,hb) instead of min(ha,hb)
+    # Judge the fragment against the NEIGHBOUR instead of the page. This is the
+    # cascading form the reference names at `segmenter.rs` merge_runs: the merge
+    # mutates the accumulated run, so every merge makes it taller and a taller run
+    # makes the next line look more like a fragment.
+    fragment_vs_neighbour: bool = False
     fragment_min_line_guard: bool = True
     fragment_min_line_strict: bool = False  # `>` instead of `>=`
 
@@ -160,6 +175,7 @@ MUTATIONS = {
         4,
     ),
     "fragment_min_line_strict": (replace(REFERENCE, fragment_min_line_strict=True), 4),
+    "fragment_vs_neighbour": (replace(REFERENCE, fragment_vs_neighbour=True), 4),
 }
 
 
@@ -212,7 +228,8 @@ def may_merge(acc, run, hist, max_gap, min_line, typical, ceiling, v):
 
     ha, hb = a1 - a0, r1 - r0
     side = max(ha, hb) if v.fragment_uses_max else min(ha, hb)
-    fragment = v.fragment_ratio * side <= typical
+    basis = max(ha, hb) if v.fragment_vs_neighbour else typical
+    fragment = v.fragment_ratio * side <= basis
     if v.fragment_min_line_guard:
         if v.fragment_min_line_strict:
             fragment = fragment and max(ha, hb) > min_line
@@ -384,7 +401,12 @@ CASES = [
         "body of one line, separated by two rows of genuinely ZERO ink. The ink "
         "clause cannot cross that, so only the fragment clause can merge it. "
         "Heights 19/42/42/42/42, median 42, so 2*19 <= 42 holds and max(19,42) = "
-        "42 >= 10 holds; the merged span of 63 fits the 84-row ceiling.",
+        "42 >= 10 holds; the merged span of 63 fits the 84-row ceiling. One thing "
+        "this case does NOT isolate, despite carrying companions: the median 42 is "
+        "also the tested run's own height, so it cannot tell `2*min <= typical` "
+        "from `2*min <= max(ha, hb)` — 38 <= 42 either way. Companions that agree "
+        "with the pair are not companions. `a split line whose halves are "
+        "comparable in size` is the case that separates those two.",
     ),
     (
         "two full-height lines two rows apart stay separate",
@@ -438,35 +460,49 @@ CASES = [
         MIN_LINE_HEIGHT,
         "A real line boundary that happens to carry ink on 2 of its 3 rows: row 61 "
         "is empty. gap_has_ink asks whether EVERY row is inked, not whether any is, "
-        "and this is the only case that can tell those apart. Everything else "
-        "permits the merge — gap 3 rows, fragment false at median 60, span 83 "
-        "inside the 120-row ceiling.",
+        "and this is the only case that can tell those apart. The gap of 3 rows is "
+        "inside the bound and the span of 83 is inside the 120-row ceiling, so "
+        "neither of those refuses the merge; the fragment clause is false at median "
+        "60, which is not a second permission but the reason gap_has_ink is the "
+        "clause under test — with the fragment clause also true, either could carry "
+        "the merge and the ink reading would not be observable.",
     ),
     (
         "ceiling refuses an otherwise-valid merge",
         400,
-        [(20, 80, 300.0), (80, 82, 5.0), (82, 142, 300.0), (200, 260, 300.0),
-         (300, 360, 300.0)],
-        [(20, 80), (82, 142), (200, 260), (300, 360)],
+        [(20, 50, 300.0), (50, 52, 5.0), (52, 122, 300.0), (180, 220, 300.0),
+         (250, 290, 300.0), (320, 360, 300.0)],
+        [(20, 50), (52, 122), (180, 220), (250, 290), (320, 360)],
         MIN_GAP_MERGE,
         MIN_LINE_HEIGHT,
-        "Every other clause says merge and only the height cap refuses. Two 60-row "
-        "runs two rows apart with ink in the gap, on a page whose median run is 60: "
-        "gap_size 2 is inside the bound and gap_has_ink is true, so without the cap "
-        "this merges. The merged span would be 122 against a ceiling of 120.",
+        "Every other clause says merge and only the height cap refuses. A 30-row "
+        "run and a 70-row run two rows apart with ink in both gap rows: gap_size 2 "
+        "is inside the bound and gap_has_ink is true, so without the cap this "
+        "merges. Heights are 30/70/40/40/40, median 40, ceiling 80, and the merged "
+        "span would be 102. The companions are load-bearing and this case is where "
+        "that is demonstrable rather than asserted: on the pair alone the median "
+        "would be 70 and the ceiling 140, which permits the very merge the case "
+        "exists to see refused. It also separates a ceiling built on the page "
+        "median from one built on max(ha, hb), which would be 140 here.",
     ),
     (
         "merged span of exactly the ceiling is allowed",
         400,
-        [(20, 80, 300.0), (80, 82, 5.0), (82, 140, 300.0), (200, 260, 300.0),
-         (300, 360, 300.0)],
-        [(20, 80), (82, 140), (200, 260), (300, 360)],
+        [(20, 50, 300.0), (50, 52, 5.0), (52, 100, 300.0), (180, 220, 300.0),
+         (250, 290, 300.0), (320, 360, 300.0)],
+        [(20, 50), (52, 100), (180, 220), (250, 290), (320, 360)],
         MIN_GAP_MERGE,
         MIN_LINE_HEIGHT,
-        "The boundary of the ceiling, one row inside the case above: heights "
-        "60/58/60/60, median 60, ceiling 120, and the merged span is exactly 120. "
-        "`<=` allows it and `<` does not, and a legitimate merge of two halves "
-        "landing at about one typical line must not be refused.",
+        "The boundary of the ceiling. Heights are 30/48/40/40/40, median 40, "
+        "ceiling 80, and the merged span is exactly 80. `<=` allows it and `<` does "
+        "not, and a legitimate merge of two halves landing at about one typical "
+        "line must not be refused. What the companions buy here is the boundary "
+        "itself rather than the verdict: on the pair alone the median would be 48 "
+        "and the ceiling 96, and the span would no longer sit ON the cap, so the "
+        "case would stop testing `<=` against `<`. They are not decoration, but "
+        "they do not flip the outcome either: this case does not depend on the "
+        "median the way the ceiling-refusal, speckle and cascade cases do, and it "
+        "is not counted on for that.",
     ),
     (
         "fragment attaching to a line of exactly min_line",
@@ -482,6 +518,33 @@ CASES = [
         "10/20/20/20, median 20, so 2*5 <= 20 holds and the merged span of 17 fits "
         "the 40-row ceiling. The gap is empty, so the fragment clause is the only "
         "route.",
+    ),
+    (
+        "a split line whose halves are comparable in size",
+        400,
+        [(20, 40, 300.0), (42, 72, 300.0), (140, 200, 300.0), (240, 300, 300.0),
+         (330, 390, 300.0)],
+        [(20, 40), (42, 72), (140, 200), (240, 300), (330, 390)],
+        MIN_GAP_MERGE,
+        MIN_LINE_HEIGHT,
+        "The one case that separates `2*min(ha,hb) <= typical` from "
+        "`2*min(ha,hb) <= max(ha,hb)`, and it exists because a review found that "
+        "the other cases all coincide on those two: every one of them either has "
+        "the tested pair AT the median, or has the fragment clause false both ways, "
+        "or is blocked by the min_line guard regardless. A 20-row half and a 30-row "
+        "half two EMPTY rows apart, so the ink clause is false and the fragment "
+        "clause is the only route. Heights are 20/30/60/60/60, median 60: "
+        "2*20 = 40 <= 60 fires and the halves rejoin at a span of 52, well inside "
+        "the 120-row ceiling. Judged against the neighbour instead, 40 <= 30 is "
+        "false and the line stays broken. Both halves are small relative to the "
+        "PAGE and comparable to EACH OTHER, which is exactly the pair the two "
+        "readings disagree about. The reference names the neighbour form the "
+        "cascading bug: because the merge mutates the accumulated run, every merge "
+        "makes it taller and a taller run makes the next line look more like a "
+        "fragment. Measured on page 47 of a 56-page book, 36 bands collapsed to 10 "
+        "with single bands of 534, 632 and 732 rows, losing 92% of the page's "
+        "readable characters. The companions are what make this case work: on the "
+        "pair alone the median would be 30 and 40 <= 30 is false either way.",
     ),
     (
         "speckle must not set typical on a noisy page",
@@ -542,10 +605,13 @@ CASES = [
         MIN_GAP_MERGE,
         MIN_LINE_HEIGHT,
         "The case above is not enough, and a sibling port's review is what showed "
-        "it. There the twelve or fourteen specks OUTNUMBER the real lines, so "
+        "it. There fourteen 3-row specks OUTNUMBER the three real lines, so "
         "dropping the median filter collapses `typical` to 3 and the chain cannot "
-        "grow past a ceiling of 6 — decisions 1 and 4 mask each other, and "
-        "reverting BOTH together was caught by only one case. Here five specks sit "
+        "grow past a ceiling of 6 — decisions 1 and 4 mask each other, and that "
+        "one case is blind to the pair reverted together. The twelve-speck case two "
+        "above collapses to an unfiltered median of 2 and a ceiling of 4, and it "
+        "does NOT mask: it is one of the two independent killers the COMBINATIONS "
+        "gate requires. Here five specks sit "
         "among eight 40-row lines, so the median is 40 whether it is filtered or "
         "not, and `max(ha, hb) >= min_line` is the ONLY thing refusing the chain. "
         "Drop it and five 3-row specks fuse into one 23-row band that clears the "
@@ -598,8 +664,12 @@ CASES = [
         "function and a caller can hand it one — the reference says as much about "
         "touching runs. Heights 0/0/3 clear nothing, the unfiltered median is 0, "
         "and without the floor of 1 the ceiling is 0 and refuses every merge "
-        "including the zero-width one. This case exists to pin that floor, not one "
-        "of the four decisions.",
+        "including the zero-width one. The floor is not one of the four decisions "
+        "but is where a transcription drops a `max(_, 1)`, and this case is its "
+        "only killer. It is not narrow, though: with the unfiltered median at 0 it "
+        "also separates the median from the max, and both the ceiling and the ink "
+        "clause from their absence. The generated `discriminates` list, not this "
+        "sentence, is the record of that.",
     ),
     (
         "a single run is returned unchanged",
