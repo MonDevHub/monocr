@@ -30,6 +30,7 @@
     <string name="segmentation_mode_line">Single line</string>
     <string name="segmentation_mode_hint">Change this if lines came back merged or split. Photos of slides, posters and signs usually need Sparse.</string>
     <string name="segmentation_block_warning">Bands too tall to be one line: %1$d. Their text may be invented — try another mode.</string>
+    <string name="capture_soft_warning">This photo looks soft. The text may be misread — try again with steadier focus.</string>
     <string name="segmentation_failed_lines">Lines the model could not read on this device: %1$d.</string>
     <string name="no_text_extracted">No text extracted</string>
     <string name="scanning">Scanning…</string>

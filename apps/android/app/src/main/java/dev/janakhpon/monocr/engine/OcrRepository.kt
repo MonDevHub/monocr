@@ -25,7 +25,15 @@ data class OcrResult(
      */
     val blockShapedLineCount: Int = 0,
     /** Lines the model runtime failed on. Not the same as lines with no text. */
-    val failedLineCount: Int = 0
+    val failedLineCount: Int = 0,
+    /**
+     * The page was too soft to read confidently ([CaptureQuality.isSoft]).
+     *
+     * Surfaced for the same reason [blockShapedLineCount] is: a blurred photograph
+     * does not fail, it returns confident nonsense, and the user holding the camera
+     * is the only person who can do anything about it.
+     */
+    val captureLooksSoft: Boolean = false
 )
 
 /**
@@ -96,6 +104,16 @@ class OcrRepository(
                 listOf(fullPage)
             }
         }
+        // Measured on the normalised page, which is what the segmenter and the model
+        // actually see, and BEFORE the empty-segments fallback below replaces an empty
+        // result with the whole page. Assessing after it would hide the very case
+        // worth reporting, which is the ordering the web port documents at its own
+        // call site.
+        val captureLooksSoft = CaptureQuality.isSoft(page)
+        if (captureLooksSoft) {
+            MonLogger.w("capture looks soft; the reading may be unreliable")
+        }
+
         val blockShaped = segments.count { !it.looksLikeALine }
         MonLogger.d("segmented: lines=${segments.size} block_shaped=$blockShaped mode=$mode")
 
@@ -156,7 +174,8 @@ class OcrRepository(
             durationMs = duration,
             mode = mode,
             blockShapedLineCount = blockShaped,
-            failedLineCount = failedLines
+            failedLineCount = failedLines,
+            captureLooksSoft = captureLooksSoft
         )
     }
 
@@ -196,6 +215,7 @@ class OcrRepository(
         var totalLines = 0
         var totalBlockShaped = 0
         var totalFailed = 0
+        var anyPageSoft = false
 
         MonLogger.i("starting multi-page ocr: uri=$uri pages=$pageCount")
 
@@ -210,6 +230,9 @@ class OcrRepository(
                 }
                 totalBlockShaped += pageResult.blockShapedLineCount
                 totalFailed += pageResult.failedLineCount
+                // Any soft page makes the combined reading suspect, so this is an OR
+                // rather than the last page's verdict.
+                anyPageSoft = anyPageSoft || pageResult.captureLooksSoft
                 bitmap.recycle()
             }
         }
@@ -229,7 +252,8 @@ class OcrRepository(
             durationMs = totalDuration,
             mode = SegmentationMode.PAGE,
             blockShapedLineCount = totalBlockShaped,
-            failedLineCount = totalFailed
+            failedLineCount = totalFailed,
+            captureLooksSoft = anyPageSoft
         )
     }
 
