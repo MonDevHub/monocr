@@ -162,14 +162,19 @@ class LineSegmenterTest {
     // `LineMergeTests.swift`. Written as a matching set on purpose: the defect this
     // pass exists to stop is one algorithm's four ports drifting apart unnoticed.
     //
-    // The fixtures are NOT copies of `monocr-onnx` `rust/src/segmenter.rs`. Three of
-    // those are degenerate against the mutation they are named for, because with
-    // only two runs on the page the median run height IS one of the two: its
-    // ink-alone case has runs of 40, 40, 82, 82, so `2 * 40 <= 82` makes the
-    // fragment clause fire as well; and its wide-gap and two-lines-apart cases are
-    // refused by the ceiling rather than by the clause under test. Every fixture
-    // here carries ordinary full-height lines too, which puts the median where a
-    // real page would put it.
+    // Three of the Rust fixtures in `monocr-onnx` `rust/src/segmenter.rs` are
+    // degenerate against the mutation they are named for, because with only two runs
+    // on the page the median run height IS one of the two: its ink-alone case has
+    // runs of 40, 40, 82, 82, so `2 * 40 <= 82` makes the fragment clause fire as
+    // well; and its wide-gap and two-lines-apart cases are refused by the ceiling
+    // rather than by the clause under test. Every fixture here whose verdict depends
+    // on the median therefore carries ordinary full-height lines too, which puts the
+    // median where a real page would put it.
+    //
+    // The first two ARE the Rust geometry verbatim, on purpose: they are the two
+    // cases actually measured on a real page, so they are kept exactly as measured.
+    // Both are degenerate in the sense above and neither kills a mutation - they are
+    // regression anchors, and the isolating cases follow them.
 
     @Test
     fun `a sub-threshold dip does not end a line`() {
@@ -311,6 +316,30 @@ class LineSegmenterTest {
         // And each band spans the marks AND the body. A body-only band is 77px.
         for (b in bands) {
             assertTrue("band is ${b.height}px, so it is the body without its marks", b.height > 100)
+        }
+    }
+
+    /**
+     * The merge must run BEFORE the height filter, and this is the only case where
+     * the two orders differ - so without it, moving the filter ahead of the merge is
+     * a one-line change no test notices.
+     *
+     * A 1-row source strip becomes a 9-row run, one short of [MIN_LINE_HEIGHT] 10.
+     * Measured both ways on this port: filtering first returns 10 bands 77px tall,
+     * this order returns 10 bands 93px tall, and the 16px difference IS the strip of
+     * upper marks. The COUNT is 10 either way, which is why the assertion is on
+     * height.
+     */
+    @Test
+    fun `a strip shorter than the height floor survives, so the order is pinned`() = runBlocking {
+        val bands = LineSegmenter.segment(monPage(gap = 8, stems = 0, stripH = 1), pageRatio)
+
+        assertEquals(10, bands.size)
+        for (b in bands) {
+            assertTrue(
+                "band is ${b.height}px; filtering before the merge drops the strip and returns 77",
+                b.height > 85
+            )
         }
     }
 

@@ -216,18 +216,25 @@ object LineSegmenter {
      * reference's measured `row 280 carrying 6 ink pixels against a threshold of
      * 7.0`, and the ink clause rejoins it.
      *
-     * THE ZERO-INK CASE IS NARROWER HERE THAN IN RUST, and the reason is the
-     * dilation. Blur plus reach-2 dilation adds about six rows to EVERY run, which
-     * inflates a short strip proportionally far more than a full line: measured, a
-     * 20-row strip above a 45-row body becomes a 27-row run against a 51-row one,
-     * and `2 * 27 > 51` so the fragment clause declines and the line stays split.
-     * At an 18-row strip - a 25-row run - it merges. Rust's own measured pair, 19
-     * rows against 42, would become 26 against 49 here and would not qualify
-     * either. That is the clause behaving as specified rather than a porting error:
-     * a run more than half a typical line IS a line by this test. It is recorded
-     * because it means the ink clause carries more of the load on the dilating
-     * ports than it does in Rust, and because raising the ratio to cover it would
-     * be an unmeasured constant.
+     * THE ZERO-INK CASE IS NARROWER HERE THAN IN RUST, and the reason is the blur
+     * and the dilation. Both grow every run, and they grow a SHORT run by more:
+     * measured on this fixture, a 45-row body becomes 51 (+6), a 20-row strip
+     * becomes 27 (+7), and a 1-row strip becomes 9 (+8), because a short run has
+     * proportionally more edge for a 5x5 blur and a reach-2 dilation to spread.
+     *
+     * The effect is to inflate a strip toward its body. A 20-row strip above a
+     * 45-row body becomes a 27-row run against a 51-row one, `2 * 27 > 51`, so the
+     * fragment clause declines and the line stays split. At an 18-row strip - a
+     * 25-row run - it merges. Applying the measured deltas to Rust's own pair, 19
+     * rows against 42, gives about 26 against 48 here, which would not qualify
+     * either; that last figure is an inference from the growth above rather than a
+     * measurement of that pair.
+     *
+     * That is the clause behaving as specified rather than a porting error: a run
+     * more than half a typical line IS a line by this test. It is recorded because
+     * it means the ink clause carries more of the load on the dilating ports than
+     * it does in Rust, and because raising the ratio to cover it would be an
+     * unmeasured constant.
      *
      * Two clauses, because one does not cover it. The ink test crosses a dip that
      * stays above zero. A zero-ink gap is one no ink test can cross, so the second
@@ -261,7 +268,7 @@ object LineSegmenter {
      * accumulated run, so every merge makes it taller, and a taller run makes the
      * next line look more like a fragment. Measured in the Rust port on page 47 of
      * a 56-page book: 36 bands collapsed to 10, with single bands of 534, 632 and
-     * 732 rows, and the page lost 92% of its readable characters. [ceiling] is the
+     * 732 rows, and the page lost 92% of its readable characters. `ceiling` is the
      * backstop for that, and twice a typical line rather than tighter because a
      * legitimate merge of two halves lands at about one typical line and must not
      * be refused.
@@ -286,7 +293,12 @@ object LineSegmenter {
                 // inked, which treats them as already one line.
                 var gapHasInk = true
                 for (y in gapStart until r0) {
-                    if (y < 0 || y >= rawHist.size || rawHist[y] <= 0f) {
+                    // Negated rather than `<= 0f`, so a NaN reads as "no ink" the
+                    // way Rust's `v > 0.0` and web's `!(rawHist[y] > 0)` do. A row
+                    // count cannot be NaN today; the four are kept identical
+                    // because divergence between them is the defect this pass
+                    // exists to stop.
+                    if (y < 0 || y >= rawHist.size || !(rawHist[y] > 0f)) {
                         gapHasInk = false
                         break
                     }
