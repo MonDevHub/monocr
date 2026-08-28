@@ -270,6 +270,14 @@ actor MonOcrEngine {
             )
         }
 
+        // Measured on the normalised page, which is the image the segmenter and
+        // the model actually see, rather than on the raw capture whose contrast
+        // levelling has not been applied yet.
+        let looksSoft = CaptureQuality.isSoft(page)
+        if looksSoft {
+            MonLog_i("capture looks soft; the reading may be unreliable")
+        }
+
         let wholePage = LineSegment(x: 0, y: 0, width: page.width, height: page.height)
         var bands: [LineSegment]
         // A mode with no ratio never runs the profile, so the absence of one IS the
@@ -389,7 +397,8 @@ actor MonOcrEngine {
             durationMs: totalDuration,
             debugImage: debugImg,
             lines: lines,
-            mode: mode
+            mode: mode,
+            looksSoft: looksSoft
         )
     }
 
