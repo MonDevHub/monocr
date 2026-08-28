@@ -24,6 +24,26 @@ The following environment variables are required:
 | `PORT`                 | Service port (default: 8080)  |
 | `GIN_MODE`             | `debug` or `release`          |
 
+Optional, and each one refuses to start the service rather than defaulting to a
+value that cannot serve traffic:
+
+| Variable              | Description                                                              |
+| :-------------------- | :----------------------------------------------------------------------- |
+| `RATE_LIMIT_REQUESTS` | Sustained requests per second per client IP (default: 5.0)               |
+| `RATE_LIMIT_BURST`    | Burst allowance per client IP (default: 10)                              |
+| `TRUSTED_PROXIES`     | Proxy IPs or CIDRs, comma separated. Unset trusts every hop — see below.  |
+
+`/health` is deliberately outside the rate limiter, so a probe still answers 200
+while a client is being throttled and ordinary load cannot starve it.
+
+Rate limiting is keyed on the client IP as gin resolves it. With `TRUSTED_PROXIES`
+unset, gin trusts every hop and takes the client-supplied end of
+`X-Forwarded-For`: that is per-user rather than one bucket for the whole user
+base, but a caller that rotates the header gets a fresh quota, so treat it as a
+fairness control, not an anti-abuse one. Set `TRUSTED_PROXIES` to the range your
+front end connects from to make the key unforgeable. Memory is bounded either
+way — idle buckets are evicted and the total is hard capped.
+
 ## Development
 
 Execute locally with Go 1.26+:

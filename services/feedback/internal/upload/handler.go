@@ -2,6 +2,7 @@ package upload
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -150,8 +151,45 @@ func (h *Handler) handleUpload(c *gin.Context, folder string) {
 	// 1. Capture Form Part
 	file, err := c.FormFile("file")
 	if err != nil {
+		// An oversize body is its own answer, not a missing file part.
+		//
+		// middleware.BodyLimitMiddleware wraps the body in http.MaxBytesReader,
+		// and when the limit trips it surfaces here as an ordinary FormFile
+		// error. Until 2026-08-28 every error in this branch was reported as
+		// "No file part", so a 21MB upload answered 400 while
+		// shared/contract/README.md:51 promises 413. Measured with a 1KB limit
+		// and an 8KB body: 400 {"error":"No file part in the request"}.
+		//
+		// That compounds rather than merely misinforming: neither mobile client
+		// branches on status code, so 400, 401, 413 and 429 are retried
+		// identically up to 5 attempts. The one failure a client could actually
+		// act on — send less — was indistinguishable from the ones it cannot,
+		// so it re-sent the whole oversize body four more times.
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			logger.Warn("Upload rejected: body over the limit", "limit_bytes", h.MaxUploadSize)
+			h.jsonError(c, http.StatusRequestEntityTooLarge, fmt.Sprintf(
+				"File exceeds the maximum upload size of %d MB", h.MaxUploadSize/(1024*1024)))
+			return
+		}
+
 		logger.Warn("Upload failed: no file part", "error", err)
 		h.jsonError(c, http.StatusBadRequest, "No file part in the request (expected 'file')")
+		return
+	}
+
+	// An empty upload is rejected here because the MIME whitelist cannot do it.
+	//
+	// mimetype.Detect on zero bytes returns the library's fallback root,
+	// text/plain, and text/plain is on the whitelist — so an empty part sniffed
+	// clean and was streamed to R2. Measured: a 0-byte part named empty.png
+	// answered 200 and wrote feedback/2026-08/<record-id>-empty.png. Each of
+	// those is a row in the corpus that no training run can use and that no
+	// reader can distinguish from a real sample without fetching it, so the cost
+	// is paid by every later consumer rather than by the client that caused it.
+	if file.Size == 0 {
+		logger.Warn("Upload rejected: empty file", "filename", file.Filename)
+		h.jsonError(c, http.StatusBadRequest, "Uploaded file is empty")
 		return
 	}
 
