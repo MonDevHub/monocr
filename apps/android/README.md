@@ -107,16 +107,20 @@ export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew testDebugUnitTest
 ```
 
-50 tests across eight classes, all passing as of 2026-08-28. `JAVA_HOME` is not
+106 tests across eleven classes, all passing as of 2026-08-29. `JAVA_HOME` is not
 optional: the toolchain pin above rejects any JDK that is not the JetBrains
-Runtime, and Gradle fails at configuration time rather than falling back.
+Runtime, and Gradle fails at configuration time rather than falling back. The
+failure reads "Unable to download toolchain", which is a *lookup* failure and not
+an absence — the runtime is already on the machine.
 
 **CI does not run this suite, so running it locally is the only gate on it.**
 `.github/workflows/ci.yml` covers web, Go, the Rust CLI and the iOS `MonOcrCore`
 package; the Android job is still blocked on provisioning a JetBrains Runtime 21
-on the runner. Six of the fifty tests check `LineSegmenter`, `LineTiler` and
+on the runner. Twelve of the 106 tests check `LineSegmenter`, `LineTiler` and
 `PageNormalizer` against the shared fixtures in `shared/segmentation-fixtures/`,
 which is the only automated check that this port still agrees with web and iOS.
+`MergeFixtureTest` is the newest of the four and pins `mergeRuns`, the step that
+stands between raw-profile boundary detection and a 22x garbage regression.
 Skipping them is how the three ports drift apart quietly.
 
 Run it before touching a decoder, a segmenter or the normaliser. Report and

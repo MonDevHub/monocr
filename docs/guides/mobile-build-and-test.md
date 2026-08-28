@@ -68,24 +68,34 @@ There is **no root-project `clean` task** — `./gradlew clean --dry-run` report
 
 ### What the tests cover
 
-50 unit tests in eight classes, all under `app/src/test/`:
+106 unit tests in eleven classes, all under `app/src/test/`, counted from
+`app/build/test-results/testDebugUnitTest/*.xml` on 2026-08-29:
 
 | class | tests |
 |---|---|
+| `CaptureQualityTest` | 8 |
 | `CtcDecoderTest` | 5 |
 | `DilateFixtureTest` | 4 |
-| `LineSegmenterTest` | 7 |
+| `LineSegmenterTest` | 18 |
 | `LineTilerFixtureTest` | 4 |
+| `MergeFixtureTest` | 2 |
 | `PageNormalizerTest` | 14 |
 | `RuleFixtureTest` | 2 |
 | `RuleSuppressionTest` | 8 |
 | `SegmentationModeTest` | 6 |
+| `SyncPolicyTest` | 35 |
 
-Three of those read generated fixtures rather than hand-written expectations, so
+Four of those read generated fixtures rather than hand-written expectations, so
 they are cross-platform parity tests rather than Android-only ones.
 `LineTilerFixtureTest` reads `shared/segmentation-fixtures/tiling-cases.json`,
-`RuleFixtureTest` reads `rule-cases.json` from the same directory, and
-`DilateFixtureTest` reads `dilate-cases.json`.
+`RuleFixtureTest` reads `rule-cases.json` from the same directory,
+`DilateFixtureTest` reads `dilate-cases.json`, and `MergeFixtureTest` reads
+`merge-cases.json`.
+
+`MergeFixtureTest` also honours a `MONOCR_MERGE_FIXTURE` environment variable
+pointing at a fixture elsewhere. Use `--rerun-tasks` with it: environment variables
+are not inputs to Gradle's `Test` task, so an `UP-TO-DATE` task will skip and the
+override will silently have no effect.
 
 `test` is the debug variant only. Despite the task description "Run unit tests for
 all variants", no `testReleaseUnitTest` or `testStagingUnitTest` task exists.
