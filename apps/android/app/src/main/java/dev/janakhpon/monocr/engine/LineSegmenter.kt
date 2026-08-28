@@ -335,7 +335,25 @@ object LineSegmenter {
         var startY: Int? = null
 
         for (y in 0 until height) {
-            val isText = hist[y] > threshold
+            // the RAW profile, not the smoothed one.
+            //
+            // The threshold is still calibrated from the smoothed mean, because a mean is more
+            // stable with smoothing. Boundaries are detected on the raw profile, because
+            // smoothing bleeds ink across a true inter-line gap narrower than about half the
+            // kernel, and a bled gap never falls under the threshold.
+            //
+            // The reference states this and says why (`mon_OCR/src/monocr/segmenter.py`,
+            // "Valley detection (dual-histogram)"). All three ports read the smoothed profile
+            // here instead, and the cost was measured on this port before changing it: pages of
+            // 14px lines separated by 5, 6 and 8 pixels came back as ONE band each, against 29,
+            // 28 and 25 lines actually drawn. Reading the raw profile returns exactly the drawn
+            // count. At 12px and wider the two agree exactly, and every pre-existing test in all
+            // three suites passes either way.
+            //
+            // Gaps under 5px still fuse, and that is the vertical smear doing its job rather
+            // than this line: a kernel of 5 is meant to bridge a 4px gap so a floating diacritic
+            // stays attached to its base.
+            val isText = rawHist[y] > threshold
             if (isText && startY == null) {
                 startY = y
             } else if (!isText && startY != null) {

@@ -106,4 +106,52 @@ class LineSegmenterTest {
         assertFalse(LineSegmenter.looksLikeALine(LineSegment(0, 0, 100, 0), pageHeight = 500))
         assertFalse(LineSegmenter.looksLikeALine(LineSegment(0, 0, 100, 50), pageHeight = 0))
     }
+
+    /**
+     * Tightly-set lines must not fuse into one band.
+     *
+     * The boundary test reads the RAW row profile. It read the smoothed one until
+     * 2026-08-28, and the cost was measured on this port rather than argued: pages
+     * of 14px lines separated by 5, 6 and 8 pixels came back as ONE band each,
+     * against 29, 28 and 25 lines actually drawn. Reading the raw profile returns
+     * exactly the drawn count, and at 12px and wider the two agree exactly.
+     *
+     * The threshold is still calibrated from the smoothed mean, which is what the
+     * reference does and why the two profiles both exist
+     * (`mon_OCR/src/monocr/segmenter.py`, "Valley detection (dual-histogram)").
+     *
+     * 8px is the gap this pins. Below 5px both profiles fuse, and that is the
+     * vertical smear doing its job: a kernel of 5 is meant to bridge a 4px gap so
+     * a floating diacritic stays attached to its base line.
+     */
+    @Test
+    fun `lines eight pixels apart stay separate`() = runBlocking {
+        val w = 400
+        val h = 600
+        val lineH = 14
+        val gap = 8
+        val px = IntArray(w * h) { 255 }
+        var y = 20
+        var drawn = 0
+        while (y + lineH < h - 20) {
+            for (yy in y until y + lineH) {
+                for (x in 20 until w - 20) {
+                    // Words with gaps: a solid ribbon this wide reads as a printed
+                    // rule and trips the ink-share ceiling, which would make the
+                    // fixture prove nothing.
+                    val insideAWord = (x - 20) % 45 < 30
+                    if (insideAWord && x % 4 < 2) px[yy * w + x] = 0
+                }
+            }
+            drawn++
+            y += lineH + gap
+        }
+
+        val bands = LineSegmenter.segment(GreyImage(w, h, px), pageRatio)
+
+        assertEquals(
+            "$drawn lines were drawn 8px apart; reading the smoothed profile returns 1",
+            drawn, bands.size
+        )
+    }
 }

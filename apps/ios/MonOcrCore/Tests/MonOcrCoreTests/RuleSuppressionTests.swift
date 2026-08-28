@@ -211,3 +211,55 @@ struct RuleSuppressionTests {
                 "the frame must not be visible in the result at all")
     }
 }
+
+/**
+ Tightly-set lines must not fuse into one band.
+
+ The boundary test reads the RAW row profile. It read the smoothed one until
+ 2026-08-28, and the cost was measured on the Android port rather than argued:
+ pages of 14px lines separated by 5, 6 and 8 pixels came back as ONE band each,
+ against 29, 28 and 25 lines actually drawn. Reading the raw profile returns
+ exactly the drawn count, and at 12px and wider the two agree exactly.
+
+ The threshold is still calibrated from the smoothed mean, which is what the
+ reference does and why both profiles exist (`mon_OCR/src/monocr/segmenter.py`,
+ "Valley detection (dual-histogram)").
+
+ Paired with `lines eight pixels apart stay separate` in
+ `apps/android/.../LineSegmenterTest.kt`. iOS smooths with a kernel of 3 where
+ Android uses 5, so the fusing threshold differs between them; 8px is clear of
+ both.
+ */
+struct RowProfileTests {
+
+    @Test func linesEightPixelsApartStaySeparate() {
+        let w = 400
+        let h = 600
+        let lineH = 14
+        let gap = 8
+        var px = [UInt8](repeating: 255, count: w * h)
+        var y = 20
+        var drawn = 0
+        while y + lineH < h - 20 {
+            for yy in y..<(y + lineH) {
+                for x in 20..<(w - 20) {
+                    // Words with gaps: a solid ribbon this wide reads as a printed
+                    // rule and trips the ink-share ceiling, which would make the
+                    // fixture prove nothing.
+                    let insideAWord = (x - 20) % 45 < 30
+                    if insideAWord && x % 4 < 2 { px[yy * w + x] = 0 }
+                }
+            }
+            drawn += 1
+            y += lineH + gap
+        }
+
+        let ratio = SegmentationMode.page.densityThresholdRatio!
+        let bands = LineSegmenter.segment(
+            page: GreyImage(pixels: px, width: w, height: h), densityThresholdRatio: ratio)
+
+        #expect(
+            bands.count == drawn,
+            "\(drawn) lines were drawn 8px apart; reading the smoothed profile returns 1")
+    }
+}
