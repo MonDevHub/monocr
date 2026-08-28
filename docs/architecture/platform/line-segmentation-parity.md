@@ -51,8 +51,9 @@ one, no morphological smear at all, a fixed 4px pad on both axes, and smoothing 
 | Binarizes against                     | **unblurred** grayscale | blurred            | blurred            | **global 128**              |
 | Density ratio, page mode              | 0.03                    | 0.03               | 0.03               | **0.05**                    |
 | Mode selection                        | **none**                | provenance + shape | provenance + shape | `--mode`, `auto`, `inspect` |
-| Polarity normalised before segmenting | yes                     | yes                | yes                | **no**                      |
-| Printed-rule suppression              | yes                     | yes                | yes                | **no**                      |
+| Polarity normalised before segmenting | yes                     | yes                | yes                | yes                         |
+| Printed-rule suppression              | yes                     | yes                | yes                | yes                         |
+| Boundaries detected on                | raw profile             | raw profile        | raw profile        | **smoothed profile**        |
 
 The first three rows are all Android against the others; the fourth is web against
 the others. So no surface is the reference, and no two agree completely.
@@ -100,8 +101,24 @@ merges more. Android merges more readily than web and iOS, on the same page.
 
 ## What is not claimed here
 
-**Which one is right.** Nothing has measured these three against a page with a
-known line count, so picking a winner would be taste presented as a result. The
+**Which one is right, for the rows above.** Nothing has measured those three
+against a page with a known line count, so picking a winner would be taste
+presented as a result.
+
+That reasoning does **not** cover everything this file used to list under it, and
+one row left the table on 2026-08-28 because of it. All three ports detected run
+boundaries on the smoothed row profile where the reference uses the raw one. That
+was never a question of taste: the reference calibrates its threshold on the
+smoothed profile because a mean is more stable there, and detects on the raw one
+because smoothing bleeds ink across a narrow gap, and it says so in the code. It
+was measurable without ground truth, and it was measured: pages of 14px lines
+separated by 5, 6 and 8 pixels each came back as ONE band, against 29, 28 and 25
+lines drawn. On the raw profile they come back as exactly the drawn count, and at
+12px and wider the two agree exactly.
+
+The lesson for the rest of the table is to check which kind of divergence each row
+is before filing it here. A value with no ground truth is one thing; a documented
+reason the ports had not read is another. The
 upstream trainer, `mon_OCR`, uses different values again: smoothing 15,
 adaptive window 31, constant 15, density ratio 0.12, tuned against rendered
 book pages. Its own documentation records that the ratio suits books at 0.12
@@ -116,16 +133,21 @@ seven of those returned 0–2 characters. Pages carrying no rules come back
 byte-identical, so it is not a trade-off between document types the way the density
 ratio is.
 
-**Three of the four have it: web, Android and iOS.** Ported 2026-08-28. Each port
+**All four have it.** Web already did; Android and iOS were ported on 2026-08-28,
+and `monocr-onnx/rust` the same day, which the CLI inherits. Rust was the last of
+**ten** implementations across five repositories without it — the others being
+`mon_OCR`, `monocr`, `mon-corpus-scraper` and the Python, JS and Go bindings, all
+of which had gained it independently. This file said "only web has it" for long
+enough to be wrong in both directions. Each port
 was measured through its own parameter set rather than inheriting the reference
 figure — bands over the same twelve pages, without → with:
 
-| surface                      | bands without |         with |
-| ---------------------------- | ------------: | -----------: |
-| **web**                      |            68 |      **160** |
-| iOS                          |            68 |     _ported_ |
-| Android                      |            70 |     _ported_ |
-| CLI (via `monocr-onnx/rust`) |           118 | _not ported_ |
+| surface                      | bands without |     with |
+| ---------------------------- | ------------: | -------: |
+| **web**                      |            68 |  **160** |
+| iOS                          |            68 | _ported_ |
+| Android                      |            70 | _ported_ |
+| CLI (via `monocr-onnx/rust`) |           118 | _ported_ |
 
 The iOS and Android columns say _ported_ rather than a band count because the
 twelve-page measurement needs the page images, which live with the upstream
