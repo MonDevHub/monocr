@@ -7,7 +7,7 @@ nonisolated enum LineSegmenter {
     private static let windowSize = 25
     private static let cThreshold = 8 // Lowered to capture faint strokes
     private static let smoothKernel = 3
-    private static let minLineHeight = 10
+    static let minLineHeight = 10
 
     /// A printed rule spans at least this fraction of the page in one direction.
     ///
@@ -219,7 +219,7 @@ nonisolated enum LineSegmenter {
      `merge_runs`), which took it from `mon_OCR` `segmenter.py` step 8. The value is
      the reference's.
      */
-    private static let minGapMerge = 10
+    static let minGapMerge = 10
 
     /**
      Fuse runs that a sub-threshold dip or a few empty rows split apart.
@@ -247,11 +247,27 @@ nonisolated enum LineSegmenter {
     static func mergeRuns(
         _ runs: [(Int, Int)],
         rawHist: [Float],
-        maxGap: Int
+        maxGap: Int,
+        minLine: Int
     ) -> [(Int, Int)] {
         if runs.isEmpty { return [] }
 
-        let heights = runs.map { $0.1 - $0.0 }.sorted()
+        // Median over runs that could BE a line, not over every run. The merge
+        // deliberately runs before the height filter, so `runs` still holds every
+        // speckle the profile picked up, and medianing over all of them lets noise
+        // decide what a typical line is. On a heavily speckled scan the noise wins:
+        // measured on a sibling port, 30% of collected runs were under the minimum,
+        // and on 8 of 55 pages that drove `typical` below 10 - one page reached 2,
+        // and a ceiling of 4, against a real line height of 35. The ceiling then
+        // refuses every merge, so the pass switches itself off on exactly the pages
+        // that need it most.
+        //
+        // Falling back to the unfiltered median when nothing clears the minimum is
+        // safe rather than principled: on such a page the height filter discards
+        // everything anyway, so no crop depends on the value.
+        let allHeights = runs.map { $0.1 - $0.0 }
+        let qualifying = allHeights.filter { $0 >= minLine }
+        let heights = (qualifying.isEmpty ? allHeights : qualifying).sorted()
         let typical = max(1, heights[heights.count / 2])
         let ceiling = typical * 2
 
@@ -274,7 +290,21 @@ nonisolated enum LineSegmenter {
                         break
                     }
                 }
-                let fragment = 2 * (r1 - r0) <= typical || 2 * (last.1 - last.0) <= typical
+                // A run at most half a typical line is a fragment of a line, not a
+                // line, and this is the clause that crosses a gap of genuinely ZERO
+                // ink - which `gapHasInk` refuses and which a floating Mon diacritic
+                // produces. Two REAL lines two rows apart are each a full line by
+                // this test, so they stay apart.
+                //
+                // A fragment attaches to a LINE, never to another fragment. Without
+                // the `minLine` half, a run of speckle merges with itself: measured
+                // on a 12-speck fixture, twelve 2-row specks fused into one 46-row
+                // band, which then CLEARS the height filter and is sent to the
+                // recogniser as a line. Two pieces that are both too short to be a
+                // line do not become one by being adjacent.
+                let ha = last.1 - last.0
+                let hb = r1 - r0
+                let fragment = 2 * min(ha, hb) <= typical && max(ha, hb) >= minLine
 
                 if gapSize <= maxGap && (gapHasInk || fragment) && r1 - last.0 <= ceiling {
                     merged[merged.count - 1] = (last.0, r1)
@@ -447,7 +477,7 @@ nonisolated enum LineSegmenter {
         // Filtering first returned 10 bands 77px tall; this order returns 10 bands
         // 94px tall, and the 17px difference IS the strip of upper marks. Both counts
         // are 10, so no band count can catch this.
-        for (r0, r1) in mergeRuns(runs, rawHist: rawHist, maxGap: minGapMerge)
+        for (r0, r1) in mergeRuns(runs, rawHist: rawHist, maxGap: minGapMerge, minLine: minLineHeight)
         where r1 - r0 >= minLineHeight {
             addSegment(smeared: smeared, width: width, height: height, sY: r0, eY: r1, into: &rawSegments)
         }

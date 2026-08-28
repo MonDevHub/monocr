@@ -58,7 +58,7 @@ struct LineMergeTests {
         // port the same shape is a dip row of 14 ink columns against 16.43.
         var hist = Self.profile(400, [(260, 325, 200)])
         hist[280] = 6 // above zero, below the gap threshold
-        let got = LineSegmenter.mergeRuns([(260, 280), (281, 325)], rawHist: hist, maxGap: 10)
+        let got = LineSegmenter.mergeRuns([(260, 280), (281, 325)], rawHist: hist, maxGap: 10, minLine: 10)
         #expect(Self.same(got, [(260, 325)]), "a 1-row dip holding ink split one line in two: \(got)")
     }
 
@@ -67,7 +67,7 @@ struct LineMergeTests {
         // body of one line, separated by TWO rows of genuinely zero ink. The ink
         // clause cannot cross that; the height ratio is what does.
         let hist = Self.profile(500, [(341, 360, 40), (362, 404, 300)])
-        let got = LineSegmenter.mergeRuns([(341, 360), (362, 404)], rawHist: hist, maxGap: 10)
+        let got = LineSegmenter.mergeRuns([(341, 360), (362, 404)], rawHist: hist, maxGap: 10, minLine: 10)
         #expect(Self.same(got, [(341, 404)]), "a 19-row fragment two empty rows from a 42-row line stayed separate: \(got)")
     }
 
@@ -78,7 +78,7 @@ struct LineMergeTests {
         // pair, which is why the fix is not a smear.
         let hist = Self.profile(400, [(20, 60, 300), (62, 102, 300), (150, 210, 300), (260, 320, 300)])
         let runs = [(20, 60), (62, 102), (150, 210), (260, 320)]
-        let got = LineSegmenter.mergeRuns(runs, rawHist: hist, maxGap: 10)
+        let got = LineSegmenter.mergeRuns(runs, rawHist: hist, maxGap: 10, minLine: 10)
         #expect(Self.same(got, runs), "two full-height lines were fused, which is what a smear would have done: \(got)")
     }
 
@@ -92,7 +92,7 @@ struct LineMergeTests {
             (20, 60, 300), (60, 75, 5), (75, 115, 300), (200, 260, 300), (300, 360, 300)
         ])
         let runs = [(20, 60), (75, 115), (200, 260), (300, 360)]
-        let got = LineSegmenter.mergeRuns(runs, rawHist: hist, maxGap: 10)
+        let got = LineSegmenter.mergeRuns(runs, rawHist: hist, maxGap: 10, minLine: 10)
         #expect(Self.same(got, runs), "a 15-row gap merged, so the size bound is not being applied: \(got)")
     }
 
@@ -107,7 +107,7 @@ struct LineMergeTests {
             (62, 102, 300), (150, 210, 300), (260, 320, 300)
         ])
         let got = LineSegmenter.mergeRuns(
-            [(20, 60), (62, 102), (150, 210), (260, 320)], rawHist: hist, maxGap: 10
+            [(20, 60), (62, 102), (150, 210), (260, 320)], rawHist: hist, maxGap: 10, minLine: 10
         )
         #expect(
             Self.same(got, [(20, 102), (150, 210), (260, 320)]),
@@ -137,7 +137,7 @@ struct LineMergeTests {
         }
         let hist = Self.profile(700, fills)
         let runs = [(0, 20), (22, 42), (44, 64), (66, 86), (88, 108)] + lines
-        let got = LineSegmenter.mergeRuns(runs, rawHist: hist, maxGap: 10)
+        let got = LineSegmenter.mergeRuns(runs, rawHist: hist, maxGap: 10, minLine: 10)
         #expect(
             Self.same(got, [(0, 86), (88, 108)] + lines),
             "a chain of fragments was not bounded at twice a typical line: \(got)"
@@ -145,7 +145,7 @@ struct LineMergeTests {
     }
 
     @Test func anEmptyPageIsLeftAlone() {
-        #expect(LineSegmenter.mergeRuns([], rawHist: [Float](repeating: 0, count: 10), maxGap: 10).isEmpty)
+        #expect(LineSegmenter.mergeRuns([], rawHist: [Float](repeating: 0, count: 10), maxGap: 10, minLine: 10).isEmpty)
     }
 
     /**
