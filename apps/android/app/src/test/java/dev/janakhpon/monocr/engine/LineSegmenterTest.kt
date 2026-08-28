@@ -185,7 +185,7 @@ class LineSegmenterTest {
         hist[280] = 6f // above zero, below the gap threshold
         assertEquals(
             listOf(260 to 325),
-            LineSegmenter.mergeRuns(listOf(260 to 280, 281 to 325), hist, 10)
+            LineSegmenter.mergeRuns(listOf(260 to 280, 281 to 325), hist, 10, 10)
         )
     }
 
@@ -197,7 +197,7 @@ class LineSegmenterTest {
         val hist = profile(500, listOf(Triple(341, 360, 40f), Triple(362, 404, 300f)))
         assertEquals(
             listOf(341 to 404),
-            LineSegmenter.mergeRuns(listOf(341 to 360, 362 to 404), hist, 10)
+            LineSegmenter.mergeRuns(listOf(341 to 360, 362 to 404), hist, 10, 10)
         )
     }
 
@@ -215,7 +215,7 @@ class LineSegmenterTest {
             )
         )
         val runs = listOf(20 to 60, 62 to 102, 150 to 210, 260 to 320)
-        assertEquals(runs, LineSegmenter.mergeRuns(runs, hist, 10))
+        assertEquals(runs, LineSegmenter.mergeRuns(runs, hist, 10, 10))
     }
 
     @Test
@@ -233,7 +233,7 @@ class LineSegmenterTest {
             )
         )
         val runs = listOf(20 to 60, 75 to 115, 200 to 260, 300 to 360)
-        assertEquals(runs, LineSegmenter.mergeRuns(runs, hist, 10))
+        assertEquals(runs, LineSegmenter.mergeRuns(runs, hist, 10, 10))
     }
 
     @Test
@@ -253,7 +253,7 @@ class LineSegmenterTest {
         assertEquals(
             listOf(20 to 102, 150 to 210, 260 to 320),
             LineSegmenter.mergeRuns(
-                listOf(20 to 60, 62 to 102, 150 to 210, 260 to 320), hist, 10
+                listOf(20 to 60, 62 to 102, 150 to 210, 260 to 320), hist, 10, 10
             )
         )
     }
@@ -282,12 +282,12 @@ class LineSegmenterTest {
         }
         val hist = profile(700, fills)
         val runs = listOf(0 to 20, 22 to 42, 44 to 64, 66 to 86, 88 to 108) + lines
-        assertEquals(listOf(0 to 86, 88 to 108) + lines, LineSegmenter.mergeRuns(runs, hist, 10))
+        assertEquals(listOf(0 to 86, 88 to 108) + lines, LineSegmenter.mergeRuns(runs, hist, 10, 10))
     }
 
     @Test
     fun `an empty page is left alone`() {
-        assertEquals(emptyList<Pair<Int, Int>>(), LineSegmenter.mergeRuns(emptyList(), FloatArray(10), 10))
+        assertEquals(emptyList<Pair<Int, Int>>(), LineSegmenter.mergeRuns(emptyList(), FloatArray(10), 10, 10))
     }
 
     /**

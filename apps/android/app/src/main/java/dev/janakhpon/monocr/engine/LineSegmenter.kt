@@ -30,7 +30,7 @@ object LineSegmenter {
     private const val WINDOW_SIZE = 25
     private const val C_THRESHOLD = 8
     private const val SMOOTH_KERNEL = 5
-    private const val MIN_LINE_HEIGHT = 10
+    internal const val MIN_LINE_HEIGHT = 10
 
     /**
      * A printed rule spans at least this fraction of the page in one direction.
@@ -249,7 +249,7 @@ object LineSegmenter {
      * `merge_runs`), which took it from `mon_OCR` `segmenter.py` step 8. The value
      * is the reference's.
      */
-    private const val MIN_GAP_MERGE = 10
+    internal const val MIN_GAP_MERGE = 10
 
     /**
      * Fuse runs that a sub-threshold dip or a few empty rows split apart.
@@ -276,11 +276,28 @@ object LineSegmenter {
     internal fun mergeRuns(
         runs: List<Pair<Int, Int>>,
         rawHist: FloatArray,
-        maxGap: Int
+        maxGap: Int,
+        minLine: Int
     ): List<Pair<Int, Int>> {
         if (runs.isEmpty()) return emptyList()
 
-        val typical = maxOf(1, runs.map { it.second - it.first }.sorted()[runs.size / 2])
+        // Median over runs that could BE a line, not over every run. The merge
+        // deliberately runs before the height filter, so `runs` still holds every
+        // speckle the profile picked up, and medianing over all of them lets noise
+        // decide what a typical line is. On a heavily speckled scan the noise wins:
+        // measured on a sibling port, 30% of collected runs were under the minimum,
+        // and on 8 of 55 pages that drove `typical` below 10 - one page reached 2,
+        // and a ceiling of 4, against a real line height of 35. The ceiling then
+        // refuses every merge, so the pass switches itself off on exactly the pages
+        // that need it most.
+        //
+        // Falling back to the unfiltered median when nothing clears the minimum is
+        // safe rather than principled: on such a page the height filter discards
+        // everything anyway, so no crop depends on the value.
+        val allHeights = runs.map { it.second - it.first }
+        val qualifying = allHeights.filter { it >= minLine }
+        val heights = (if (qualifying.isEmpty()) allHeights else qualifying).sorted()
+        val typical = maxOf(1, heights[heights.size / 2])
         val ceiling = typical * 2
 
         val merged = ArrayList<Pair<Int, Int>>(runs.size)
@@ -303,8 +320,21 @@ object LineSegmenter {
                         break
                     }
                 }
-                val fragment = 2 * (r1 - r0) <= typical ||
-                    2 * (last.second - last.first) <= typical
+                // A run at most half a typical line is a fragment of a line, not a
+                // line, and this is the clause that crosses a gap of genuinely ZERO
+                // ink - which `gapHasInk` refuses and which a floating Mon diacritic
+                // produces. Two REAL lines two rows apart are each a full line by
+                // this test, so they stay apart.
+                //
+                // A fragment attaches to a LINE, never to another fragment. Without
+                // the `minLine` half, a run of speckle merges with itself: measured
+                // on a 12-speck fixture, twelve 2-row specks fused into one 46-row
+                // band, which then CLEARS the height filter and is sent to the
+                // recogniser as a line. Two pieces that are both too short to be a
+                // line do not become one by being adjacent.
+                val ha = last.second - last.first
+                val hb = r1 - r0
+                val fragment = 2 * minOf(ha, hb) <= typical && maxOf(ha, hb) >= minLine
 
                 if (gapSize <= maxGap && (gapHasInk || fragment) && r1 - last.first <= ceiling) {
                     merged[merged.size - 1] = last.first to r1
@@ -510,7 +540,7 @@ object LineSegmenter {
         // returned 10 bands 77px tall; this order returns 10 bands 93px tall, and
         // the 16px difference IS the strip of upper marks. Both counts are 10, so no
         // band count can catch this.
-        for ((r0, r1) in mergeRuns(runs, rawHist, MIN_GAP_MERGE)) {
+        for ((r0, r1) in mergeRuns(runs, rawHist, MIN_GAP_MERGE, MIN_LINE_HEIGHT)) {
             if (r1 - r0 >= MIN_LINE_HEIGHT) {
                 addSegment(smeared, width, height, r0, r1, segments)
             }
