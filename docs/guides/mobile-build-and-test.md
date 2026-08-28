@@ -170,11 +170,11 @@ cd apps/ios
 sh Scripts/swift-test.sh          # Test run with 35 tests in 5 suites passed
 ```
 
-`DEVELOPER_DIR` is not required here, and — measured — it does no harm either:
-the script's candidate loop finds `Testing.framework` under both toolchains, and
-`DEVELOPER_DIR=... sh Scripts/swift-test.sh` also reports 35 tests passing. An
-earlier version of this guide said "do not export it for this command"; that was
-wrong.
+`DEVELOPER_DIR` is not required here, and setting it does no harm. That was
+measured: the script's candidate loop finds `Testing.framework` under both
+toolchains, and `DEVELOPER_DIR=... sh Scripts/swift-test.sh` also reports 35 tests
+passing. An earlier version of this guide said "do not export it for this
+command", which was wrong.
 
 Do not substitute a bare `swift test` — it fails with `error: no such module
 'Testing'`. The wrapper exists for two reasons documented in its own header: the
