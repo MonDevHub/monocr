@@ -149,6 +149,32 @@ target against the package's. It affects nothing the app ships.
 3.  Build and run on a physical device for optimal performance (ANE acceleration).
 4.  Use the **Document Picker** or **Camera** to begin character recognition.
 
+## Known gap: most of the app's own strings are not in the catalogue
+
+`Localizable.xcstrings` holds 207 entries with Mon and Burmese translations, and
+**16 of the 24 `NSLocalizedString` literals in the Swift sources are not among
+them**. Those 16 fall back to their English key, for the two languages this app
+exists to serve.
+
+They are not marginal strings. Measured 2026-08-28:
+
+| what is missing               | where                    |
+| ----------------------------- | ------------------------ |
+| every segmentation mode label | `SegmentationMode.swift` |
+| every mode description        | `SegmentationMode.swift` |
+| both accuracy warnings        | `ResultCardView.swift`   |
+| every engine error message    | `MonOcrEngine.swift`     |
+| the multi-page failure notice | `MainViewModel.swift`    |
+
+So a Mon reader sees the mode picker as "Page / Sparse / Line" and, when a
+reading is unreliable, is told so in English. A further 29 of the 207 catalogued
+entries are present but not translated into both languages.
+
+Recorded rather than fixed: the entries need real translations, and inventing
+them would be worse than the gap. Re-derive the count before quoting it, with the
+literals extracted from `apps/ios/monocr-ios/**/*.swift` and compared against the
+catalogue's `strings` keys.
+
 ## Resources
 
 - [Hugging Face Models](https://huggingface.co/janakhpon/monocr) (ONNX, Core ML; the TFLite export was removed at revision `a51be11`)
