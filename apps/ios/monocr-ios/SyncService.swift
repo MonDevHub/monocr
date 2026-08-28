@@ -79,6 +79,24 @@ actor SyncService {
         MonLog_d("[Sync] Attempting \(record.fileName)...")
         
         do {
+            // Counted, because `isSynced` must mean "the server has it" and used to
+            // mean "no error was thrown".
+            //
+            // A text-only contribution destroyed itself here. `ContributeViewModel`
+            // names an unattached contribution "Text Contribution", so
+            // `record.imageData` was nil AND the sentinel below matched: no primary
+            // upload, text upload skipped, `isSynced = true`. The user saw success,
+            // history showed synced, and the server never received the text. There
+            // is no recovery from that, because the record is no longer eligible.
+            //
+            // The sentinel was ported from web, where `fileData` is unconditionally
+            // the text blob, so skipping the second upload correctly avoided sending
+            // it twice. Here the primary payload is conditional, which inverted the
+            // guard's meaning. The condition that actually matters is whether the
+            // text has already gone up as the primary payload, so that is what this
+            // asks instead of comparing a display name.
+            var uploads = 0
+
             if let imageData = record.imageData {
                 try await uploadToFeedbackService(
                     fileName: record.fileName,
@@ -87,28 +105,41 @@ actor SyncService {
                     category: record.category,
                     data: imageData
                 )
+                uploads += 1
             }
-            
-            // Dual upload text if not raw image-only or fallback
-            let isJustTextBlob = record.fileName == "Text Contribution"
-            if !isJustTextBlob && !record.text.isEmpty && record.text != "(Image only)" {
-                let textFileName = "\((record.fileName as NSString).deletingPathExtension)-transcription.txt"
-                if let textData = record.text.data(using: .utf8) {
-                    try await uploadToFeedbackService(
-                        fileName: textFileName,
-                        fileType: "text/plain",
-                        recordId: record.id.uuidString,
-                        category: record.category,
-                        data: textData
-                    )
-                }
+
+            let hasTranscription = !record.text.isEmpty && record.text != "(Image only)"
+            if hasTranscription, let textData = record.text.data(using: .utf8) {
+                // `-transcription` only when it accompanies something. When the text
+                // IS the contribution it is not a transcription OF anything, and a
+                // suffix would misfile it in the corpus.
+                let base = (record.fileName as NSString).deletingPathExtension
+                let textFileName = record.imageData == nil ? "\(base).txt" : "\(base)-transcription.txt"
+                try await uploadToFeedbackService(
+                    fileName: textFileName,
+                    fileType: "text/plain",
+                    recordId: record.id.uuidString,
+                    category: record.category,
+                    data: textData
+                )
+                uploads += 1
             }
-            
+
+            guard uploads > 0 else {
+                // Nothing was sent, so nothing is synced. Left eligible rather than
+                // marked done; `syncAttempts < 5` bounds the retrying.
+                MonLog_e("Sync produced nothing to upload for \(record.fileName)")
+                record.syncError = "Nothing to upload: the record carries neither a file nor any text."
+                record.syncAttempts += 1
+                try context.save()
+                return
+            }
+
             record.isSynced = true
             record.syncError = nil
             record.syncAttempts += 1
             try context.save()
-            MonLog_i("Successfully synced: \(record.fileName)")
+            MonLog_i("Successfully synced: \(record.fileName) (\(uploads) upload(s))")
         } catch {
             MonLog_e("Sync failed for \(record.fileName)", error: error)
             record.syncError = error.localizedDescription
@@ -117,6 +148,28 @@ actor SyncService {
         }
     }
     
+    /// Strip what would let a value break out of the header it sits in.
+    ///
+    /// The filename is user-controlled and was interpolated straight into
+    /// `Content-Disposition: ...; filename="\(fileName)"`. A document named
+    /// `x".txt"\r\nContent-Type: text/html\r\n\r\n...` injected arbitrary
+    /// multipart headers, or an entire extra part, into the request this app makes
+    /// with its own API key. Android carried the same hole.
+    ///
+    /// CR and LF go because they end a header; the double quote goes because it
+    /// ends the quoted string. Everything else survives, so Mon titles stay intact
+    /// rather than being reduced to underscores.
+    ///
+    /// `original_name` above is a body field rather than a header parameter, so a
+    /// quote in it is harmless; it is left alone so the service receives the real
+    /// name.
+    private func headerSafe(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\r", with: "")
+            .replacingOccurrences(of: "\n", with: "")
+            .replacingOccurrences(of: "\"", with: "'")
+    }
+
     /// Memory-efficient multipart upload using temporary file backing
     private func uploadToFeedbackService(fileName: String, fileType: String, recordId: String, category: String, data: Data) async throws {
         let categoryLower = category.lowercased()
@@ -162,8 +215,8 @@ actor SyncService {
         write("\(fileName)\r\n")
         
         write("--\(boundary)\r\n")
-        write("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n")
-        write("Content-Type: \(fileType)\r\n\r\n")
+        write("Content-Disposition: form-data; name=\"file\"; filename=\"\(headerSafe(fileName))\"\r\n")
+        write("Content-Type: \(headerSafe(fileType))\r\n\r\n")
         write(data) // The large data blob is still passed as Data here, but it's not copied into a second Data object.
         write("\r\n")
         

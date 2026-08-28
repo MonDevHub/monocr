@@ -9,7 +9,8 @@ import dev.janakhpon.monocr.data.HistoryRecord
 import dev.janakhpon.monocr.util.MonLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.DataOutputStream
+import java.io.BufferedOutputStream
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -109,11 +110,11 @@ class SyncWorker(
             connection.setRequestProperty("X-API-Key", API_KEY)
             connection.setRequestProperty("X-Request-ID", recordId)
 
-            DataOutputStream(connection.outputStream).use { os ->
+            BufferedOutputStream(connection.outputStream).use { os ->
                 writeFormField(os, boundary, "record_id", recordId)
                 writeFormField(os, boundary, "original_name", fileName)
                 writeFileField(os, boundary, "file", fileName, fileType, data)
-                os.writeBytes("--$boundary--\r\n")
+                writeUtf8(os, "--$boundary--\r\n")
                 os.flush()
             }
 
@@ -127,18 +128,49 @@ class SyncWorker(
         }
     }
 
-    private fun writeFormField(os: DataOutputStream, boundary: String, name: String, value: String) {
-        os.writeBytes("--$boundary\r\n")
-        os.writeBytes("Content-Disposition: form-data; name=\"$name\"\r\n\r\n")
-        os.writeBytes(value)
-        os.writeBytes("\r\n")
+    /**
+     * Write [text] as UTF-8.
+     *
+     * Every write here used `DataOutputStream.writeBytes`, which by specification
+     * writes only the LOW BYTE of each char. Mon is U+1000-U+109F, so every
+     * Mon-titled document arrived at the service with its name mangled to
+     * unrelated Latin-1 bytes: `original_name` and the `filename` parameter both.
+     * That is the common case for this app, not an edge one, and it is the only
+     * client that did it. iOS encodes UTF-8 and web passes through
+     * `encodeURIComponent`.
+     */
+    private fun writeUtf8(os: OutputStream, text: String) {
+        os.write(text.toByteArray(Charsets.UTF_8))
     }
 
-    private fun writeFileField(os: DataOutputStream, boundary: String, name: String, fileName: String, contentType: String, data: ByteArray) {
-        os.writeBytes("--$boundary\r\n")
-        os.writeBytes("Content-Disposition: form-data; name=\"$name\"; filename=\"$fileName\"\r\n")
-        os.writeBytes("Content-Type: $contentType\r\n\r\n")
+    /**
+     * Strip what would let a value break out of the header it sits in.
+     *
+     * The filename is user-controlled and was interpolated straight into
+     * `Content-Disposition: ...; filename="$fileName"`. A document named
+     * `x".txt"\r\nContent-Type: text/html\r\n\r\n...` injected arbitrary
+     * multipart headers, or an entire extra part, into the request this app makes
+     * with its own API key. iOS carried the same hole.
+     *
+     * CR and LF go because they end a header; the double quote goes because it
+     * ends the quoted string. Everything else survives, so Mon titles are kept
+     * intact rather than reduced to underscores.
+     */
+    private fun headerSafe(value: String): String =
+        value.replace("\r", "").replace("\n", "").replace("\"", "'")
+
+    private fun writeFormField(os: OutputStream, boundary: String, name: String, value: String) {
+        writeUtf8(os, "--$boundary\r\n")
+        writeUtf8(os, "Content-Disposition: form-data; name=\"${headerSafe(name)}\"\r\n\r\n")
+        writeUtf8(os, value)
+        writeUtf8(os, "\r\n")
+    }
+
+    private fun writeFileField(os: OutputStream, boundary: String, name: String, fileName: String, contentType: String, data: ByteArray) {
+        writeUtf8(os, "--$boundary\r\n")
+        writeUtf8(os, "Content-Disposition: form-data; name=\"${headerSafe(name)}\"; filename=\"${headerSafe(fileName)}\"\r\n")
+        writeUtf8(os, "Content-Type: ${headerSafe(contentType)}\r\n\r\n")
         os.write(data)
-        os.writeBytes("\r\n")
+        writeUtf8(os, "\r\n")
     }
 }
