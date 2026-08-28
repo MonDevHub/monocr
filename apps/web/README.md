@@ -6,11 +6,13 @@ For mission context, community guidelines, and cross-platform information, pleas
 
 ## Overview
 
-By implementing a **browser-bound execution model**, all OCR processing is restricted to the client-side environment. This architecture leverages **ONNX Runtime Web** and a specialized **Wasm** backend to ensure zero-latency inference and absolute data privacy—guaranteeing that linguistic assets never traverse the network.
+MonOCR Web runs **ONNX Runtime Web**, picking WebGPU when the browser offers it and falling back to a single-threaded Wasm backend when it does not. Every character is recognised in the tab. The model is fetched once and kept in the Cache API; no image and no recognised text leaves the machine, because there is no network call on the recognition path.
 
 ## Key Features
 
-- **On-Device Inference**: Runs entirely in the browser via WebAssembly (Wasm).
+- **On-Device Inference**: Runs in the browser, on WebGPU where available and WebAssembly (Wasm) otherwise.
+- **Printed-Rule Suppression**: Ruled paper, table borders and underlines are cleared from the binarised mask before the projection profile runs, so a printed line is not read as ink.
+- **Line Tiling**: Lines wider than the model window are cut at whitespace instead of squeezed into it.
 - **Privacy by Design**: Zero data collection; OCR processing is 100% local.
 - **Optional Cloud Sync**: Secure, opt-in synchronization for contributing corrected scans to the open-source Mon language dataset.
 - **High Performance**: Optimized MobileNetV3 + BiLSTM OCR engine (11.55M parameters).
@@ -18,17 +20,44 @@ By implementing a **browser-bound execution model**, all OCR processing is restr
 - **Script Specialized**: Purpose-built for Mon script recognition, with supplementary support for Burmese and English.
 
 > [!TIP]
-> File size is limited to 50MB for web and 20MB for mobile. For processing larger files or leveraging more powerful hardware, please use the CLI or package directly via `uv add monocr` or `pip install monocr`.
+> File size is limited to 50MB for web and 20MB for mobile. For larger files, or to use a machine with more memory, use the CLI or the package directly: `uv add monocr` or `pip install monocr`.
 
 ## Architecture
 
 ```
-Image (Canvas/Blob)
-  LineSegmenter     -> horizontal projection profile -> List<LineSegment>
-  ImagePreprocessor  -> grayscale + normalize [-1.0, 1.0]
-  MonOcrEngine      -> ONNX Runtime Web (monocr.onnx)
-  CtcDecoder        -> greedy CTC decode -> String
+Image bytes (Uint8Array)
+  createImageBitmap      -> decode, flatten transparency onto white -> ImageData
+  normalizePagePolarity  -> invert ONCE per page if the background is dark
+  segmentLines           -> blur, adaptive threshold, suppressPageRules,
+                            smear, projection profile -> LineSegment[]
+  assessCapture          -> capture-quality warnings; drops nothing
+  tileLine               -> split lines too wide for the window -> LineSegment[]
+  processLine            -> crop + letterbox to 160x1024 + normalize [-1.0, 1.0]
+  session.run            -> ONNX Runtime Web (monocr.onnx), [1, 1, 160, 1024]
+  decodePredictions      -> greedy CTC decode -> string
 ```
+
+All of this runs in `ocr.worker.ts`, off the main thread.
+
+`suppressPageRules` is a step inside `segmentLines`, not a stage of its own. It
+runs after adaptive binarisation and before the morphological smear, because the
+smear widens a rule into something no line kernel matches cleanly. An unbroken
+run of ink spanning at least half the page in either direction is a rule
+(`RULE_SPAN = 0.5`, with a 15px floor). If clearing them would remove more than
+80% of the page's ink (`RULE_MAX_INK_SHARE = 0.8`) it has found text rather than
+rules, and leaves the mask untouched.
+
+**Web does no background levelling, on purpose.** The mobile ports divide out a
+dilated background estimate to flatten sepia paper and grey panels; this one does
+not, and `segmentation.ts:163` records the reason. It is a separate enhancement,
+it is the expensive half, and it is not idempotent, so adding it here without the
+memory work this file already needs would trade one silent bug for another. A
+diagram showing that stage on web is describing iOS.
+
+Polarity is the one page-level normalisation web does have, and it is decided
+before segmenting: the projection profile treats dark pixels as ink, so a
+per-tile decision made two tiles of one line invert differently. Tiles of one
+line join with no separator; distinct lines join with a newline.
 
 ### Model Specification
 
@@ -42,19 +71,26 @@ Image (Canvas/Blob)
 
 ## Project Structure
 
+The engine is not a directory. It is four flat files in `src/lib/`, and tests sit
+beside the file they cover as `*.test.ts` under Vitest.
+
 ```
 apps/web/
 ├── src/
 │   ├── lib/
-│   │   ├── engine/           # OCR Pipeline (ONNX/Wasm)
-│   │   ├── components/       # Svelte UI Components
-│   │   └── utils/            # Image & PDF Processing
-│   └── routes/               # Application Pages
+│   │   ├── segmentation.ts   # Polarity, rule suppression, HPP segmenting, tiling
+│   │   ├── monocr-onnx.ts    # ONNX Runtime Web session, preprocessing, CTC decode
+│   │   ├── ocr.worker.ts     # The worker the UI talks to
+│   │   ├── capture-quality.ts
+│   │   ├── components/       # Svelte UI components
+│   │   ├── services/, stores/, storage/, actions/
+│   │   └── utils/            # Image & PDF processing
+│   └── routes/               # Application pages
+├── functions/                # Cloudflare Pages functions
 ├── static/
-│   ├── wasm/                 # ONNX Runtime Wasm Binaries
-│   └── fonts/                # Mon/Myanmar Unicode Fonts
-├── scripts/                  # Build & Asset Management
-└── playwright/               # E2E Testing Suite
+│   ├── wasm/                 # ONNX Runtime Wasm binaries
+│   └── fonts/                # Mon/Myanmar Unicode fonts
+└── scripts/                  # Build & asset management
 ```
 
 ## Ecosystem
@@ -102,7 +138,7 @@ Nothing changes in production, where the local branch is never taken.
 
 The revision in that command is not decoration. `static/charset.txt` is 276
 characters and the app refuses to decode against a model that does not match it,
-so fetching from `main` — or from a different revision — gives you a
+so fetching from `main`, or from any other revision, gives you a
 `ModelContractError` at load rather than wrong text. Keep it equal to
 `CONFIG.MODELS.RECOGNITION`.
 

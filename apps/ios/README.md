@@ -1,12 +1,12 @@
 # MonOCR iOS
 
-MonOCR iOS provides high-performance, native optical character recognition for the Mon script natively on Apple devices. 
+MonOCR iOS provides high-performance, native optical character recognition for the Mon script natively on Apple devices.
 
 For mission context, community guidelines, and cross-platform information, please refer to the **[MonOCR Root Documentation](../../README.md)**.
 
 ## Overview
 
-MonOCR iOS runs **Core ML** and the Vision framework, so every character is recognised on the device. The model ships as `monocr.mlpackage` and Core ML places it on the Neural Engine where the hardware allows. No image and no recognised text leaves the device: there is no network call on the recognition path.
+MonOCR iOS runs **Core ML**, so every character is recognised on the device. Recognition is this project's own pipeline end to end; Vision does no text recognition here. The model ships as `monocr.mlpackage` and Core ML places it on the Neural Engine where the hardware allows. No image and no recognised text leaves the device: there is no network call on the recognition path.
 
 ## Key Features
 
@@ -14,6 +14,7 @@ MonOCR iOS runs **Core ML** and the Vision framework, so every character is reco
 - **Privacy by Design**: Zero data collection; OCR processing is 100% local.
 - **Mon Language Support**: Specialized for the Mon script (276-char charset).
 - **Line Segmentation**: Horizontal projection profiling, with a Page / Sparse / Line mode so dense scans and wide-spaced photos can use different thresholds.
+- **Printed-Rule Suppression**: Ruled paper, table borders and underlines are cleared from the binarised mask before the projection profile runs, so a printed line is not read as ink. Shares a fixture with the web and Android ports.
 - **Line Tiling**: Lines wider than the model window are cut at whitespace instead of squeezed into it. Squeezing degrades sharply as a line gets wider: 0.21 CER at four model windows against tiling's 0.06, and above 0.83 by six, while tiling costs a fraction of a point on narrower lines. Measured over 201 rendered lines, 2026-08-22, in the sibling repository `janakhpon/mon_OCR` at `eval/tiling-ab-2026-08-22.md`.
 - **Modern UI**: 100% SwiftUI with native animations and light/dark theme support.
 - **Format Support**: Handles high-resolution images and multi-page PDFs.
@@ -28,12 +29,25 @@ MonOCR iOS runs **Core ML** and the Vision framework, so every character is reco
 Image (UIImage)
   GreyImage.upright  -> orientation-corrected 8-bit grey buffer
   PageNormalizer     -> polarity + background levelling, ONCE, before segmenting
-  LineSegmenter      -> horizontal projection profile -> [LineSegment]
+  LineSegmenter      -> blur, adaptive threshold, suppressPageRules,
+                        smear, projection profile -> [LineSegment]
   LineTiler          -> split lines too wide for the window -> [LineSegment]
   ImagePreprocessor  -> scale to 160x1024 + normalize [-1.0, 1.0]
-  MonOcrEngine       -> Core ML Prediction (monocr.mlpackage)
+  MonOcrEngine       -> Core ML Prediction (monocr.mlpackage), [1, 1, 160, 1024]
   CtcDecoder         -> greedy CTC decode -> String
 ```
+
+`suppressPageRules` is a step inside `LineSegmenter.segment`, not a stage of its
+own. It runs after adaptive binarisation and before the morphological smear,
+because the smear widens a rule into something no line kernel matches cleanly. An
+unbroken run of ink spanning at least half the page in either direction is a rule
+(`ruleSpan = 0.5`, with a 15px floor). If clearing them would remove more than
+80% of the page's ink (`ruleMaxInkShare = 0.8`) it has found text rather than
+rules, and leaves the mask untouched.
+
+`SegmentationMode.line` skips `LineSegmenter.segment` altogether and treats the
+image as a single band. `.page` and `.sparse` differ only in the valley threshold
+they pass in.
 
 Tiles of one line join with no separator; distinct lines join with a newline.
 Polarity is decided at page level because the projection profile treats dark
@@ -46,28 +60,38 @@ well-formed, wrong Mon text rather than an error.
 
 ### Model Specification
 
-| Attribute    | Specification                  |
-| ------------ | ------------------------------ |
+| Attribute    | Specification                                           |
+| ------------ | ------------------------------------------------------- |
 | Architecture | MobileNetV3-Large + SE + 2×BiLSTM-512 + attention + CTC |
-| Precision    | FP32 (Core ML)                 |
-| Parameters   | 11.55M                          |
-| Input        | 160 × 1024 (H × W), both static         |
-| Asset Size   | 46.2 MB                        |
+| Precision    | FP32 (Core ML)                                          |
+| Parameters   | 11.55M                                                  |
+| Input        | 160 × 1024 (H × W), both static                         |
+| Asset Size   | 46.2 MB                                                 |
 
 ## Project Structure
 
+`monocr-ios/` is **flat**. Every Swift file sits at its top level, and the only
+real subdirectories are `Assets.xcassets/`, `Fonts/` and `monocr.mlpackage/`.
+That is not an oversight: the app target is a `PBXFileSystemSynchronizedRootGroup`
+over that one directory, so moving a file into a subfolder means editing
+`monocr-ios.xcodeproj`.
+
 ```
 apps/ios/
-├── monocr-ios/
-│   ├── engine/           # OCR Core (Core ML, Preprocessing, Decoding)
-│   ├── ui/               # SwiftUI Views & ViewModels
-│   ├── persistence/      # SwiftData models & History
-│   ├── resources/        # Models, Fonts, & Assets
-│   └── util/             # Platform & PDF utilities
+├── monocr-ios/           # Flat: engine, views, view models, persistence, utilities
+│   ├── Assets.xcassets/
+│   ├── Fonts/            # PyidaungSu regular & bold
+│   └── monocr.mlpackage/ # Core ML model
 ├── MonOcrCore/           # Swift package: the platform-free logic, and its tests
+│   ├── Sources/MonOcrCore/    # 12 symlinks back into monocr-ios/
+│   └── Tests/MonOcrCoreTests/
 ├── Scripts/              # swift-test.sh
-└── monocr-ios.xcodeproj  # Xcode Project
+└── monocr-ios.xcodeproj  # Xcode project
 ```
+
+The engine files are `MonOcrEngine.swift`, `PageNormalizer.swift`,
+`LineSegmenter.swift`, `LineTiler.swift`, `ImagePreprocessor.swift`,
+`CtcDecoder.swift`, `GreyImage.swift` and `LogitsLayout.swift`.
 
 ## Ecosystem
 
