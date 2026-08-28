@@ -336,8 +336,11 @@ input set for both mobile packages comes out as literally `['package.json']`. Un
 Two related gaps in the same area, and one requirement that is easy to mistake
 for one:
 
-- `apps/ios/package.json` declares no `lint` script, so `pnpm lint:all` silently
-  skips iOS entirely.
+- `apps/ios/package.json` declares no `lint` script, so `pnpm lint:all` skips
+  iOS entirely — as it does `@monocr/locales`. Turbo resolves both to
+  `<NONEXISTENT>` and moves on; in a filtered run it warns, in a full run it does
+  not. Note this is not what stops `lint:all` being useful: the Android leg is in
+  the same run and fails on the 161 lint errors above.
 - Root `pnpm clean` only removes `node_modules`. It touches none of
   `apps/android/app/build`, `apps/android/.gradle`,
   `apps/ios/MonOcrCore/.build`, or DerivedData — each of which reaches hundreds of

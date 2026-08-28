@@ -53,7 +53,7 @@ This guide ensures you have a consistent development environment for the MonOCR 
 
 | Command | Action |
 | :--- | :--- |
-| `pnpm dev:all` | Starts Web, Android, and Feedback services in parallel. |
-| `pnpm build` | Builds all production-ready artifacts across all engines. |
+| `pnpm dev:all` | Starts Web, CLI and Feedback in parallel. **Not Android or iOS** — neither declares a `dev` script, so `turbo run dev --parallel` resolves them to `<NONEXISTENT>` and skips them. This row used to name Android. |
+| `pnpm build` | Builds every package. For the mobile apps this is **Debug**, not production — `./gradlew assembleDebug` and `xcodebuild -configuration Debug` — and both need the environment variables above. |
 | `pnpm translate` | Synchronizes the latest locals from Google Sheets. |
-| `pnpm lint:all` | Executes a unified lint pass across all languages. |
+| `pnpm lint:all` | Lints Web, CLI, Android and Feedback. **Not iOS** — `@monocr/ios` declares no `lint` script (nor does `@monocr/locales`). Note the Android leg (`./gradlew lint`) currently fails on 161 pre-existing lint errors, so this task does not pass today. |
