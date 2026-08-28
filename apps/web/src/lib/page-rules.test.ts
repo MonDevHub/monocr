@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { RULE_MAX_INK_SHARE, RULE_SPAN, segmentLines, suppressPageRules } from './segmentation';
+import {
+	RULE_MAX_INK_SHARE,
+	RULE_SPAN,
+	segmentLines,
+	suppressPageRules,
+	type LineSegment
+} from './segmentation';
 
 /**
  * Printed-rule suppression.
@@ -183,11 +189,61 @@ describe('suppressPageRules', () => {
 		//   0.8                as rules, rule-free pages 0.00%, and the known false
 		//                      positive 98.7%. 0.8 sits in that empty band.
 		//
-		// Five sibling implementations carry the same two values. Changing one here
-		// without the others is the drift `mon_OCR/scripts/segmenter_parity.py`
-		// exists to catch, and it does not yet cover these two.
+		// Five sibling implementations carry the same two values:
+		// `apps/android/.../engine/LineSegmenter.kt`, `apps/ios/monocr-ios/LineSegmenter.swift`
+		// and its byte-identical twin `apps/ios/MonOcrCore/Sources/MonOcrCore/LineSegmenter.swift`,
+		// the reference `mon_OCR/src/monocr/segmenter.py` (`_RULE_SPAN`,
+		// `_RULE_MAX_INK_SHARE`), and `monocr-onnx/python/monocr_onnx/segmenter.py`.
+		//
+		// Changing one here without the others is drift, and it IS covered across
+		// ports: `shared/segmentation-fixtures/generate-rule-cases.py` stamps both
+		// values into `rule-cases.json` and aborts if the reference has moved, and
+		// each port asserts them back — see `rule-fixture.test.ts` here, plus
+		// `RuleFixtureTest.kt` and `RuleFixtureTests.swift`. This test is the local
+		// half of that: it fails on a retune even when the fixture is regenerated
+		// in the same change.
 		expect(RULE_SPAN).toBe(0.5);
 		expect(RULE_MAX_INK_SHARE).toBe(0.8);
+	});
+
+	it('rejects a mask whose length disagrees with its dimensions', () => {
+		// WHERE THIS PORT FAILS DIFFERENTLY FROM ITS SIBLINGS, and why the check is
+		// explicit. Kotlin throws ArrayIndexOutOfBoundsException on a short mask and
+		// Swift traps; a Uint8Array reads `undefined` out of range — falsy, so "no
+		// ink" — and drops out-of-range writes. Measured before the guard: a mask
+		// truncated by 50 rows returned `true` with no throw, leaving those rows
+		// unsuppressed while reporting success.
+		const { m, height } = mask(4, 40, true);
+		const truncated = m.slice(0, m.length - WIDTH * 50);
+
+		expect(() => suppressPageRules(truncated, WIDTH, height)).toThrow(
+			/mask has 232000 entries, but 800x340 needs 272000/
+		);
+		// A mask that is too LONG is the same defect wearing the other hat: the
+		// trailing entries are never scanned, so the caller's idea of the page and
+		// this function's disagree.
+		expect(() => suppressPageRules(new Uint8Array(WIDTH * height + 1), WIDTH, height)).toThrow(
+			/suppressPageRules/
+		);
+	});
+
+	it('returns false for a non-positive width or height', () => {
+		// Matching Kotlin's `if (width <= 0 || height <= 0) return false` and Swift's
+		// `guard width > 0, height > 0`. Without it a negative width reached
+		// `new Uint8Array(width * height)` and surfaced as a RangeError about a typed
+		// array length, which names neither this function nor the caller's mistake.
+		expect(suppressPageRules(new Uint8Array(0), -5, 10)).toBe(false);
+		expect(suppressPageRules(new Uint8Array(0), 10, -5)).toBe(false);
+		expect(suppressPageRules(new Uint8Array(0), 0, 10)).toBe(false);
+		expect(suppressPageRules(new Uint8Array(0), 10, 0)).toBe(false);
+
+		// The ORDER of the two guards, which is the only thing separating `<= 0`
+		// from `< 0` here: a zero dimension makes width*height zero, and the empty
+		// mask that implies would return false down the ink==0 path anyway. Answer
+		// a non-positive dimension with `false` — as Kotlin and Swift do — rather
+		// than escalating it into a length complaint about a page that has no valid
+		// size to disagree with in the first place.
+		expect(suppressPageRules(new Uint8Array(64), 0, 10)).toBe(false);
 	});
 	it('handles a blank and an all-ink mask without throwing', () => {
 		const blank = new Uint8Array(100 * 50);
@@ -198,10 +254,97 @@ describe('suppressPageRules', () => {
 });
 
 describe('segmentLines wiring', () => {
-	it('calls the suppression before the projection profile', () => {
-		// The unit tests are worthless if segmentLines does not run it. Structural,
-		// because a synthetic framed page does not fuse at this parameter set — the
-		// justification is the real-page measurement in the header above.
-		expect(segmentLines.toString()).toContain('suppressPageRules');
+	/**
+	 * What the whole pass is for: a printed frame around a page must stop changing
+	 * how many lines come out of it.
+	 *
+	 * A page border adds a constant ink floor to every row it spans. Once that floor
+	 * clears the gap threshold no row inside the frame reads as a gap, the page
+	 * returns as one band, and that band is squeezed into the model window and read
+	 * as a sentence that is not on the page. Upstream, nine of twelve real MNEC
+	 * papers collapsed this way.
+	 *
+	 * This replaced `expect(segmentLines.toString()).toContain('suppressPageRules')`,
+	 * which asserted the wrong thing: source text passes whether the call is live,
+	 * commented out, unreachable, or moved to after the smear. The prior note
+	 * claimed a synthetic framed page does not fuse at this parameter set. It does —
+	 * with the call disabled this fixture returns a single 300x200 band covering the
+	 * page, and moving the call below the smear passes shifts every band.
+	 *
+	 * Mirrors `RuleSuppressionTest.kt` (`a printed frame does not change the
+	 * reading`) and `RuleSuppressionTests.swift`, with the tighter TEXT_MARGIN below.
+	 */
+	const PAGE_W = 300;
+	const PAGE_H = 200;
+	const STRIPES: [number, number][] = [
+		[40, 52],
+		[90, 102],
+		[140, 152]
+	];
+
+	/**
+	 * How close the text runs to the border, and the one place this fixture departs
+	 * from the Kotlin and Swift originals, which use 20.
+	 *
+	 * 10 is what pins the ORDER of the call, not merely its presence. The crop's
+	 * column extents come from the SMEARED mask, and the 11px horizontal smear
+	 * reaches 5px either way. At 10 the text's smear and the border's smear overlap,
+	 * so suppressing the smeared mask instead of the binary one takes the text's
+	 * leading columns with the border and every band comes back 3-5px narrower.
+	 * Suppressing before the smear — what the code does — leaves the bands identical
+	 * to the unframed page. At 20 the two footprints never touch and both orders
+	 * agree, which is why a fixture copied straight across would not have caught it.
+	 */
+	const TEXT_MARGIN = 10;
+
+	/**
+	 * Words with gaps, not a solid ribbon of ink. The Android fixture's first
+	 * version drew each stripe as one unbroken 260px band, which on a 300px page is
+	 * longer than the 150px span — so the scan classified the TEXT as rules,
+	 * RULE_MAX_INK_SHARE fired at 90.7%, and the pass abandoned. That is the guard
+	 * behaving exactly as designed, and it made the fixture prove nothing. Real text
+	 * is broken by word gaps and cannot form runs that long.
+	 */
+	function page(framed: boolean): ImageData {
+		const data = new Uint8ClampedArray(PAGE_W * PAGE_H * 4).fill(255);
+		const ink = (x: number, y: number) => {
+			const o = (y * PAGE_W + x) * 4;
+			data[o] = data[o + 1] = data[o + 2] = 0;
+		};
+		for (const [top, bottom] of STRIPES) {
+			for (let y = top; y <= bottom; y++) {
+				for (let x = TEXT_MARGIN; x < PAGE_W - TEXT_MARGIN; x++) {
+					const insideAWord = (x - TEXT_MARGIN) % 45 < 30;
+					if (insideAWord && x % 4 < 2) ink(x, y);
+				}
+			}
+		}
+		if (framed) {
+			for (let x = 0; x < PAGE_W; x++) {
+				ink(x, 0);
+				ink(x, PAGE_H - 1);
+			}
+			for (let y = 0; y < PAGE_H; y++) {
+				ink(0, y);
+				ink(PAGE_W - 1, y);
+			}
+		}
+		return { width: PAGE_W, height: PAGE_H, data, colorSpace: 'srgb' } as ImageData;
+	}
+
+	const geometry = (bands: LineSegment[]) =>
+		bands.map((b) => `${b.x},${b.y},${b.width},${b.height}`);
+
+	it('runs the suppression, so a printed frame does not change the reading', () => {
+		const plain = segmentLines(page(false));
+		const framed = segmentLines(page(true));
+
+		// The unframed page is the control: if it cannot find its own stripes the
+		// comparison below is two kinds of wrong agreeing with each other.
+		expect(geometry(plain)).toHaveLength(STRIPES.length);
+
+		// Band-for-band, not just the count. A frame that shifted every box by a
+		// pixel would pass a count check and still be visible in every crop.
+		expect(geometry(framed)).toEqual(geometry(plain));
 	});
 });

@@ -26,10 +26,10 @@ export interface LineSegment {
  * Is this band plausibly one line of text, or a fused block of several?
  *
  * A port of `looks_like_a_line` in `mon_OCR/src/monocr/segmenter.py:181-215`, with
- * the same two constants. iOS (`LineSegmenter.looksLikeALine`) and the Rust CLI
- * (`apps/cli/src/mode.rs:161-168`) both already carry it; the web app was the only
- * surface with no equivalent and no field to report one, so a fused band was
- * rendered as ordinary output.
+ * the same two constants. Android (`LineSegmenter.looksLikeALine`), iOS
+ * (`LineSegmenter.looksLikeALine`) and the Rust CLI (`apps/cli/src/mode.rs:161-168`)
+ * all carry it; the web app was the last surface with no equivalent and no field to
+ * report one, so a fused band was rendered as ordinary output.
  *
  * Confidence cannot substitute for this. Upstream measured a photograph where five
  * lines fused into one band and the recogniser returned fluent Mon that appears
@@ -132,8 +132,8 @@ export function backgroundIsDark(image: ImageData): boolean {
 	// on such a page, so `lower` was reassigned once more and came out 1 instead of 0.
 	// Measured: a page half black and half white reported median 128 against a true
 	// 127.5, which is on the wrong side of the threshold, so the inverted scan this
-	// function exists to catch was read as a light page. iOS PageNormalizer.swift
-	// carries the same defect.
+	// function exists to catch was read as a light page. iOS `PageNormalizer.swift`
+	// uses the same -1 sentinel and records the same measurement, so the two agree.
 	let lower = -1;
 	let upper = -1;
 	for (let value = 0; value < 256; value++) {
@@ -225,8 +225,22 @@ export const RULE_MAX_INK_SHARE = 0.8;
  * ink region is not ink and only its edges are.
  *
  * Mutates `binary` in place and returns whether anything was removed.
+ *
+ * THE SIZE CHECK IS NOT DEFENSIVE PADDING. Android and iOS fail loudly on a mask
+ * that does not match its declared dimensions — Kotlin throws
+ * ArrayIndexOutOfBoundsException, Swift traps — but a typed array reads `undefined`
+ * out of range and drops out-of-range writes. Measured: a 232 000-byte mask declared
+ * 800x340 returned `true` with no throw, having silently left the last 50 rows
+ * unsuppressed, and the caller got a plausible-looking result. So this port has to
+ * raise the error the language will not.
  */
 export function suppressPageRules(binary: Uint8Array, width: number, height: number): boolean {
+	if (width <= 0 || height <= 0) return false;
+	if (binary.length !== width * height) {
+		throw new Error(
+			`suppressPageRules: mask has ${binary.length} entries, but ${width}x${height} needs ${width * height}`
+		);
+	}
 	const minH = Math.max(15, Math.floor(width * RULE_SPAN));
 	const minV = Math.max(15, Math.floor(height * RULE_SPAN));
 	const rules = new Uint8Array(width * height);
