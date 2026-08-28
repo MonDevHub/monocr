@@ -461,7 +461,7 @@ actor MonOcrEngine {
             throw OcrError.inferenceFailed("the logits tensor had no readable buffer")
         }
 
-        return CtcDecoder.decode(
+        return try CtcDecoder.decode(
             logits: logits,
             timeSteps: timeSteps,
             numClasses: numClasses,
