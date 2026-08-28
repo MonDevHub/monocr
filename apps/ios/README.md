@@ -6,7 +6,7 @@ For mission context, community guidelines, and cross-platform information, pleas
 
 ## Overview
 
-By leveraging a **Neural Engine optimized execution** model, MonOCR iOS utilizes **Core ML** and the Vision framework to perform all character recognition on-device. This architecture is purpose-built for the Apple Neural Engine (ANE), ensuring high-throughput, low-latency performance while maintaining an absolute privacy model—guaranteeing that linguistic assets remain within the localized secure environment.
+MonOCR iOS runs **Core ML** and the Vision framework, so every character is recognised on the device. The model ships as `monocr.mlpackage` and Core ML places it on the Neural Engine where the hardware allows. No image and no recognised text leaves the device: there is no network call on the recognition path.
 
 ## Key Features
 
@@ -14,13 +14,13 @@ By leveraging a **Neural Engine optimized execution** model, MonOCR iOS utilizes
 - **Privacy by Design**: Zero data collection; OCR processing is 100% local.
 - **Mon Language Support**: Specialized for the Mon script (276-char charset).
 - **Line Segmentation**: Horizontal projection profiling, with a Page / Sparse / Line mode so dense scans and wide-spaced photos can use different thresholds.
-- **Line Tiling**: Lines wider than the model window are cut at whitespace instead of squeezed into it. Squeezing degrades without bound as a line gets wider — 0.21 CER at four model windows against tiling's 0.06, and above 0.83 by six — while tiling costs a fraction of a point on narrower lines. Measured over 201 rendered lines in `mon_OCR/eval/tiling-ab-2026-08-22.md`.
+- **Line Tiling**: Lines wider than the model window are cut at whitespace instead of squeezed into it. Squeezing degrades sharply as a line gets wider: 0.21 CER at four model windows against tiling's 0.06, and above 0.83 by six, while tiling costs a fraction of a point on narrower lines. Measured over 201 rendered lines, 2026-08-22, in the sibling repository `janakhpon/mon_OCR` at `eval/tiling-ab-2026-08-22.md`.
 - **Modern UI**: 100% SwiftUI with native animations and light/dark theme support.
 - **Format Support**: Handles high-resolution images and multi-page PDFs.
 - **Script Fidelity**: Integration of PyidaungSu fonts for correct Mon/Myanmar rendering.
 
 > [!TIP]
-> File size is limited to 50MB for web and 20MB for mobile. For processing larger files or leveraging more powerful hardware, please use the CLI or package directly via `uv add monocr` or `pip install monocr`.
+> File size is limited to 50MB for web and 20MB for mobile. For larger files, or to use a machine with more memory, use the CLI or the package directly: `uv add monocr` or `pip install monocr`.
 
 ## Architecture
 
@@ -81,13 +81,18 @@ MonOCR is a unified cross-platform ecosystem designed for parity and performance
 
 ### Prerequisites
 
-- **Xcode 15.0+**
-- **iOS 16.0+**
-- **Swift 5.9+**
+- **Xcode 26.2+** to build the app target — `project.pbxproj` sets
+  `IPHONEOS_DEPLOYMENT_TARGET = 26.2`, which needs that SDK.
+- **Xcode 16+** for `MonOcrCore` alone — `Package.swift:1` declares
+  `swift-tools-version: 6.0`.
+- **iOS 16.0+** is the package's own floor (`Package.swift:20`), but the app
+  target's deployment target is higher; the two are not the same number.
+
+These replace "Xcode 15.0+ / Swift 5.9+", which no longer build either target.
 
 ### Tests
 
-`npm test`, or `sh Scripts/swift-test.sh` directly. It runs the `MonOcrCore`
+`pnpm test`, or `sh Scripts/swift-test.sh` directly. It runs the `MonOcrCore`
 Swift package with SwiftPM, which needs neither Xcode nor a simulator.
 
 `MonOcrCore/Sources/MonOcrCore/` is **relative symlinks** into `monocr-ios/`, not

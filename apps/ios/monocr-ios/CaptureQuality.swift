@@ -68,9 +68,25 @@ nonisolated enum CaptureQuality {
                 let row = y * page.width
                 for x in 1..<(page.width - 1) {
                     let i = row + x
-                    let response =
-                        Double(buf[i - page.width]) + Double(buf[i + page.width])
-                        + Double(buf[i - 1]) + Double(buf[i + 1]) - 4 * Double(buf[i])
+                    // Each conversion is bound to its own `Double` local rather
+                    // than summed inline. The inline five-term version compiled
+                    // under the Command Line Tools' Swift 6.3.3 and failed under
+                    // Xcode 26.3's Swift 6.2.4 with "unable to type-check this
+                    // expression in reasonable time" — pointing at line 66, the
+                    // `withUnsafeBufferPointer` call, not at the sum itself.
+                    //
+                    // `buf[...]` is UInt8 and the literal `4` is polymorphic, so
+                    // the older solver explores the operator overload space for
+                    // the whole closure body at once. Annotating the locals
+                    // collapses it. This is a workaround for one compiler
+                    // version, not a style preference, so it should outlive the
+                    // toolchain that needed it or be removed deliberately.
+                    let up: Double = Double(buf[i - page.width])
+                    let down: Double = Double(buf[i + page.width])
+                    let left: Double = Double(buf[i - 1])
+                    let right: Double = Double(buf[i + 1])
+                    let centre: Double = Double(buf[i])
+                    let response: Double = up + down + left + right - 4 * centre
                     sum += response
                     sumSq += response * response
                     n += 1

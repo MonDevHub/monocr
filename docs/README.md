@@ -18,11 +18,12 @@ Machine-readable specifications and integration guides.
 ## Governance
 Project health, security, and contribution standards.
 
-- **[Contributing Guide](../CONTRIBUTING.md)**: Standards for adding features and translations.
-- **[Security Policy](../SECURITY.md)**: Vulnerability disclosure and secret management.
+- **[Contributing Guide](../.github/CONTRIBUTING.md)**: Standards for adding features and translations.
+- **[Security Policy](../.github/SECURITY.md)**: Vulnerability disclosure and secret management.
 
 ## Getting Started
 Onboarding for new developers.
 
 - **[Environment Setup Guide](guides/setup.md)**: Dependencies, keys, and initial builds.
+- **[Building and testing the mobile apps](guides/mobile-build-and-test.md)**: The exact Android and iOS clean-build and test commands, why both toolchains look absent when they are only mis-pathed, and what `pnpm test` caches away.
 - **[Localization Sync Guide](architecture/adr/0002-unified-localization-bridge.md)**: Maintaining platform-parity for Mon charset translations.

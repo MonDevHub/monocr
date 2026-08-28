@@ -19,13 +19,13 @@ Do not modify native resource files (Android XML, iOS Strings) directly.
 | Node | see `apps/web/.nvmrc` | CI reads the same file |
 | pnpm | see `packageManager` in the root `package.json` | Corepack picks it up |
 | Go | see `services/feedback/go.mod` | only needed for the feedback service |
-| JDK / Xcode | JDK 21, current Xcode | only needed for the mobile apps |
+| JDK / Xcode | **JetBrains** JDK 21 (the one inside Android Studio), Xcode 26.2+ | only needed for the mobile apps; the JDK vendor is pinned, not just the version |
 
 ### Development
 
 ```bash
 pnpm install            # at the root only — this is one workspace
-pnpm dev:all            # web + feedback service
+pnpm dev:all            # web + CLI + feedback service
 ```
 
 No `.env` is needed to run the web app: it does OCR in the browser against a
@@ -47,16 +47,24 @@ cross-app invariants (the three bundled charsets must stay byte-identical, one
 model revision everywhere, one architecture string, no accuracy figure that
 traces to no run).
 
-**CI does not build or test Android or iOS.** There is no Gradle wrapper
-committed and iOS needs a macOS runner. If you touch either app — especially a
-decoder or a segmenter — run its tests locally and say so in the PR.
+**CI does not build or test Android, and covers only part of iOS.** Both halves
+of what this paragraph used to say were dead: it claimed "there is no Gradle
+wrapper committed and iOS needs a macOS runner", but all four wrapper files are
+tracked, and the `ios-core` job already runs on `macos-latest`.
+
+What is actually true: Android is excluded because the build pins a
+JetBrains-vendor JDK 21 that a runner would have to provision explicitly, and CI
+runs `Scripts/swift-test.sh` over `MonOcrCore` only — 12 of the app target's 42
+Swift files. If you touch either app, especially a decoder or a segmenter, run its tests
+locally and say so in the PR. See
+`docs/guides/mobile-build-and-test.md`.
 
 ### Claims in documentation and UI
 
 Any number that reaches a README, a model card, or a user-facing string names
 what it measures and where it can be traced to. A figure with no source is the
 specific failure this project has already shipped: `97.5%+ accuracy` sat in two
-onboarding screens for months and traced to no run at all. There is a CI job
+shipped copy for months and traced to no run at all — one Android onboarding screen plus the Docs tab on both platforms. There is a CI job
 that now fails on it.
 
 ## Coding Standards

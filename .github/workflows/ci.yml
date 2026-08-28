@@ -6,9 +6,20 @@
 # control: an API key sat in two tracked source files for four months under a
 # SECURITY.md promising secrets are never committed.
 #
-# Android is deliberately excluded: there is no Gradle wrapper in the tree, so
-# `apps/android/app/src/test/` runs locally only. Run it before touching a decoder
-# or a segmenter.
+# Android is excluded, and the reason this comment used to give is no longer true.
+# It read "there is no Gradle wrapper in the tree" — but `apps/android/gradlew`,
+# `gradlew.bat` and `gradle/wrapper/gradle-wrapper.jar` are all tracked now, and
+# the `# gradle/wrapper/` line in apps/android/.gitignore is commented out.
+#
+# The live blocker is the toolchain pin: gradle/gradle-daemon-jvm.properties
+# demands vendor `jetbrains` at version 21, which on a dev machine is satisfied
+# only by the JDK inside Android Studio. A runner would need a JetBrains Runtime
+# 21 provisioned explicitly — setup-java can do it, so this is now a decision
+# rather than an impossibility. docs/guides/mobile-build-and-test.md has the
+# measurements.
+#
+# Until then `apps/android/app/src/test/` runs locally only. Run it before
+# touching a decoder or a segmenter.
 #
 # iOS is no longer excluded, but only its pure logic. `apps/ios/MonOcrCore` is a
 # Swift package over the Foundation-only files, so `swift test` needs no

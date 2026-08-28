@@ -6,7 +6,7 @@ For mission context, community guidelines, and cross-platform information, pleas
 
 ## Overview
 
-By implementing a **hardware-accelerated native inference** model, MonOCR Android leverages **ONNX Runtime** with NNAPI integration to perform all character recognition on-device. This ensures high-throughput, low-latency performance while maintaining a zero-leak privacy model—guaranteeing that linguistic data remains within the localized secure environment.
+MonOCR Android runs **ONNX Runtime** with NNAPI, so every character is recognised on the device. The model ships as `assets/monocr.onnx`. No image and no recognised text leaves the device: there is no network call on the recognition path.
 
 ## Key Features
 
@@ -18,7 +18,7 @@ By implementing a **hardware-accelerated native inference** model, MonOCR Androi
 - **Script Fidelity**: Integration of PyidaungSu fonts for accurate Mon/Myanmar rendering.
 
 > [!TIP]
-> File size is limited to 50MB for web and 20MB for mobile. For processing larger files or leveraging more powerful hardware, please use the CLI or package directly via `uv add monocr` or `pip install monocr`.
+> File size is limited to 50MB for web and 20MB for mobile. For larger files, or to use a machine with more memory, use the CLI or the package directly: `uv add monocr` or `pip install monocr`.
 
 ## Architecture
 
@@ -66,9 +66,15 @@ MonOCR is a unified cross-platform ecosystem designed for parity and performance
 
 ### Prerequisites
 
-- **Android Studio** (Latest stable version)
-- **JDK 17+**
-- **Android SDK 35** (Min API 26)
+- **Android Studio** — any release bundling **JetBrains Runtime 21**. Required
+  even if you never open it, and `JAVA_HOME` must point at the JBR inside it:
+  `gradle/gradle-daemon-jvm.properties` pins `toolchainVendor=jetbrains`,
+  `toolchainVersion=21`.
+- **Android SDK 36** (`compileSdk = 36`, `targetSdk = 36`, `minSdk = 24`)
+
+These replace "JDK 17+" and "Android SDK 35 (Min API 26)". A generic JDK 17
+cannot satisfy a version-21 pin, and no Homebrew JDK satisfies the vendor half at
+any version. Full commands: `docs/guides/mobile-build-and-test.md`.
 
 ### Getting Started
 

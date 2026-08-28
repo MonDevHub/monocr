@@ -95,6 +95,8 @@ When adding a new column:
 |-------|-----------|----------|
 | `CtcDecoder` | Unit | `src/test/.../engine/CtcDecoderTest.kt` |
 | `LineSegmenter` | Unit | `src/test/.../engine/LineSegmenterTest.kt` |
+| `LineTiler` | Unit, cross-platform parity | `src/test/.../engine/LineTilerFixtureTest.kt` |
+| `SegmentationMode` | Unit | `src/test/.../engine/SegmentationModeTest.kt` |
 | ViewModels | Unit (TODO) | Use `TestCoroutineDispatcher` + in-memory Room |
 | Screens | UI (TODO) | Compose test rules |
 
