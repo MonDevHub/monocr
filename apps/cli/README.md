@@ -107,9 +107,11 @@ the point, and it is the only thing keeping the ports of one algorithm in step.
 corrupting the fixture "fails all four", counting this crate among them. `apps/cli` has no
 `tests/` directory, reads no fixture, and contains no tiling arithmetic — it calls
 `monocr_onnx::MonOcr::predict_page`, and the tiling tests for that live in the `monocr-onnx`
-crate, which `cargo test` here does not compile. This crate's own tests — 37 of them across
-`discover`, `mode`, `output`, `state` and `render` — cover input classification, output and
-PDF rendering. None covers tiling, because there is none here to cover.
+crate, which `cargo test` here does not compile. This crate has 55 tests of its own, across
+`config`, `discover`, `mode`, `output`, `render` and `state`. They cover config loading and
+validation, input classification, output and PDF rendering. None covers tiling, because there
+is none here to cover. Corrected 2026-08-28: that count read 37 until `config`'s 18 tests were
+added to it.
 
 ## Configuration
 

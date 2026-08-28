@@ -7,7 +7,7 @@
 # with no error raised — the defect this project has already shipped once.
 /apps/web/src/lib/monocr-onnx.ts        @janakhpon
 /apps/web/src/lib/config.ts             @janakhpon
-/apps/*/charset.txt                     @janakhpon
+/apps/**/charset.txt                    @janakhpon
 /apps/**/engine/                        @janakhpon
 
 # Supply chain and CI.
