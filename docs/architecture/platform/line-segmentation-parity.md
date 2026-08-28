@@ -1,11 +1,15 @@
-# Line segmentation: four surfaces, and six real divergences
+# Line segmentation: four surfaces, and where they disagree
 
 **Status:** partly resolved. Measured 2026-08-15, corrected 2026-08-27 and 2026-08-28.
 
-The count in that title has been wrong twice, which is its own small lesson about
-keeping a tally in a heading. It is the number of rows in the table below on which
-web, Android and iOS do not all agree, plus the two closed on 2026-08-28. Count the
-rows before changing it.
+**The heading used to carry a count, and it was wrong three times.** It said six; on
+the day it was removed the table held five rows on which web, Android and iOS do not
+all agree, and three rows had closed rather than the two the note claimed. Each
+closure is good news that silently invalidated the tally, so the number was most
+wrong exactly when the file was most useful. The lesson was already written here —
+"its own small lesson about keeping a tally in a heading" — and kept underneath a
+heading that still carried one. The count now lives only in the table, where it is
+recomputed by reading it.
 
 Web, Android and iOS each carry their own port of the same horizontal
 projection-profile line segmenter, and the CLI delegates to a fourth in
@@ -41,6 +45,12 @@ rather than by three files happening to agree.
 rather than a port of these: a flat global threshold at 128 instead of an adaptive
 one, no morphological smear at all, a fixed 4px pad on both axes, and smoothing 3.
 
+It does share one row, and it is the newest: **all four surfaces now calibrate the
+gap threshold on the smoothed row profile and detect boundaries on the raw one.**
+The apps moved on 2026-08-28 and the CLI's implementation, `monocr-onnx` commit
+`8918ae9`, the same day. That row used to sit in the table below and is the only
+divergence this file has ever closed on every surface at once.
+
 ## What does not
 
 |                                       | Web                     | Android            | iOS                | CLI                         |
@@ -53,7 +63,6 @@ one, no morphological smear at all, a fixed 4px pad on both axes, and smoothing 
 | Mode selection                        | **none**                | provenance + shape | provenance + shape | `--mode`, `auto`, `inspect` |
 | Polarity normalised before segmenting | yes                     | yes                | yes                | yes                         |
 | Printed-rule suppression              | yes                     | yes                | yes                | yes                         |
-| Boundaries detected on                | raw profile             | raw profile        | raw profile        | **smoothed profile**        |
 
 The first three rows are all Android against the others; the fourth is web against
 the others. So no surface is the reference, and no two agree completely.
@@ -105,16 +114,55 @@ merges more. Android merges more readily than web and iOS, on the same page.
 against a page with a known line count, so picking a winner would be taste
 presented as a result.
 
+### The one that turned out not to be taste
+
 That reasoning does **not** cover everything this file used to list under it, and
-one row left the table on 2026-08-28 because of it. All three ports detected run
+one row left the table on 2026-08-28 because of it. All four surfaces detected run
 boundaries on the smoothed row profile where the reference uses the raw one. That
 was never a question of taste: the reference calibrates its threshold on the
 smoothed profile because a mean is more stable there, and detects on the raw one
 because smoothing bleeds ink across a narrow gap, and it says so in the code. It
-was measurable without ground truth, and it was measured: pages of 14px lines
-separated by 5, 6 and 8 pixels each came back as ONE band, against 29, 28 and 25
-lines drawn. On the raw profile they come back as exactly the drawn count, and at
-12px and wider the two agree exactly.
+was measurable without ground truth, and it was measured.
+
+Each surface was measured through its own parameter set, and the results are not
+transferable — which is the point worth keeping.
+
+**The three apps**, on pages of 14px lines: at gaps of 5, 6 and 8 px the smoothed
+profile returned **one band** against 29, 28 and 25 lines drawn. The drawn count
+falls as the gap grows because the page height is fixed. On the raw profile each
+page returns exactly its drawn count, and from 12 px up the two profiles agree.
+
+**The CLI**, on 29 drawn bands at its own defaults (minimum line height 10,
+smoothing 3, ratio 0.05): the smoothed profile returned **one band** at gaps of 1
+and 2 px, and 29 from 3 px up.
+
+**So the CLI's window of harm is two pixels wide where the apps' spans at least
+eight, and the smoothing kernel is not why.** Web and the CLI both smooth at 3.
+The apps dilate the mask vertically before taking the profile and the Rust
+implementation has no smear at all, so the apps carry ink across a gap further
+than smoothing alone accounts for. Gaps of 9 to 11 px were not measured on the
+apps, so "at least eight" is the honest bound.
+
+The break point is the smoother's **effective** width, `2·(window/2)+1`, not the
+window as written — integer division means an even window behaves as the odd one
+above it. Measured on the CLI at windows 2 through 16: a window of 4 still fuses a
+gap of exactly 4, and recovers at 5. Every test value in that suite is odd, so
+nothing there would have caught the even case; it is recorded rather than relied
+on.
+
+Detecting on the raw profile also **narrows every band** by the smoother's
+half-width at each end — a fixed 2px at window 3, on every line, at every gap. No
+shared fixture pins a line bbox or height, and the one downstream consumer of the
+height, `looks_like_a_line` in the CLI, flags rather than filters and stores its
+verdict as an advisory field. So the narrowing is unobserved, and where it does
+change that flag it moves it toward the band's true extent.
+
+**One risk this created, not yet closed.** A band that used to fuse can now split
+into pieces that are each shorter than the minimum line height, and both are then
+dropped rather than one being kept — turning a fused, badly-read line into no line
+at all. The CLI's tests all use bands far above the floor, so none exercises it.
+Recorded here because the shape of the fix is a merge step the reference has
+(`MIN_GAP_MERGE`) and no port does, which is a larger change than this row was.
 
 The lesson for the rest of the table is to check which kind of divergence each row
 is before filing it here. A value with no ground truth is one thing; a documented
@@ -239,30 +287,13 @@ cv2.
 
 ## Open, found 2026-08-28, not acted on
 
-Four more divergences from a sweep across the three apps and the reference. None is
+Three more divergences from a sweep across the three apps and the reference. None is
 fixed here, because each changes what every page reads on at least one platform and
 that is the owner's call, not a sweep's.
 
-### The ports detect line boundaries on the smoothed histogram; the reference does not
-
-The highest-impact one. `mon_OCR/src/monocr/segmenter.py` calibrates its threshold
-from the smoothed row-ink profile and then detects runs on the **raw** one, and says
-why in the code:
-
-> the smoothed hist bleeds across true inter-line gaps when lines are tightly packed,
-> so using it for boundary detection would merge distinct lines. The raw hist has zero
-> rows between any lines that have a true ink gap after dilation.
-
-All three ports test `hist[y] > threshold` against the smoothed profile: web
-`segmentation.ts`, Android `LineSegmenter.kt`, iOS `LineSegmenter.swift`. They
-therefore all carry the line-merging behaviour that comment describes, and it is
-the failure `looksLikeALine` exists to flag after the fact.
-
-This one is different in kind from the density ratio. Which ratio suits a book page
-is a measurement question with no single answer; this is the reference stating that
-one of the two profiles is the wrong input for this decision and giving the reason.
-Changing it would change line splitting on every platform at once, which is why it is
-recorded rather than done.
+A fourth was listed here and has since been closed on all four surfaces; it is
+recorded above under *What agrees*, and what it cost to close is below under
+*The one that turned out not to be taste*.
 
 ### Crop padding differs from the reference on both axes
 
