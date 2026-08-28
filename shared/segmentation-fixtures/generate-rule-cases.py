@@ -116,7 +116,11 @@ def suppress_page_rules(mask):
     rule_ink = int(np.count_nonzero(rules))
     if rule_ink == 0:
         return mask.copy(), False
-    if rule_ink > ink * RULE_MAX_INK_SHARE:
+    # Integer arithmetic. The ports evaluate this in Float32 and would disagree
+    # with a double product at ink = 5_242_881 / rule_ink = 4_194_305; `x * 5 >
+    # y * 4` is exact in every language here, so the fixture and the three ports
+    # cannot part company on the ceiling.
+    if rule_ink * 5 > ink * 4:
         # Found the text. Leaving the page alone is strictly better than emptying
         # it, and the caller is no worse off than before this step existed.
         return mask.copy(), False
@@ -155,8 +159,8 @@ def cross_check(quiet=False):
         )
 
     total_border = total_shift = 0
-    for name, w, h, density, rows, cols, run_length, run_start in CASES:
-        mask = build_mask(w, h, density, rows, cols, run_length, run_start)
+    for name, w, h, density, rows, cols, run_length, run_start, col_length, col_start in CASES:
+        mask = build_mask(w, h, density, rows, cols, run_length, run_start, col_length, col_start)
         min_h, min_v = span_for(w), span_for(h)
 
         spec_rules = np.zeros((h, w), dtype=bool)
@@ -185,49 +189,146 @@ def cross_check(quiet=False):
         )
         cv_rules = cv2.bitwise_or(horizontal, vertical) > 0
 
-        even_axis = min_h % 2 == 0 or min_v % 2 == 0
         differing = np.argwhere(spec_rules != cv_rules)
 
-        def run_touches_an_edge(y, x):
-            """Is the pixel part of an ink run that reaches an image edge?
+        def horizontal_run(y, x):
+            left = x
+            while left > 0 and mask[y, left - 1]:
+                left -= 1
+            right = x
+            while right < w - 1 and mask[y, right + 1]:
+                right += 1
+            return left, right
 
-            The border cause is not confined to the edge pixel: cv2 treats the
-            outside as ink, so the WHOLE run flush against an edge survives the
-            opening. Testing only x == 0 would leave the other 19 pixels of a
-            20px edge run looking unexplained.
+        def vertical_run(y, x):
+            top = y
+            while top > 0 and mask[top - 1, x]:
+                top -= 1
+            bottom = y
+            while bottom < h - 1 and mask[bottom + 1, x]:
+                bottom += 1
+            return top, bottom
+
+        def explained_by_the_border(y, x):
+            """Is this the `+inf` erode border keeping a run the spec rejected?
+
+            Three conditions, all necessary. cv2 must mark it where the spec does
+            NOT — treating the outside as ink can only ever make the opening keep
+            MORE, never less, so a pixel the spec marks and cv2 does not is never
+            this cause. The run through it must reach an image edge on some axis.
+            And that run must be SHORTER than that axis's span, because a run
+            already long enough is kept by both and the border changes nothing
+            inside it.
+
+            That last condition is the one that matters. Without it, a full-width
+            rule touches both edges and this function absorbs any disagreement
+            anywhere in it: an off-by-one injected into the spec was waved through
+            on three consecutive cases as "border" before an unrelated case caught
+            it.
             """
+            if not (cv_rules[y, x] and not spec_rules[y, x]):
+                return False
             if mask[y, x]:
-                left = x
-                while left > 0 and mask[y, left - 1]:
-                    left -= 1
-                right = x
-                while right < w - 1 and mask[y, right + 1]:
-                    right += 1
-                if left == 0 or right == w - 1:
+                left, right = horizontal_run(y, x)
+                if (left == 0 or right == w - 1) and (right - left + 1) < min_h:
                     return True
-                top = y
-                while top > 0 and mask[top - 1, x]:
-                    top -= 1
-                bottom = y
-                while bottom < h - 1 and mask[bottom + 1, x]:
-                    bottom += 1
-                if top == 0 or bottom == h - 1:
+                top, bottom = vertical_run(y, x)
+                if (top == 0 or bottom == h - 1) and (bottom - top + 1) < min_v:
                     return True
-            # A cleared pixel adjacent to an edge-touching run is the same cause.
+                return False
+            # A non-ink pixel cv2 marked: only the outward spill of an edge run.
             return x in (0, w - 1) or y in (0, h - 1)
 
-        if differing.size and not even_axis:
-            unexplained = [
-                (int(y), int(x)) for y, x in differing if not run_touches_an_edge(int(y), int(x))
-            ]
-            if unexplained:
-                sys.exit(f"{name}: {len(unexplained)} unexplained divergences {unexplained[:6]}")
-            total_border += len(differing)
-        else:
-            total_shift += len(differing)
+        def explained_by_the_even_shift(y, x):
+            """Is this the one-pixel offset an even-width kernel produces?
+
+            cv2 anchors an even kernel at `ksize / 2`, which is not its centre, so
+            the marked interval comes back offset by one along that axis. The
+            signature is narrow: the disagreement sits at an END of the run, one
+            step from where the spec's mark starts or stops. It never appears in a
+            run's interior, which is what separates it from an off-by-one in the
+            scan itself.
+            """
+            for even, run, index, limit in (
+                (min_h % 2 == 0, horizontal_run(y, x) if mask[y, x] else None, x, w),
+                (min_v % 2 == 0, vertical_run(y, x) if mask[y, x] else None, y, h),
+            ):
+                if not even:
+                    continue
+                if run is None:
+                    # A non-ink pixel marked one past a run's end.
+                    if index > 0 and index - 1 < limit:
+                        return True
+                    continue
+                lo, hi = run
+                if index in (lo, hi) or index in (lo + 1, hi - 1):
+                    return True
+            return False
+
+        # FIRST, check the spec against an independent oracle.
+        #
+        # The classification below cannot do this job, and an audit proved it: an
+        # off-by-one injected into the run-length scan is absorbed by whichever
+        # explanation happens to fit, because a mis-marked pixel at a run's END is
+        # geometrically indistinguishable from the even-kernel shift, and a run
+        # touching an image edge looks like the border cause. Both explanations
+        # describe artefacts at exactly the places an off-by-one produces them.
+        #
+        # So the scan is checked against a different FORMULATION rather than a
+        # different explanation: a pixel belongs to a rule iff some window of
+        # `span` consecutive pixels covering it is entirely ink. That is the
+        # definition of a 1xL opening read directly, it shares no code or reasoning
+        # with the run-length scan, and it catches the injected off-by-one on the
+        # first case rather than the fifth.
+        brute = np.zeros((h, w), dtype=bool)
+        for y in range(h):
+            for x0 in range(0, w - min_h + 1):
+                if mask[y, x0 : x0 + min_h].all():
+                    brute[y, x0 : x0 + min_h] = True
+        for x in range(w):
+            for y0 in range(0, h - min_v + 1):
+                if mask[y0 : y0 + min_v, x].all():
+                    brute[y0 : y0 + min_v, x] = True
+        if not np.array_equal(brute, spec_rules):
+            wrong = np.argwhere(brute != spec_rules)
+            sys.exit(
+                f"{name}: the run-length scan disagrees with the direct definition "
+                f"of a 1xL opening at {len(wrong)} pixels {[tuple(map(int, p)) for p in wrong[:6]]}"
+            )
+
+        # EVERY differing pixel is attributed, on every case.
+        #
+        # This used to run the attribution only when both spans were odd and accept
+        # the rest unexamined, which was true of 8 of the 14 cases then committed —
+        # and four files, this docstring among them, claimed the opposite. A
+        # deliberate off-by-one injected into the spec above was reported as a benign
+        # "even-kernel shift" on three consecutive cases before an odd-axis case
+        # finally caught it. An escape hatch that swallows whole cases is not an
+        # attribution.
+        border = shift = 0
+        unexplained = []
+        for y, x in differing:
+            y, x = int(y), int(x)
+            if explained_by_the_border(y, x):
+                border += 1
+            elif explained_by_the_even_shift(y, x):
+                shift += 1
+            else:
+                unexplained.append((y, x))
+        if unexplained:
+            sys.exit(
+                f"{name}: {len(unexplained)} divergences attributable to neither "
+                f"documented cause {unexplained[:6]}"
+            )
+        total_border += border
+        total_shift += shift
         if not quiet and differing.size:
-            kind = "even-kernel shift" if even_axis else "border"
-            print(f"  {name}: {len(differing)} px differ ({kind})")
+            parts = []
+            if shift:
+                parts.append(f"{shift} even-kernel shift")
+            if border:
+                parts.append(f"{border} border")
+            print(f"  {name}: {len(differing)} px differ ({', '.join(parts)})")
 
     print(
         f"cross-check: every divergence attributed "
@@ -235,34 +336,69 @@ def cross_check(quiet=False):
     )
 
 
-# name, width, height, density, rule_rows, rule_cols, run_length, run_start
+# name, width, height, density, rule_rows, rule_cols, run_length, run_start,
+# col_length, col_start
 # run_length -1 means the row rule spans the full width; otherwise it is an
 # unbroken run of that many pixels starting at run_start, which is how the exact
 # boundary either side of the 15px floor gets pinned.
 #
 # run_start matters independently of length. A run flush against x=0 is where the
-# reference's border handling diverges from the spec, so the last two cases pin a
-# short run at the edge and the same run one pixel in; the ports must drop both and
-# cv2 keeps the first. See the module docstring.
+# reference's border handling diverges from the spec, so two cases pin a short run at
+# the edge and the same run one pixel in; the ports must drop both and cv2 keeps the
+# first. See the module docstring.
+#
+# col_length/col_start exist because column rules used to be written FULL HEIGHT
+# always. Every vertical run in every case was therefore exactly `height`, against a
+# span of at most `height / 2`, so no case could place a vertical run at its
+# boundary — and a mutation flipping the vertical `>=` to `>` survived the entire
+# fixture. It was caught only by a hand-written unit test. Six of the mutants that
+# survived a 2026-08-28 audit of this file traced to that one line.
+# col_length -1 means full height.
 CASES = [
-    ("two full-width rules over sparse noise", 100, 100, 5, [10, 50], [], -1, 1),
-    ("one row rule and one column rule", 100, 100, 20, [10], [7], -1, 1),
-    ("column rules only, dense noise", 100, 100, 60, [], [3, 90], -1, 1),
-    ("three adjacent row rules", 40, 90, 15, [5, 6, 7], [], -1, 1),
-    ("run of exactly the 15px floor", 20, 20, 30, [5], [], 15, 1),
-    ("run one short of the 15px floor", 20, 20, 30, [5], [], 14, 1),
-    ("page-sized, framed both axes", 300, 200, 8, [30, 60, 90], [2, 297], -1, 1),
-    ("floor governs on a narrow crop", 17, 43, 25, [8], [], 15, 1),
-    ("rules on the first row and column", 64, 64, 50, [1], [1], -1, 1),
-    ("half-width run on a wide short page", 128, 30, 12, [15], [], 64, 1),
-    ("single column rule, tall page", 31, 127, 40, [], [5], -1, 1),
-    ("four adjacent row rules, very sparse", 100, 100, 3, [20, 21, 22, 23], [], -1, 1),
-    ("short run flush against the left edge", 62, 62, 10, [12], [], 20, 0),
-    ("the same short run one pixel inset", 62, 62, 10, [12], [], 20, 1),
+    ("two full-width rules over sparse noise", 100, 100, 5, [10, 50], [], -1, 1, -1, 0),
+    ("one row rule and one column rule", 100, 100, 20, [10], [7], -1, 1, -1, 0),
+    ("column rules only, dense noise", 100, 100, 60, [], [3, 90], -1, 1, -1, 0),
+    ("three adjacent row rules", 40, 90, 15, [5, 6, 7], [], -1, 1, -1, 0),
+    ("run of exactly the 15px floor", 20, 20, 30, [5], [], 15, 1, -1, 0),
+    ("run one short of the 15px floor", 20, 20, 30, [5], [], 14, 1, -1, 0),
+    ("page-sized, framed both axes", 300, 200, 8, [30, 60, 90], [2, 297], -1, 1, -1, 0),
+    ("floor governs on a narrow crop", 17, 43, 25, [8], [], 15, 1, -1, 0),
+    ("rules on the first row and column", 64, 64, 50, [1], [1], -1, 1, -1, 0),
+    ("half-width run on a wide short page", 128, 30, 12, [15], [], 64, 1, -1, 0),
+    ("single column rule, tall page", 31, 127, 40, [], [5], -1, 1, -1, 0),
+    ("four adjacent row rules, very sparse", 100, 100, 3, [20, 21, 22, 23], [], -1, 1, -1, 0),
+    ("short run flush against the left edge", 62, 62, 10, [12], [], 20, 0, -1, 0),
+    ("the same short run one pixel inset", 62, 62, 10, [12], [], 20, 1, -1, 0),
+    # Vertical runs AT the span boundary, which no case could reach while every
+    # column rule was written full height.
+    ("column run of exactly the vertical span", 40, 62, 12, [], [9], -1, 0, 31, 2),
+    ("column run one short of the vertical span", 40, 62, 12, [], [9], -1, 0, 30, 2),
+    ("column run of exactly the 15px floor", 20, 24, 25, [], [7], -1, 0, 15, 1),
+    ("column run one short of the 15px floor", 20, 24, 25, [], [7], -1, 0, 14, 1),
+    # An odd page width above 30, where the span is not a whole multiple and the
+    # truncation in `int(w * RULE_SPAN)` decides the answer. `int` gives 15 and the
+    # run is removed; `round` would give 16 and keep it. Mutants swapping int for
+    # round or ceil survived every case before this one.
+    ("odd width, run at the truncated span", 31, 40, 10, [12], [], 15, 3, -1, 0),
+    ("odd width, run one short of it", 31, 40, 10, [12], [], 14, 3, -1, 0),
+    # The ink-share ceiling actually FIRING. Before this case every case had either
+    # zero rule ink or at most 55.79% of it, so deleting the guard outright survived
+    # the fixture. Dense full-width rules over sparse noise push the share past 0.8.
+    ("rules over almost no text, ceiling fires", 60, 40, 1,
+     [4, 9, 14, 19, 24, 29, 34], [], -1, 0, -1, 0),
+    # The ink share landing EXACTLY on the ceiling: ink 100, rule ink 80. `>` keeps
+    # suppressing and `>=` abandons, so this is the only case that can tell the two
+    # apart, and a mutation swapping them survived every earlier case.
+    ("ink share exactly at the ceiling", 20, 24, 5, [3, 7, 11, 15], [], -1, 0, -1, 0),
+    # A run of 18 on a 40-wide page: a rule at span 0.45 (floor 18) and not one at
+    # span 0.50 (floor 20). Every earlier case used a width where the two agree or
+    # where the 15px floor governs, so a retune of RULE_SPAN went unnoticed.
+    ("run between the 0.45 and 0.50 spans", 40, 30, 8, [11], [], 18, 2, -1, 0),
 ]
 
 
-def build_mask(width, height, density, rule_rows, rule_cols, run_length, run_start):
+def build_mask(width, height, density, rule_rows, rule_cols, run_length, run_start,
+               col_length, col_start):
     """The mask a port must build from the same case description."""
     x = PRNG_SEED
     mask = np.zeros(width * height, dtype=np.uint8)
@@ -279,7 +415,9 @@ def build_mask(width, height, density, rule_rows, rule_cols, run_length, run_sta
         start = 0 if run_length < 0 else run_start
         mask[row, start : min(width, start + length)] = 255
     for col in rule_cols:
-        mask[:, col] = 255
+        length = height if col_length < 0 else col_length
+        start = 0 if col_length < 0 else col_start
+        mask[start : min(height, start + length), col] = 255
     return mask
 
 
@@ -298,8 +436,8 @@ def signature(mask):
 
 def generate():
     cases = []
-    for name, w, h, density, rows, cols, run_length, run_start in CASES:
-        mask = build_mask(w, h, density, rows, cols, run_length, run_start)
+    for name, w, h, density, rows, cols, run_length, run_start, col_length, col_start in CASES:
+        mask = build_mask(w, h, density, rows, cols, run_length, run_start, col_length, col_start)
         after, changed = suppress_page_rules(mask)
         after_ink, checksum = signature(after)
         cases.append(
@@ -312,6 +450,8 @@ def generate():
                 "rule_cols": cols,
                 "run_length": run_length,
                 "run_start": run_start,
+                "col_length": col_length,
+                "col_start": col_start,
                 "expected_changed": bool(changed),
                 "expected_ink": after_ink,
                 "expected_checksum": checksum,

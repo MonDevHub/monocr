@@ -49,12 +49,20 @@ class RuleSuppressionTest {
         assertArrayEquals(before, m)
     }
 
-    /** An empty mask has no ink to measure a share against, so it returns early. */
+    /**
+     * An empty mask has no ink to measure a share against, so it returns early.
+     *
+     * The second assertion used to be `assertEquals(0, inkCount(m))` on a mask
+     * constructed all-false, passed to a function whose only write sets a pixel
+     * FALSE. It could not fail under any mutation. Asserting the mask is unchanged
+     * is the same intent and can: a mutation writing `true` anywhere is caught.
+     */
     @Test
     fun `a blank page is refused before the ink share is computed`() {
         val m = BooleanArray(100 * 100)
+        val before = m.copyOf()
         assertFalse(LineSegmenter.suppressPageRules(m, 100, 100))
-        assertEquals(0, inkCount(m))
+        assertArrayEquals(before, m)
     }
 
     // MARK: - Rules found

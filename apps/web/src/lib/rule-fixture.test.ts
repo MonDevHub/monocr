@@ -26,6 +26,8 @@ interface RuleCase {
 	rule_cols: number[];
 	run_length: number;
 	run_start: number;
+	col_length: number;
+	col_start: number;
 	expected_changed: boolean;
 	expected_ink: number;
 	expected_checksum: number;
@@ -57,7 +59,9 @@ function buildMask(c: RuleCase): Uint8Array {
 		for (let xx = start; xx < Math.min(c.width, start + length); xx++) m[ry * c.width + xx] = 1;
 	}
 	for (const cx of c.rule_cols) {
-		for (let yy = 0; yy < c.height; yy++) m[yy * c.width + cx] = 1;
+		const length = c.col_length < 0 ? c.height : c.col_length;
+		const start = c.col_length < 0 ? 0 : c.col_start;
+		for (let yy = start; yy < Math.min(c.height, start + length); yy++) m[yy * c.width + cx] = 1;
 	}
 	return m;
 }

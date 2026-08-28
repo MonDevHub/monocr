@@ -126,7 +126,17 @@ nonisolated enum LineSegmenter {
         var ruleInk = 0
         for v in rules where v { ruleInk += 1 }
         if ruleInk == 0 { return false }
-        if Float(ruleInk) > Float(ink) * ruleMaxInkShare {
+        // Integer arithmetic, not `ruleInk > ink * RULE_MAX_INK_SHARE`.
+        //
+        // 0.8 is not representable in binary, and Kotlin and Swift evaluate that
+        // product in Float where TS and the fixture generator use double. At
+        // ink = 5_242_881 and ruleInk = 4_194_305 the two disagree: double gives
+        // 4_194_304.8 and abandons, float32 rounds the product to exactly
+        // 4_194_305.0 and suppresses ~80% of the page's ink. That is the precise
+        // failure this ceiling exists to prevent, and `OcrRepository` hands the
+        // segmenter an un-resized bitmap, so a 12 MP page reaches that ink count.
+        // No smaller pair diverges. `x * 5 > y * 4` is exact for every input.
+        if ruleInk * 5 > ink * 4 {
             // Found the text. Leaving the page alone is strictly better than
             // emptying it, and the caller is no worse off than before this
             // step existed.

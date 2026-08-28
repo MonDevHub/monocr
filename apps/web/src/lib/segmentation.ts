@@ -258,7 +258,11 @@ export function suppressPageRules(binary: Uint8Array, width: number, height: num
 	let ruleInk = 0;
 	for (let i = 0; i < rules.length; i++) if (rules[i]) ruleInk++;
 	if (ruleInk === 0) return false;
-	if (ruleInk > ink * RULE_MAX_INK_SHARE) {
+	// Integer arithmetic, matching Android and iOS. They evaluate this product in
+	// Float32, where it disagrees with double at ink = 5_242_881 / ruleInk =
+	// 4_194_305 — double abandons, float32 suppresses ~80% of the page's ink.
+	// `x * 5 > y * 4` is exact everywhere, so all four implementations agree.
+	if (ruleInk * 5 > ink * 4) {
 		// Found the text. Leaving the page alone is strictly better than emptying
 		// it, and the caller is no worse off than before this step existed.
 		return false;

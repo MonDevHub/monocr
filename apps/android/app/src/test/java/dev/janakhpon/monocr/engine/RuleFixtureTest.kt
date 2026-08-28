@@ -61,9 +61,13 @@ class RuleFixtureTest {
             val start = if (runLength < 0) 0 else runStart
             for (xx in start until minOf(w, start + length)) mask[ry * w + xx] = true
         }
+        val colLength = case["col_length"].asInt
+        val colStart = case["col_start"].asInt
         for (col in case["rule_cols"].asJsonArray) {
             val cx = col.asInt
-            for (yy in 0 until h) mask[yy * w + cx] = true
+            val length = if (colLength < 0) h else colLength
+            val start = if (colLength < 0) 0 else colStart
+            for (yy in start until minOf(h, start + length)) mask[yy * w + cx] = true
         }
         return mask
     }

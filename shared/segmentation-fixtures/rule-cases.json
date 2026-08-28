@@ -17,6 +17,8 @@
       "rule_cols": [],
       "run_length": -1,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": true,
       "expected_ink": 521,
       "expected_checksum": 583509
@@ -34,6 +36,8 @@
       ],
       "run_length": -1,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": true,
       "expected_ink": 1954,
       "expected_checksum": 674669
@@ -50,6 +54,8 @@
       ],
       "run_length": -1,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": true,
       "expected_ink": 5788,
       "expected_checksum": 940510
@@ -67,6 +73,8 @@
       "rule_cols": [],
       "run_length": -1,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": true,
       "expected_ink": 537,
       "expected_checksum": 996943
@@ -82,6 +90,8 @@
       "rule_cols": [],
       "run_length": 15,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": true,
       "expected_ink": 125,
       "expected_checksum": 25646
@@ -97,6 +107,8 @@
       "rule_cols": [],
       "run_length": 14,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": false,
       "expected_ink": 139,
       "expected_checksum": 27165
@@ -117,6 +129,8 @@
       ],
       "run_length": -1,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": true,
       "expected_ink": 4719,
       "expected_checksum": 605405
@@ -132,6 +146,8 @@
       "rule_cols": [],
       "run_length": 15,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": true,
       "expected_ink": 198,
       "expected_checksum": 78466
@@ -149,6 +165,8 @@
       ],
       "run_length": -1,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": true,
       "expected_ink": 1955,
       "expected_checksum": 997488
@@ -164,6 +182,8 @@
       "rule_cols": [],
       "run_length": 64,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": true,
       "expected_ink": 482,
       "expected_checksum": 930664
@@ -179,6 +199,8 @@
       ],
       "run_length": -1,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": true,
       "expected_ink": 1521,
       "expected_checksum": 960847
@@ -197,6 +219,8 @@
       "rule_cols": [],
       "run_length": -1,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": true,
       "expected_ink": 317,
       "expected_checksum": 524620
@@ -212,6 +236,8 @@
       "rule_cols": [],
       "run_length": 20,
       "run_start": 0,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": false,
       "expected_ink": 424,
       "expected_checksum": 785838
@@ -227,9 +253,173 @@
       "rule_cols": [],
       "run_length": 20,
       "run_start": 1,
+      "col_length": -1,
+      "col_start": 0,
       "expected_changed": false,
       "expected_ink": 423,
       "expected_checksum": 785093
+    },
+    {
+      "name": "column run of exactly the vertical span",
+      "width": 40,
+      "height": 62,
+      "density": 12,
+      "rule_rows": [],
+      "rule_cols": [
+        9
+      ],
+      "run_length": -1,
+      "run_start": 0,
+      "col_length": 31,
+      "col_start": 2,
+      "expected_changed": true,
+      "expected_ink": 304,
+      "expected_checksum": 370617
+    },
+    {
+      "name": "column run one short of the vertical span",
+      "width": 40,
+      "height": 62,
+      "density": 12,
+      "rule_rows": [],
+      "rule_cols": [
+        9
+      ],
+      "run_length": -1,
+      "run_start": 0,
+      "col_length": 30,
+      "col_start": 2,
+      "expected_changed": false,
+      "expected_ink": 334,
+      "expected_checksum": 390717
+    },
+    {
+      "name": "column run of exactly the 15px floor",
+      "width": 20,
+      "height": 24,
+      "density": 25,
+      "rule_rows": [],
+      "rule_cols": [
+        7
+      ],
+      "run_length": -1,
+      "run_start": 0,
+      "col_length": 15,
+      "col_start": 1,
+      "expected_changed": true,
+      "expected_ink": 118,
+      "expected_checksum": 27668
+    },
+    {
+      "name": "column run one short of the 15px floor",
+      "width": 20,
+      "height": 24,
+      "density": 25,
+      "rule_rows": [],
+      "rule_cols": [
+        7
+      ],
+      "run_length": -1,
+      "run_start": 0,
+      "col_length": 14,
+      "col_start": 1,
+      "expected_changed": false,
+      "expected_ink": 132,
+      "expected_checksum": 29880
+    },
+    {
+      "name": "odd width, run at the truncated span",
+      "width": 31,
+      "height": 40,
+      "density": 10,
+      "rule_rows": [
+        12
+      ],
+      "rule_cols": [],
+      "run_length": 15,
+      "run_start": 3,
+      "col_length": -1,
+      "col_start": 0,
+      "expected_changed": true,
+      "expected_ink": 138,
+      "expected_checksum": 85010
+    },
+    {
+      "name": "odd width, run one short of it",
+      "width": 31,
+      "height": 40,
+      "density": 10,
+      "rule_rows": [
+        12
+      ],
+      "rule_cols": [],
+      "run_length": 14,
+      "run_start": 3,
+      "col_length": -1,
+      "col_start": 0,
+      "expected_changed": true,
+      "expected_ink": 138,
+      "expected_checksum": 85010
+    },
+    {
+      "name": "rules over almost no text, ceiling fires",
+      "width": 60,
+      "height": 40,
+      "density": 1,
+      "rule_rows": [
+        4,
+        9,
+        14,
+        19,
+        24,
+        29,
+        34
+      ],
+      "rule_cols": [],
+      "run_length": -1,
+      "run_start": 0,
+      "col_length": -1,
+      "col_start": 0,
+      "expected_changed": false,
+      "expected_ink": 440,
+      "expected_checksum": 514534
+    },
+    {
+      "name": "ink share exactly at the ceiling",
+      "width": 20,
+      "height": 24,
+      "density": 5,
+      "rule_rows": [
+        3,
+        7,
+        11,
+        15
+      ],
+      "rule_cols": [],
+      "run_length": -1,
+      "run_start": 0,
+      "col_length": -1,
+      "col_start": 0,
+      "expected_changed": true,
+      "expected_ink": 20,
+      "expected_checksum": 5690
+    },
+    {
+      "name": "run between the 0.45 and 0.50 spans",
+      "width": 40,
+      "height": 30,
+      "density": 8,
+      "rule_rows": [
+        11
+      ],
+      "rule_cols": [],
+      "run_length": 18,
+      "run_start": 2,
+      "col_length": -1,
+      "col_start": 0,
+      "expected_changed": false,
+      "expected_ink": 140,
+      "expected_checksum": 80684
     }
   ]
 }

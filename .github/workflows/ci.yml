@@ -22,10 +22,12 @@
 # touching a decoder or a segmenter.
 #
 # That exclusion got more expensive on 2026-08-28. Android's suite went from 22
-# tests to 32 with the printed-rule port, and ten of those are the only automated
-# check that this app's segmenter still agrees with web and iOS — the two ports CI
-# does run. The shared fixture below is verified on every push, but nothing here
-# verifies that the Kotlin side still matches it.
+# tests to 50: the printed-rule port added ten, PageNormalizer's newly-testable
+# internals fourteen, and the cv2 dilation fixture four. Six of those fifty are the
+# fixture tests, and they are the only automated check that this app's segmenter and
+# its page normaliser still agree with web and iOS, the two ports CI does run. The
+# three shared fixtures below are verified on every push, but nothing here verifies
+# that the Kotlin side still matches them.
 #
 # iOS is no longer excluded, but only its pure logic. `apps/ios/MonOcrCore` is a
 # Swift package over the Foundation-only files, so `swift test` needs no
@@ -293,6 +295,42 @@ jobs:
           unchanged = len(d["cases"]) - changed
           assert unchanged >= 1, "no case pins the leave-it-alone path"
           print(f"fixture ok: {len(d['cases'])} cases, {changed} suppress, {unchanged} do not")
+          PY
+
+      - name: The dilation fixture is not optional
+        # The newest of the three, and the only one that has caught a cross-port
+        # defect: iOS dilated the background estimate with a square where the
+        # reference and Android use cv2's MORPH_ELLIPSE, and both ports were green
+        # throughout because iOS compared itself against an oracle that was also a
+        # square. The half-width table below IS the kernel shape, so a fixture that
+        # went missing or got hand-edited would un-gate the thing that found it.
+        working-directory: monocr
+        run: |
+          set -euo pipefail
+          f=shared/segmentation-fixtures/dilate-cases.json
+          test -s "$f"
+          python3 - "$f" <<'PY'
+          import json, math, sys
+          d = json.load(open(sys.argv[1]))
+          assert d["cases"], "fixture has no cases"
+          assert d["half_widths"], "fixture carries no kernel shape"
+          assert d["kernel_for_small_height"], "fixture carries no kernel rule"
+          assert d["corner_patch_for_side"], "fixture carries no corner rule"
+          for kernel, rows in d["half_widths"].items():
+              k = int(kernel)
+              r = k // 2
+              assert len(rows) == k, f"kernel {k}: {len(rows)} rows"
+              # cv2's ellipse is the per-row half-width round(sqrt(r^2 - dy^2)).
+              # Re-derived here so a hand-edited shape cannot pass: this is the one
+              # value in the file that decides what the kernel IS.
+              for i, half in enumerate(rows):
+                  dy = i - r
+                  assert half == round(math.sqrt(max(0.0, r * r - dy * dy))),                       f"kernel {k} row {i}: {half} is not cv2's ellipse"
+          for height, kernel in d["kernel_for_small_height"].items():
+              assert kernel == max(7, (int(height) // 4) | 1), f"kernel rule wrong at {height}"
+          for side, patch in d["corner_patch_for_side"].items():
+              assert patch == max(3, int(side) // 10), f"corner rule wrong at {side}"
+          print(f"fixture ok: {len(d['cases'])} cases, {len(d['half_widths'])} kernel shapes")
           PY
 
   ios-core:

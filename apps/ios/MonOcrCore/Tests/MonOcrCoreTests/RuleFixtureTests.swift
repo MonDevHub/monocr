@@ -29,6 +29,8 @@ struct RuleFixtureTests {
         let rule_cols: [Int]
         let run_length: Int
         let run_start: Int
+        let col_length: Int
+        let col_start: Int
         let expected_changed: Bool
         let expected_ink: Int
         let expected_checksum: Int
@@ -77,7 +79,9 @@ struct RuleFixtureTests {
             for xx in start..<min(c.width, start + length) { mask[ry * c.width + xx] = true }
         }
         for cx in c.rule_cols {
-            for yy in 0..<c.height { mask[yy * c.width + cx] = true }
+            let length = c.col_length < 0 ? c.height : c.col_length
+            let start = c.col_length < 0 ? 0 : c.col_start
+            for yy in start..<min(c.height, start + length) { mask[yy * c.width + cx] = true }
         }
         return mask
     }

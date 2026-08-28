@@ -45,10 +45,16 @@ struct RuleSuppressionTests {
     }
 
     /// An empty mask has no ink to measure a share against, so it returns early.
+    ///
+    /// The second assertion used to be `inkCount(m) == 0` on a mask constructed
+    /// all-false, passed to a function whose only write sets a pixel FALSE. It
+    /// could not fail under any mutation. Asserting the mask is unchanged is the
+    /// same intent and can.
     @Test func aBlankPageIsRefusedBeforeTheInkShareIsComputed() {
         var m = [Bool](repeating: false, count: 100 * 100)
+        let before = m
         #expect(LineSegmenter.suppressPageRules(&m, width: 100, height: 100) == false)
-        #expect(Self.inkCount(m) == 0)
+        #expect(m == before)
     }
 
     // MARK: - Rules found
