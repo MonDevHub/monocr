@@ -9,9 +9,9 @@ later, model revision `d3d9d5e` (v3.5).
 
 | sample | input | pages | lines | garbage lines | characters | median line height | speed |
 | ------ | ----- | ----: | ----: | ------------: | ---------: | -----------------: | ----: |
-| [`mnec-vs-policy`](mnec-vs-policy/) | born-digital PDF | 14 | 226 | **0.0%** | 14,290 | 71 px | 3.3 s/page |
-| [`buddha-chronicle`](buddha-chronicle/) | born-digital PDF | 10 | 313 | **0.0%** | 24,049 | 79 px | 7.0 s/page |
-| [`typeset-screenshot`](typeset-screenshot/) | 925×1280 JPEG | 1 | 24 | **0.0%** | 1,270 | 40 px | 3.7 s/page |
+| [`mnec-vs-policy`](mnec-vs-policy/) | born-digital PDF | 14 | 226 | **none of 226** | 14,290 | 71 px | 3.3 s/page |
+| [`buddha-chronicle`](buddha-chronicle/) | born-digital PDF | 10 | 313 | **none of 313** | 24,049 | 79 px | 7.0 s/page |
+| [`typeset-screenshot`](typeset-screenshot/) | 925×1280 JPEG | 1 | 24 | **none of 24** | 1,270 | 40 px | 3.7 s/page |
 
 Each directory holds `input.pdf` or `input.jpg`, `output.txt`, and `lines.jsonl`
 — one JSON record per page, carrying every line's text and its bounding box.
@@ -41,14 +41,18 @@ glyph tops looks like digits. The length clause matters: page numbers are single
 Mon digits read **correctly**, and counting them as failures punishes the tool for
 being right.
 
-It is not character accuracy, and it is blind to Latin script — an English
-document in the wider screening scored 0.0% while its output read
+It is not character accuracy, and it is blind to Latin script. An English document
+in the wider screening came through with a clean count while its output read
 `thenvention ofTraditions`. Read the outputs; do not take the column on faith.
+
+Counts, not rates, on purpose. `0.0%` rounds, so it reads as *never* when what it
+means here is *none of these 563 lines*. Three documents cannot support the first
+claim and do support the second.
 
 ## These were selected, and that is the point of saying so
 
 Eleven books and six images were screened four pages each and ranked. These three
-scored 0.0%. On unscreened material the same build runs closer to **9%** garbage
+came out clean. On unscreened material the same build runs closer to **9%** garbage
 lines, and one 145-page image scan reached 33%.
 
 So this is what the tool does at its best on material of this kind — not an
