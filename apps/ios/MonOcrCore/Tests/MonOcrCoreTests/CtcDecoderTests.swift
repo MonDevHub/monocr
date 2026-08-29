@@ -21,31 +21,49 @@ struct CtcDecoderTests {
         return logits
     }
 
-    @Test func decodeSimpleSequenceWithoutRepetition() {
+    @Test func decodeSimpleSequenceWithoutRepetition() throws {
         // A A B blank C over blank + A + B + C, which collapses to ABC.
         let logits = buildLogits(timeSteps: 5, numClasses: 4, argmaxes: [1, 1, 2, 0, 3])
-        let result = CtcDecoder.decode(logits: logits, timeSteps: 5, numClasses: 4, charset: "ABC")
+        let result = try CtcDecoder.decode(logits: logits, timeSteps: 5, numClasses: 4, charset: "ABC")
         #expect(result == "ABC")
     }
 
-    @Test func allBlankProducesEmptyString() {
+    @Test func allBlankProducesEmptyString() throws {
         let logits = buildLogits(timeSteps: 4, numClasses: 3, argmaxes: [0, 0, 0, 0])
-        let result = CtcDecoder.decode(logits: logits, timeSteps: 4, numClasses: 3, charset: "AB")
+        let result = try CtcDecoder.decode(logits: logits, timeSteps: 4, numClasses: 3, charset: "AB")
         #expect(result == "")
     }
 
     /// The blank between the two A's is the only thing that makes them two
     /// characters rather than one, so this is the case that proves the collapse
     /// keys on the previous index and not on the emitted string.
-    @Test func repeatedSameCharWithBlankSeparatorStaysAsTwo() {
+    @Test func repeatedSameCharWithBlankSeparatorStaysAsTwo() throws {
         let logits = buildLogits(timeSteps: 3, numClasses: 2, argmaxes: [1, 0, 1])
-        let result = CtcDecoder.decode(logits: logits, timeSteps: 3, numClasses: 2, charset: "A")
+        let result = try CtcDecoder.decode(logits: logits, timeSteps: 3, numClasses: 2, charset: "A")
         #expect(result == "AA")
     }
 
-    @Test func consecutiveDuplicatesCollapsed() {
+    @Test func consecutiveDuplicatesCollapsed() throws {
         let logits = buildLogits(timeSteps: 3, numClasses: 2, argmaxes: [1, 1, 1])
-        let result = CtcDecoder.decode(logits: logits, timeSteps: 3, numClasses: 2, charset: "A")
+        let result = try CtcDecoder.decode(logits: logits, timeSteps: 3, numClasses: 2, charset: "A")
         #expect(result == "A")
+    }
+
+    /// A class the charset cannot name must fail loudly, not silently vanish.
+    ///
+    /// This port used to skip the index and keep decoding, so a model and charset of
+    /// different generations produced a plausible reading with characters missing.
+    /// Android raises `ModelContractException` on the same condition and web raises
+    /// `ModelContractError`; both have had a test for it and this port had none,
+    /// which is why the three drifted.
+    @Test func aClassBeyondTheCharsetIsRefused() {
+        // Four classes, charset of two: class 3 names charset[2], which is not there.
+        let logits: [Float] = [
+            0, 0, 0, 9,
+            0, 9, 0, 0,
+        ]
+        #expect(throws: ModelContractError.self) {
+            try CtcDecoder.decode(logits: logits, timeSteps: 2, numClasses: 4, charset: "AB")
+        }
     }
 }

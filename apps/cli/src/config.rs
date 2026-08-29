@@ -205,9 +205,12 @@ pub struct Resolved {
 }
 
 /// Combine flags with a config file. A pure function of its inputs, so the merge
-/// rule can be tested without a filesystem, a model or a subprocess — the same
-/// split `mon_OCR/scripts/segmenter_parity.py` uses between its rule layer and
-/// its disk I/O.
+/// rule can be tested without a filesystem, a model or a subprocess.
+///
+/// This used to cite `mon_OCR/scripts/segmenter_parity.py` as the same split. That
+/// file has never existed: it was planned and not written, and the citation
+/// outlived the plan. A comparison to something a reader cannot open is worse than
+/// no comparison, because it costs them the search before they find that out.
 ///
 /// See the module header for why switches are OR-ed and `Option`s override.
 pub fn merge(flags: Flags, file: Config) -> Resolved {

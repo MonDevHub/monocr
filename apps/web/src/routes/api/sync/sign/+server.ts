@@ -55,10 +55,21 @@ export const GET: RequestHandler = async ({ url, platform, request }) => {
 	const finalId = platformEnv.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID;
 	const finalSecret = platformEnv.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY;
 	const finalAccount = platformEnv.R2_ACCOUNT_ID || env.R2_ACCOUNT_ID;
-	const finalBucket = platformEnv.R2_BUCKET_NAME || env.R2_BUCKET_NAME || 'monocr';
+	// No default bucket. A missing R2_BUCKET_NAME used to fall back to 'monocr',
+	// while `wrangler.toml` binds `monocr-dataset` — so a deploy that lost the
+	// variable would sign URLs for a DIFFERENT bucket and succeed, writing the
+	// corpus somewhere nobody was reading. Failing here is the cheaper outcome.
+	//
+	// The `MONOCR_DATASET` r2_buckets binding in wrangler.toml is not what this
+	// route uses; it signs with S3 credentials instead, so the bucket has to be
+	// named explicitly.
+	const finalBucket = platformEnv.R2_BUCKET_NAME || env.R2_BUCKET_NAME;
 
-	if (!finalId || !finalSecret || !finalAccount) {
-		console.error('R2 Credentials missing in environment');
+	// `finalBucket` is in this check because it no longer has a default. Without it
+	// an undefined bucket reaches PutObjectCommand, and the SDK's error names the
+	// signature rather than the missing variable.
+	if (!finalId || !finalSecret || !finalAccount || !finalBucket) {
+		console.error('R2 configuration missing in environment');
 		throw error(500, 'Cloud storage not configured');
 	}
 
@@ -79,9 +90,23 @@ export const GET: RequestHandler = async ({ url, platform, request }) => {
 	if (!client) throw error(500, 'Failed to initialize storage client');
 
 	try {
-		// Generate an object key: contributions/YYYY-MM/recordId-fileName
+		// `contribution/`, singular, matching the two other clients and the written
+		// contract.
+		//
+		// This was `contributions/` and nothing else in the system used that prefix.
+		// Android and iOS upload through the Go service, which writes
+		// `contribution/YYYY-MM/` (`services/feedback/internal/upload/handler.go`,
+		// `UploadContribution`), and `shared/contract/README.md` documents the same
+		// singular form in its example response. So web was one client writing to a
+		// prefix of its own, and anything assembling the corpus by prefix silently
+		// saw two of three platforms.
+		//
+		// Web contributions uploaded BEFORE 2026-08-28 are still under
+		// `contributions/`. A reader covering the full history has to take both; a
+		// reader of new data only needs this one. That split is the cost of the fix
+		// and it is cheaper than leaving the prefixes diverged.
 		const dateStr = new Date().toISOString().slice(0, 7); // YYYY-MM
-		const key = `contributions/${dateStr}/${recordId}-${sanitizedFileName}`;
+		const key = `contribution/${dateStr}/${recordId}-${sanitizedFileName}`;
 
 		const command = new PutObjectCommand({
 			Bucket: finalBucket,

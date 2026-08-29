@@ -119,7 +119,10 @@ def build(w: int, h: int, kind: str, m: int) -> Image.Image:
     cols = [x for x in range(w) if inked(x)]
     if cols:
         arr[:, cols] = 0
-    return Image.fromarray(arr, mode="L")
+    # No `mode=` argument: Pillow removes it in 13 (2026-10-15), and a uint8 2-D
+    # array already infers "L". Verified byte-identical across all 14 cases here
+    # before it was dropped, so the checked-in fixture does not move.
+    return Image.fromarray(arr)
 
 
 def build_fixture(cut_column, tile_line) -> dict:

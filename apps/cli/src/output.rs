@@ -6,12 +6,14 @@
 //! within a directory on both APFS and ext4. The upstream model manager uses the
 //! same `.part`-then-replace shape for the same reason.
 
+use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct LineRecord {
@@ -164,6 +166,70 @@ pub fn output_stem(path: &Path, disambiguator: Option<&str>) -> String {
     }
 }
 
+/// Stems for a whole run, with same-named inputs pulled apart.
+///
+/// `output_stem` can disambiguate but cannot know that it needs to: a collision
+/// is a property of the input list, not of any one path. That missing half is
+/// what made the doc above wishful thinking — the one production caller passed
+/// `None` unconditionally, so `disambiguator` was never `Some` outside a unit
+/// test, and `extract a/book.pdf b/book.pdf -o out` wrote both books over one
+/// `out/book.txt` and interleaved their pages into one `out/book/`. The first
+/// book was simply gone, with nothing on stderr and exit 0.
+pub fn assign_stems(paths: &[PathBuf]) -> Vec<String> {
+    let bases: Vec<String> = paths.iter().map(|p| output_stem(p, None)).collect();
+
+    let mut counts: HashMap<&str, usize> = HashMap::new();
+    for base in &bases {
+        *counts.entry(base.as_str()).or_insert(0) += 1;
+    }
+
+    // Only a name that actually collides is decorated. Tagging every stem would
+    // rename the output of every single-book run that already exists, and the
+    // common case is one book whose own name is the useful one.
+    let mut stems: Vec<String> = paths
+        .iter()
+        .zip(&bases)
+        .map(|(path, base)| {
+            if counts.get(base.as_str()).copied().unwrap_or(0) > 1 {
+                output_stem(path, Some(&path_tag(path)))
+            } else {
+                base.clone()
+            }
+        })
+        .collect();
+
+    // A tag collision, or an input literally named `book-1a2b3c4d.pdf`, would
+    // silently reintroduce the overwrite this function exists to prevent, so
+    // uniqueness is checked rather than assumed.
+    force_unique(&mut stems);
+    stems
+}
+
+/// Short stable tag for a path. Derived from the path rather than from its
+/// position in the list, so re-running the same command picks the same stems
+/// and `--resume` keeps writing to the files the first run wrote.
+fn path_tag(path: &Path) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(path.to_string_lossy().as_bytes());
+    // Hex, so slicing bytes and slicing characters are the same thing here.
+    format!("{:x}", hasher.finalize())[..8].to_string()
+}
+
+/// Last-resort suffix for any stem still repeated after tagging.
+fn force_unique(stems: &mut [String]) {
+    let mut seen: HashSet<String> = HashSet::new();
+    for stem in stems.iter_mut() {
+        if seen.insert(stem.clone()) {
+            continue;
+        }
+        let mut n = 2;
+        while !seen.insert(format!("{stem}-{n}")) {
+            n += 1;
+        }
+        *stem = format!("{stem}-{n}");
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -196,6 +262,49 @@ mod tests {
             output_stem(Path::new("/x/book.pdf"), Some("ab12cd34")),
             "book-ab12cd34"
         );
+    }
+
+    #[test]
+    fn two_books_with_the_same_name_get_different_stems() {
+        let paths = vec![PathBuf::from("a/book.pdf"), PathBuf::from("b/book.pdf")];
+        let stems = assign_stems(&paths);
+        assert_ne!(
+            stems[0], stems[1],
+            "one book would overwrite the other's .txt and interleave its pages"
+        );
+        assert!(
+            stems[0].starts_with("book-"),
+            "unexpected stem: {}",
+            stems[0]
+        );
+        assert!(
+            stems[1].starts_with("book-"),
+            "unexpected stem: {}",
+            stems[1]
+        );
+    }
+
+    #[test]
+    fn a_name_that_does_not_collide_is_left_alone() {
+        let paths = vec![PathBuf::from("a/book.pdf"), PathBuf::from("b/atlas.pdf")];
+        assert_eq!(assign_stems(&paths), vec!["book", "atlas"]);
+    }
+
+    #[test]
+    fn the_same_arguments_produce_the_same_stems() {
+        // --resume depends on this: a stem that moved between runs would write a
+        // second copy of the book beside the first rather than continuing it.
+        let paths = vec![PathBuf::from("a/book.pdf"), PathBuf::from("b/book.pdf")];
+        assert_eq!(assign_stems(&paths), assign_stems(&paths));
+    }
+
+    #[test]
+    fn a_stem_that_survives_tagging_still_ends_up_unique() {
+        // The tag makes this vanishingly unlikely, not impossible, and the cost
+        // of it happening is the silent overwrite being fixed here.
+        let mut stems = vec!["book".to_string(), "book".to_string(), "book".to_string()];
+        force_unique(&mut stems);
+        assert_eq!(stems, vec!["book", "book-2", "book-3"]);
     }
 
     #[test]

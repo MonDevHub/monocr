@@ -14,7 +14,12 @@
 - [ ] `pnpm --filter ./apps/web test`
 - [ ] `pnpm --filter ./apps/web run lint`
 - [ ] `cd services/feedback && go vet ./... && go test ./...` (if Go changed)
-- [ ] Android / iOS unit tests run locally (if either app changed — CI does not run them)
+- [ ] Android unit tests, if Android changed: `cd apps/android && ./gradlew testDebugUnitTest`
+      (needs `JAVA_HOME` on Android Studio's JBR; see apps/android/README.md).
+      CI does not run them, so this is the only gate on that suite.
+- [ ] iOS `MonOcrCore` tests, if iOS changed: `cd apps/ios && sh Scripts/swift-test.sh`.
+      The `ios-core` job runs these on every push, so this is a faster copy of a
+      gate that does exist. The app target is still not built anywhere.
 
 ## Claims
 

@@ -8,10 +8,17 @@
 # dozens of single-package PRs." Ungrouped, this repo would open a PR per package
 # and the review would stop happening, which is the failure mode that matters.
 #
-# Only ecosystems CI can actually verify are listed. Android (gradle) and iOS are
-# not built or tested in CI, so a dependency PR for them could not be checked by
+# Only ecosystems CI can actually verify are listed. Android (gradle) is neither
+# built nor tested in CI, so a dependency PR for it could not be checked by
 # anything before merge — that is a bot opening unverifiable PRs, not a control.
 # Add the gradle ecosystem in the same change that adds an Android CI job.
+#
+# iOS is the narrower case, and the distinction is the whole reason this comment
+# was wrong until 2026-08-28. The app TARGET is not built in CI: that needs Xcode,
+# a simulator and signing. But the `MonOcrCore` Swift package IS tested there, by
+# the `ios-core` job on macos-latest. There is still no SwiftPM ecosystem entry
+# because the package declares no external dependencies; its sources are symlinks
+# into monocr-ios/. If it ever takes one, that entry has a real gate waiting for it.
 version: 2
 
 updates:

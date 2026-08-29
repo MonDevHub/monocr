@@ -270,16 +270,29 @@ actor MonOcrEngine {
             )
         }
 
+        // Measured on the normalised page, which is the image the segmenter and
+        // the model actually see, rather than on the raw capture whose contrast
+        // levelling has not been applied yet.
+        let looksSoft = CaptureQuality.isSoft(page)
+        if looksSoft {
+            MonLog_i("capture looks soft; the reading may be unreliable")
+        }
+
         let wholePage = LineSegment(x: 0, y: 0, width: page.width, height: page.height)
         var bands: [LineSegment]
-        if mode == .line {
-            bands = [wholePage]
-        } else {
-            bands = LineSegmenter.segment(page: page, densityThresholdRatio: mode.densityThresholdRatio)
+        // A mode with no ratio never runs the profile, so the absence of one IS the
+        // branch. This compared against `.line` while the ratio was non-optional,
+        // which meant the two could drift: a new mode that should skip segmenting
+        // would have been segmented anyway. `OcrRepository.performOcr` reads the
+        // same way on Android.
+        if let ratio = mode.densityThresholdRatio {
+            bands = LineSegmenter.segment(page: page, densityThresholdRatio: ratio)
             if bands.isEmpty {
                 MonLog_i("no lines found; reading the whole page as one line")
                 bands = [wholePage]
             }
+        } else {
+            bands = [wholePage]
         }
         MonLog_d("segmented into \(bands.count) bands")
 
@@ -384,7 +397,8 @@ actor MonOcrEngine {
             durationMs: totalDuration,
             debugImage: debugImg,
             lines: lines,
-            mode: mode
+            mode: mode,
+            looksSoft: looksSoft
         )
     }
 
@@ -461,7 +475,7 @@ actor MonOcrEngine {
             throw OcrError.inferenceFailed("the logits tensor had no readable buffer")
         }
 
-        return CtcDecoder.decode(
+        return try CtcDecoder.decode(
             logits: logits,
             timeSteps: timeSteps,
             numClasses: numClasses,

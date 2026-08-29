@@ -26,10 +26,10 @@ export interface LineSegment {
  * Is this band plausibly one line of text, or a fused block of several?
  *
  * A port of `looks_like_a_line` in `mon_OCR/src/monocr/segmenter.py:181-215`, with
- * the same two constants. iOS (`LineSegmenter.looksLikeALine`) and the Rust CLI
- * (`apps/cli/src/mode.rs:161-168`) both already carry it; the web app was the only
- * surface with no equivalent and no field to report one, so a fused band was
- * rendered as ordinary output.
+ * the same two constants. Android (`LineSegmenter.looksLikeALine`), iOS
+ * (`LineSegmenter.looksLikeALine`) and the Rust CLI (`apps/cli/src/mode.rs:161-168`)
+ * all carry it; the web app was the last surface with no equivalent and no field to
+ * report one, so a fused band was rendered as ordinary output.
  *
  * Confidence cannot substitute for this. Upstream measured a photograph where five
  * lines fused into one band and the recogniser returned fluent Mon that appears
@@ -132,8 +132,8 @@ export function backgroundIsDark(image: ImageData): boolean {
 	// on such a page, so `lower` was reassigned once more and came out 1 instead of 0.
 	// Measured: a page half black and half white reported median 128 against a true
 	// 127.5, which is on the wrong side of the threshold, so the inverted scan this
-	// function exists to catch was read as a light page. iOS PageNormalizer.swift
-	// carries the same defect.
+	// function exists to catch was read as a light page. iOS `PageNormalizer.swift`
+	// uses the same -1 sentinel and records the same measurement, so the two agree.
 	let lower = -1;
 	let upper = -1;
 	for (let value = 0; value < 256; value++) {
@@ -225,8 +225,22 @@ export const RULE_MAX_INK_SHARE = 0.8;
  * ink region is not ink and only its edges are.
  *
  * Mutates `binary` in place and returns whether anything was removed.
+ *
+ * THE SIZE CHECK IS NOT DEFENSIVE PADDING. Android and iOS fail loudly on a mask
+ * that does not match its declared dimensions — Kotlin throws
+ * ArrayIndexOutOfBoundsException, Swift traps — but a typed array reads `undefined`
+ * out of range and drops out-of-range writes. Measured: a 232 000-byte mask declared
+ * 800x340 returned `true` with no throw, having silently left the last 50 rows
+ * unsuppressed, and the caller got a plausible-looking result. So this port has to
+ * raise the error the language will not.
  */
 export function suppressPageRules(binary: Uint8Array, width: number, height: number): boolean {
+	if (width <= 0 || height <= 0) return false;
+	if (binary.length !== width * height) {
+		throw new Error(
+			`suppressPageRules: mask has ${binary.length} entries, but ${width}x${height} needs ${width * height}`
+		);
+	}
 	const minH = Math.max(15, Math.floor(width * RULE_SPAN));
 	const minV = Math.max(15, Math.floor(height * RULE_SPAN));
 	const rules = new Uint8Array(width * height);
@@ -258,7 +272,11 @@ export function suppressPageRules(binary: Uint8Array, width: number, height: num
 	let ruleInk = 0;
 	for (let i = 0; i < rules.length; i++) if (rules[i]) ruleInk++;
 	if (ruleInk === 0) return false;
-	if (ruleInk > ink * RULE_MAX_INK_SHARE) {
+	// Integer arithmetic, matching Android and iOS. They evaluate this product in
+	// Float32, where it disagrees with double at ink = 5_242_881 / ruleInk =
+	// 4_194_305 — double abandons, float32 suppresses ~80% of the page's ink.
+	// `x * 5 > y * 4` is exact everywhere, so all four implementations agree.
+	if (ruleInk * 5 > ink * 4) {
 		// Found the text. Leaving the page alone is strictly better than emptying
 		// it, and the caller is no worse off than before this step existed.
 		return false;
@@ -266,6 +284,142 @@ export function suppressPageRules(binary: Uint8Array, width: number, height: num
 
 	for (let i = 0; i < rules.length; i++) if (rules[i]) binary[i] = 0;
 	return true;
+}
+
+/**
+ * Two runs separated by at most this many rows are one text line, provided the
+ * raw profile never reaches zero inside the gap.
+ *
+ * WHY THIS EXISTS. Boundaries come off the raw profile (see step 6), and on Mon
+ * text that splits a single line between the upper diacritic zone and the
+ * consonant bodies: the diacritics are sparse, so the rows between them and the
+ * bodies carry a little ink or none, and either way they fall under a threshold
+ * that is 3% of the mean. The strip of glyph tops then decodes as Mon digits,
+ * because a row of circle-tops IS digits, and the decapitated body decodes
+ * without its asats because the asat went with the strip.
+ *
+ * MEASURED ON THIS PORT, 2026-08-28, at ITS parameters — density ratio 0.03,
+ * MIN_LINE_HEIGHT 10, smear kernel 11x5 — over a page of 10 Mon-shaped lines: a
+ * 20-row sparse strip above a 45-row body. Rust's figures do not transfer,
+ * because this port dilates the mask vertically before the profile and Rust does
+ * not, so the source gap has to survive that dilation first:
+ *
+ *     source gap   dip row, raw ink columns   bands returned (10 drawn)
+ *     0-4 rows     372-624                    10   dilation closes it
+ *     5 rows       0 (no bridging stroke)     *20*  split, zero ink in the gap
+ *     5 rows       12 (one bridging stroke)   *20*  split, threshold was 15.60
+ *     5 rows       24 (two bridging strokes)  10   above threshold, no split
+ *
+ * So the split needs a source gap of 5 rows here rather than the 1 row it needs
+ * in Rust — reach-2 dilation fills anything narrower — and at 5 rows every line
+ * on the page splits in two. The 12-columns-against-15.60 row is this port's
+ * version of the reference's measured `row 280 carrying 6 ink pixels against a
+ * threshold of 7.0`.
+ *
+ * Two clauses, because one does not cover it. The ink test crosses a dip that
+ * stays above zero. The zero-ink row above it is a gap no ink test can cross, so
+ * the second clause is a height ratio: a run at most half a typical line is a
+ * fragment of a line, not a line. Two REAL lines 5 rows apart are each full
+ * height, so they stay apart.
+ *
+ * The size bound is the third condition and does a different job: it refuses to
+ * merge real inter-line spacing even when overlapping diacritics hold the raw
+ * profile above zero right across it.
+ *
+ * Ported from `monocr-onnx` `rust/src/segmenter.rs` (`MIN_GAP_MERGE`,
+ * `merge_runs`), which took it from `mon_OCR` `segmenter.py` step 8. The value is
+ * the reference's.
+ */
+export const MIN_GAP_MERGE = 10;
+
+/**
+ * Fuse runs that a sub-threshold dip or a few empty rows split apart.
+ *
+ * `rawHist` is the RAW profile, and the name is deliberate: this module's `hist`
+ * is the SMOOTHED one, which is inverted from Rust's naming and from the
+ * reference's. Passing the smoothed profile here would test for ink in rows that
+ * only borrowed it from their neighbours.
+ *
+ * Exported so the arithmetic is testable without building a page, and called
+ * from `segmentLines` BEFORE the height filter — see the call site for why the
+ * order is load-bearing.
+ *
+ * Both tests are relative to the page's own median run height rather than to the
+ * neighbouring run, and that is a correction rather than a preference: judging a
+ * fragment against its neighbour CASCADES. The merge mutates the accumulated
+ * run, so every merge makes it taller, and a taller run makes the next line look
+ * more like a fragment. Measured in the Rust port on page 47 of a 56-page book:
+ * 36 bands collapsed to 10, with single bands of 534, 632 and 732 rows, and the
+ * page lost 92% of its readable characters. `ceiling` is the backstop for that,
+ * and twice a typical line rather than tighter because a legitimate merge of two
+ * halves lands at about one typical line and must not be refused.
+ */
+export function mergeRuns(
+	runs: readonly (readonly [number, number])[],
+	rawHist: Float32Array | readonly number[],
+	maxGap: number,
+	minLine: number
+): [number, number][] {
+	if (runs.length === 0) return [];
+
+	// Median over runs that could BE a line, not over every run. The merge
+	// deliberately runs before the height filter, so `runs` still holds every
+	// speckle the profile picked up, and medianing over all of them lets noise
+	// decide what a typical line is. On a heavily speckled scan the noise wins:
+	// measured on a sibling port, 30% of collected runs were under the minimum, and
+	// on 8 of 55 pages that drove `typical` below 10 — one page reached 2, and a
+	// ceiling of 4, against a real line height of 35. The ceiling then refuses every
+	// merge, so the pass switches itself off on exactly the pages that need it most.
+	//
+	// Falling back to the unfiltered median when nothing clears the minimum is safe
+	// rather than principled: on such a page the height filter discards everything
+	// anyway, so no crop depends on the value.
+	const allHeights = runs.map(([a, b]) => b - a);
+	const qualifying = allHeights.filter((h) => h >= minLine);
+	const heights = (qualifying.length > 0 ? qualifying : allHeights).sort((a, b) => a - b);
+	const typical = Math.max(1, heights[Math.floor(heights.length / 2)]);
+	const ceiling = typical * 2;
+
+	const merged: [number, number][] = [];
+	for (const [r0, r1] of runs) {
+		const last = merged[merged.length - 1];
+		if (last) {
+			const gapStart = last[1];
+			const gapSize = Math.max(0, r0 - gapStart);
+			// A caller can hand us touching runs; an empty range is vacuously inked,
+			// which treats them as already one line. Matches Rust's `all` over an
+			// empty range.
+			let gapHasInk = true;
+			for (let y = gapStart; y < r0; y++) {
+				if (!(rawHist[y] > 0)) {
+					gapHasInk = false;
+					break;
+				}
+			}
+			// A run at most half a typical line is a fragment of a line, not a line,
+			// and this is the clause that crosses a gap of genuinely ZERO ink — which
+			// `gapHasInk` refuses and which a floating Mon diacritic produces. Two
+			// REAL lines two rows apart are each a full line by this test, so they
+			// stay apart.
+			//
+			// A fragment attaches to a LINE, never to another fragment. Without the
+			// `minLine` half, a run of speckle merges with itself: measured on a
+			// 12-speck fixture, twelve 2-row specks fused into one 46-row band, which
+			// then CLEARS the height filter and is sent to the recogniser as a line.
+			// Two pieces that are both too short to be a line do not become one by
+			// being adjacent.
+			const ha = last[1] - last[0];
+			const hb = r1 - r0;
+			const fragment = 2 * Math.min(ha, hb) <= typical && Math.max(ha, hb) >= minLine;
+
+			if (gapSize <= maxGap && (gapHasInk || fragment) && r1 - last[0] <= ceiling) {
+				last[1] = r1;
+				continue;
+			}
+		}
+		merged.push([r0, r1]);
+	}
+	return merged;
 }
 
 export function segmentLines(
@@ -430,23 +584,53 @@ export function segmentLines(
 	const threshold = meanDensity * 0.03;
 
 	const segments: LineSegment[] = [];
+	const runs: [number, number][] = [];
 	let startY: number | null = null;
 
 	for (let y = 0; y < height; y++) {
-		const isText = hist[y] > threshold;
+		// the RAW profile, not the smoothed one.
+		//
+		// The threshold is still calibrated from the smoothed mean, because a mean is more
+		// stable with smoothing. Boundaries are detected on the raw profile, because
+		// smoothing bleeds ink across a true inter-line gap narrower than about half the
+		// kernel, and a bled gap never falls under the threshold.
+		//
+		// The reference states this and says why (`mon_OCR/src/monocr/segmenter.py`,
+		// "Valley detection (dual-histogram)"). All three ports read the smoothed profile
+		// here instead, and the cost was measured on this port before changing it: pages of
+		// 14px lines separated by 5, 6 and 8 pixels came back as ONE band each, against 29,
+		// 28 and 25 lines actually drawn. Reading the raw profile returns exactly the drawn
+		// count. At 12px and wider the two agree exactly, and every pre-existing test in all
+		// three suites passes either way.
+		//
+		// Gaps under 5px still fuse, and that is the vertical smear doing its job rather
+		// than this line: a kernel of 5 is meant to bridge a 4px gap so a floating diacritic
+		// stays attached to its base.
+		const isText = rawHist[y] > threshold;
 		if (isText && startY === null) {
 			startY = y;
 		} else if (!isText && startY !== null) {
-			const endY = y;
-			if (endY - startY >= MIN_LINE_HEIGHT) {
-				addSegment(startY, endY);
-			}
+			runs.push([startY, y]);
 			startY = null;
 		}
 	}
 
-	if (startY !== null && height - startY >= MIN_LINE_HEIGHT) {
-		addSegment(startY, height);
+	if (startY !== null) {
+		runs.push([startY, height]);
+	}
+
+	// 6.5 Fuse runs a sub-threshold dip or a few empty rows split apart, BEFORE
+	// the height filter. The order is the reference's and it matters: a diacritic
+	// strip can be shorter than MIN_LINE_HEIGHT, and filtering first would discard
+	// the strip and leave the decapitated body behind as a whole line. Measured on
+	// this port with a 4-row source strip, which reach-2 dilation grows to 8 rows and
+	// the height filter then drops: filtering first returned 10 bands 75px tall, this
+	// order returns 10 bands 88px tall, and the 13px difference IS the strip of upper
+	// marks. Both counts are 10, so no band count can catch this.
+	for (const [r0, r1] of mergeRuns(runs, rawHist, MIN_GAP_MERGE, MIN_LINE_HEIGHT)) {
+		if (r1 - r0 >= MIN_LINE_HEIGHT) {
+			addSegment(r0, r1);
+		}
 	}
 
 	function addSegment(sY: number, eY: number) {

@@ -29,6 +29,25 @@ struct ResultCardView: View {
             // A band shaped like a block rather than a line still returns fluent
             // Mon — upstream measured confidence 0.83 on text that appears
             // nowhere on the page. Say so instead of presenting it as a reading.
+            // A blurred photograph does not fail; it returns confident nonsense.
+            // Said before the block warning because it explains the whole reading
+            // rather than particular bands.
+            if result.looksSoft {
+                HStack(spacing: 6) {
+                    Image(systemName: "camera.metering.unknown")
+                    Text(
+                        NSLocalizedString(
+                            "This photo looks soft. The text may be misread — try again with steadier focus.",
+                            comment: "Blurred capture warning"
+                        )
+                    )
+                }
+                .font(MonTheme.Typography.meta)
+                .foregroundColor(MonTheme.warning)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+            }
+
             if !result.unreliableLines.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle")

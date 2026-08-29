@@ -87,7 +87,23 @@ nonisolated enum ImagePreprocessor {
         
         // 3. Extract pixels for bit-perfect Grayscale & Normalization
         // Using RGBA context to get raw R,G,B values and applying NTSC weights (matching Android)
-        var pixelBytes = [UInt32](repeating: 0, count: finalWidth * targetHeight)
+        // A byte buffer, read in memory order. This was `[UInt32]` read with shifts,
+        // which is only correct on a big-endian host: CoreGraphics writes the bytes
+        // R,G,B,A, and a native 32-bit load on arm64 yields 0xAABBGGRR, so
+        // `(pixel >> 24) & 0xFF` returned ALPHA rather than red.
+        //
+        // `makeUIImage` hands this a DeviceGray image, so R == G == B and the channel
+        // swap between green and blue cancelled. Alpha did not: it is always 255, so
+        // every luma came out `0.299 * 255 + 0.701 * v` — the range compressed from
+        // [0, 255] to [76, 255] with an offset. The contrast stretch below cancels an
+        // affine map whenever it fires, which is why this survived, but its gate is a
+        // range threshold and iOS's range was 0.701 of Android's. Any tile whose true
+        // range sits between the two thresholds stretched on Android and not here,
+        // and on those tiles the model saw a compressed, offset signal.
+        //
+        // `GreyImage+UIKit.swift` reads an identically-configured context byte-wise
+        // and has always been right; the two files disagreed about one buffer layout.
+        var pixelBytes = [UInt8](repeating: 0, count: finalWidth * targetHeight * 4)
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         
         guard let context = CGContext(data: &pixelBytes,
@@ -120,12 +136,14 @@ nonisolated enum ImagePreprocessor {
         for y in 0..<targetHeight {
             for x in 0..<finalWidth {
                 let idx = y * finalWidth + x
-                let pixel = pixelBytes[idx]
+                let offset = idx * 4
 
-                // Extract R, G, B (assuming Big Endian RGBA)
-                let r = Float((pixel >> 24) & 0xFF)
-                let g = Float((pixel >> 16) & 0xFF)
-                let b = Float((pixel >> 8) & 0xFF)
+                // R, G, B in memory order. Alpha, at offset + 3, is deliberately
+                // not read: it is always 255 here and reading it as red is the
+                // defect this loop used to carry.
+                let r = Float(pixelBytes[offset])
+                let g = Float(pixelBytes[offset + 1])
+                let b = Float(pixelBytes[offset + 2])
 
                 // NTSC Weights: matching Android's (0.299f * r + 0.587f * g + 0.114f * b)
                 let gray = 0.299 * r + 0.587 * g + 0.114 * b

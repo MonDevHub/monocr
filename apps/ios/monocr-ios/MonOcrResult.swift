@@ -48,6 +48,14 @@ struct MonOcrResult {
     /// The segmentation mode that produced this result.
     let mode: SegmentationMode
 
+    /// The page was too soft to read confidently.
+    ///
+    /// `CaptureQuality` has computed this since 2026-08-19 and nothing called it:
+    /// the check and its seven tests existed, and no user was ever told. A blurred
+    /// photograph does not fail, it returns confident nonsense, so the check is
+    /// only worth having if it reaches the person holding the camera.
+    let looksSoft: Bool
+
     /// Bands that are shaped like blocks rather than lines. Their text may be
     /// invented, so it is worth telling the user before they trust it.
     var unreliableLines: [RecognizedLine] {

@@ -47,7 +47,7 @@ export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew --stop                 # a warm daemon hides configuration problems — see below
 ./gradlew clean                  # removes app/build (hundreds of MB)
 rm -rf .gradle build .kotlin     # optional; all three are gitignored
-./gradlew test                   # 22 tests, 0 failures
+./gradlew test                   # 50 tests, 0 failures
 ./gradlew assembleDebug          # -> app/build/outputs/apk/debug/app-debug.apk (~137 MB)
 ```
 
@@ -68,17 +68,34 @@ There is **no root-project `clean` task** — `./gradlew clean --dry-run` report
 
 ### What the tests cover
 
-22 unit tests in four classes, all under `app/src/test/`:
+106 unit tests in eleven classes, all under `app/src/test/`, counted from
+`app/build/test-results/testDebugUnitTest/*.xml` on 2026-08-29:
 
 | class | tests |
 |---|---|
+| `CaptureQualityTest` | 8 |
 | `CtcDecoderTest` | 5 |
-| `LineSegmenterTest` | 7 |
+| `DilateFixtureTest` | 4 |
+| `LineSegmenterTest` | 18 |
 | `LineTilerFixtureTest` | 4 |
+| `MergeFixtureTest` | 2 |
+| `PageNormalizerTest` | 14 |
+| `RuleFixtureTest` | 2 |
+| `RuleSuppressionTest` | 8 |
 | `SegmentationModeTest` | 6 |
+| `SyncPolicyTest` | 35 |
 
-`LineTilerFixtureTest` reads `shared/segmentation-fixtures/tiling-cases.json`, so
-it is a cross-platform parity test, not an Android-only one.
+Four of those read generated fixtures rather than hand-written expectations, so
+they are cross-platform parity tests rather than Android-only ones.
+`LineTilerFixtureTest` reads `shared/segmentation-fixtures/tiling-cases.json`,
+`RuleFixtureTest` reads `rule-cases.json` from the same directory,
+`DilateFixtureTest` reads `dilate-cases.json`, and `MergeFixtureTest` reads
+`merge-cases.json`.
+
+`MergeFixtureTest` also honours a `MONOCR_MERGE_FIXTURE` environment variable
+pointing at a fixture elsewhere. Use `--rerun-tasks` with it: environment variables
+are not inputs to Gradle's `Test` task, so an `UP-TO-DATE` task will skip and the
+override will silently have no effect.
 
 `test` is the debug variant only. Despite the task description "Run unit tests for
 all variants", no `testReleaseUnitTest` or `testStagingUnitTest` task exists.
@@ -160,14 +177,14 @@ of confusion.
 
 | surface | what it is | needs Xcode? | covers |
 |---|---|---|---|
-| `MonOcrCore` | SwiftPM package over the Foundation-only files | no | 12 files, 35 tests |
+| `MonOcrCore` | SwiftPM package over the Foundation-only files | no | 12 files, 49 tests |
 | `monocr-ios` | the app target in `monocr-ios.xcodeproj` | yes | 42 files |
 
 ### Testing the core package
 
 ```bash
 cd apps/ios
-sh Scripts/swift-test.sh          # Test run with 35 tests in 5 suites passed
+sh Scripts/swift-test.sh          # Test run with 49 tests in 8 suites passed
 ```
 
 **Do not export `DEVELOPER_DIR` for this command** unless you also wipe
@@ -195,7 +212,10 @@ hard-fails unless the output contains `Test run with`, which is the guard agains
 exactly that silent-zero-test pass.
 
 The suites are swift-testing, not XCTest: `CaptureQualityTests`, `CtcDecoderTests`,
-`LineTilingTests`, `PageNormalizerTests`, `SegmentationModeTests`.
+`LineTilingTests`, `PageNormalizerFixtureTests`, `PageNormalizerTests`,
+`RuleFixtureTests`, `RuleSuppressionTests`, `SegmentationModeTests`. The count in
+that summary line is test functions, not expanded cases: the two `@Test(arguments:)`
+tests in `PageNormalizerTests` report as one each, annotated `with N test cases`.
 
 ### Building the app
 
@@ -272,7 +292,7 @@ If you hit the same error in new code: annotate the locals. Raising
 `-solver-expression-time-threshold` does **not** help — it is not a solver
 time-limit failure.
 
-### What the 35 tests do not cover
+### What the 49 tests do not cover
 
 `MonOcrCore/Sources/MonOcrCore/` is 12 relative symlinks into
 `../../../monocr-ios/`. `monocr-ios/` holds 42 Swift files, so **30 are
@@ -350,7 +370,7 @@ for one:
   iOS entirely — as it does `@monocr/locales`. Turbo resolves both to
   `<NONEXISTENT>` and moves on; in a filtered run it warns, in a full run it does
   not. Note this is not what stops `lint:all` being useful: the Android leg is in
-  the same run and fails on the 161 lint errors above.
+  the same run and fails on the lint errors counted above.
 - Root `pnpm clean` only removes `node_modules`. It touches none of
   `apps/android/app/build`, `apps/android/.gradle`,
   `apps/ios/MonOcrCore/.build`, or DerivedData — each of which reaches hundreds of

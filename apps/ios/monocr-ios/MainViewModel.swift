@@ -238,7 +238,10 @@ class MainViewModel: ObservableObject {
                             durationMs: Int(Date().timeIntervalSince(startTime) * 1000),
                             debugImage: res.debugImage,
                             lines: allLines,
-                            mode: mode
+                            mode: mode,
+                            // Any soft page makes the combined reading suspect, so
+                            // this is an OR rather than the last page's verdict.
+                            looksSoft: resultsMap.values.contains { $0.looksSoft }
                         )
                         self.debugImage = res.debugImage
                     }

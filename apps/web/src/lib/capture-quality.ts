@@ -49,13 +49,22 @@ export const SOFT_IMAGE_LAPLACIAN_VARIANCE = 100;
  * and once on the padded bbox.
  *
  * The factor between them is **not constant**, and only the value near the drop
- * threshold matters here. Measured on synthetic bands: core 11 reports 27 (2.45x),
- * 20 reports 40 (2.0x), 40 reports 70 (1.75x), 160 reports 245 (1.53x). It
- * asymptotes to 1.5 because smearing and smoothing add fixed rows while padding is
- * a 25% multiple. So 2.45x holds exactly where this threshold sits and nowhere
- * else, which is why 3x the drop bound is the right place for it. `reportedHeightOfABarelyKeptBand` pins that relationship,
- * so a change to padding or smearing breaks a test instead of silently moving this
- * warning's meaning.
+ * threshold matters here. Re-measured 2026-08-28 on synthetic bands: core 11
+ * reports 23 (2.09x), 20 reports 36 (1.80x), 40 reports 66 (1.65x), 160 reports
+ * 243 (1.52x). It asymptotes to 1.5 because smearing adds fixed rows while padding
+ * is a 25% multiple. So about 2.1x holds exactly where this threshold sits and
+ * nowhere else, which is why 3x the drop bound is still the right place for it: a
+ * barely-kept band reports 23 and is caught, a 20px core reports 36 and is not.
+ *
+ * Those figures were 27, 40, 70 and 245 until boundary detection moved from the
+ * smoothed row profile to the raw one. The smoothed profile bled ink two rows past
+ * each end of a band, so every reported height was about four pixels too tall, and
+ * this table was measuring the bleed as if it were padding. The canary below did
+ * exactly what it was written for: it broke, rather than letting this warning's
+ * meaning drift.
+ *
+ * `reportedHeightOfABarelyKeptBand` pins the relationship, so a change to padding,
+ * smearing or the profile breaks a test instead of silently moving it.
  */
 export const SMALL_TEXT_HEIGHT = MIN_LINE_HEIGHT * 3;
 
@@ -64,9 +73,9 @@ export interface CaptureAssessment {
 	sharpness: number;
 	/**
 	 * Median *reported* band height in pixels, or 0 if none. Includes padding and
-	 * vertical smearing, so it overstates the ink — by about 2.45x at the drop
+	 * vertical smearing, so it overstates the ink — by about 2.1x at the drop
 	 * threshold, falling towards 1.5x for ordinary text. Do not divide by a fixed
-	 * factor; see `SMALL_TEXT_HEIGHT`.
+	 * factor; see `SMALL_TEXT_HEIGHT`, which carries the measured table and the date.
 	 */
 	medianLineHeight: number;
 	/** How many bands were found. Zero means the segmenter had nothing to work with. */

@@ -118,7 +118,10 @@ describe('assessCapture', () => {
 		const p = page(600, 300, [[40, 40 + core]]);
 		const result = assessCapture(p);
 		expect(result.lineCount).toBe(1);
-		expect(result.medianLineHeight).toBe(27);
+		// 23, not 27. Boundary detection moved from the smoothed row profile to the
+		// raw one on 2026-08-28, and the smoothed one had been bleeding two rows past
+		// each end of the band. See SMALL_TEXT_HEIGHT for the re-measured table.
+		expect(result.medianLineHeight).toBe(23);
 		// Which is what makes 3x the drop threshold the right place for the warning.
 		expect(result.medianLineHeight).toBeLessThanOrEqual(SMALL_TEXT_HEIGHT);
 	});

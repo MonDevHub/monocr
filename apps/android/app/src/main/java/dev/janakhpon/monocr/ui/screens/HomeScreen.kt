@@ -249,6 +249,7 @@ fun HomeScreen(
                         SegmentationModeControl(
                             selected = segmentationMode,
                             blockShapedLines = (uiState as? UiState.Success)?.result?.blockShapedLineCount ?: 0,
+                            captureLooksSoft = (uiState as? UiState.Success)?.result?.captureLooksSoft == true,
                             failedLines = (uiState as? UiState.Success)?.result?.failedLineCount ?: 0,
                             onSelect = { mode ->
                                 scope.launch { loadAndProcess(context, imageUri, viewModel) { mode } }
@@ -322,6 +323,7 @@ fun HomeScreen(
 private fun SegmentationModeControl(
     selected: SegmentationMode,
     blockShapedLines: Int,
+    captureLooksSoft: Boolean,
     failedLines: Int,
     onSelect: (SegmentationMode) -> Unit
 ) {
@@ -360,6 +362,15 @@ private fun SegmentationModeControl(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            // Said before the band warning because it explains the whole reading
+            // rather than particular bands.
+            if (captureLooksSoft) {
+                Text(
+                    text = stringResource(R.string.capture_soft_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
             if (blockShapedLines > 0) {
                 Text(
                     text = stringResource(R.string.segmentation_block_warning, blockShapedLines),

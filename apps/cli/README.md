@@ -32,6 +32,12 @@ cargo build --release
 ./target/release/monocr-cli download   # prime the model cache before a long run
 ```
 
+Without poppler the renderer's tests **fail** rather than skipping. That is
+deliberate: they used to return early and the suite still reported
+`0 ignored`, so a machine with no poppler got a green run over code nothing had
+executed. Drop that coverage on purpose with `MONOCR_SKIP_E2E=1`, which prints a
+loud skip line per test; `REQUIRE_E2E=1` overrides the opt-out again, for CI.
+
 ## Page-level and image-level segmentation
 
 One parameter set does not read both a book page and a photo of a sign. This is measured, not
@@ -107,9 +113,11 @@ the point, and it is the only thing keeping the ports of one algorithm in step.
 corrupting the fixture "fails all four", counting this crate among them. `apps/cli` has no
 `tests/` directory, reads no fixture, and contains no tiling arithmetic — it calls
 `monocr_onnx::MonOcr::predict_page`, and the tiling tests for that live in the `monocr-onnx`
-crate, which `cargo test` here does not compile. This crate's own tests — 37 of them across
-`discover`, `mode`, `output`, `state` and `render` — cover input classification, output and
-PDF rendering. None covers tiling, because there is none here to cover.
+crate, which `cargo test` here does not compile. This crate has 55 tests of its own, across
+`config`, `discover`, `mode`, `output`, `render` and `state`. They cover config loading and
+validation, input classification, output and PDF rendering. None covers tiling, because there
+is none here to cover. Corrected 2026-08-28: that count read 37 until `config`'s 18 tests were
+added to it.
 
 ## Configuration
 
@@ -181,8 +189,6 @@ them look like options.
 - **A bad `mode`** names the valid values: `segmentation.mode is "pages", expected
 one of auto, page, sparse, line`.
 - **A `dpi` outside 72..=1200** is refused with the reason, not clamped.
-
-## Known limits
 
 ## Known limits
 

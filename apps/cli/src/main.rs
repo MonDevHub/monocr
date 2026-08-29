@@ -379,6 +379,15 @@ async fn extract(args: ExtractArgs) -> Result<()> {
     let mut failures = 0usize;
     let total = found.inputs.len();
 
+    // Resolved for the run as a whole, not per input, because a name collision
+    // is a property of the list. Two books called `book.pdf` in different
+    // directories used to share one `out/book.txt` and one `out/book/`, so the
+    // first one read was overwritten by the second in silence; `output.rs:139`
+    // describes that hazard and takes a `disambiguator` for it, and this caller
+    // is the half that was missing.
+    let paths: Vec<PathBuf> = found.inputs.iter().map(|i| i.path.clone()).collect();
+    let stems = output::assign_stems(&paths);
+
     for (n, input) in found.inputs.iter().enumerate() {
         if args.interrupted.load(std::sync::atomic::Ordering::SeqCst) {
             eprintln!("interrupted after {n} of {total}");
@@ -390,7 +399,7 @@ async fn extract(args: ExtractArgs) -> Result<()> {
             .resolve(input.kind, &input.path, image_dimensions(input));
         let digest = state::work_digest(&input.path, &decision.mode.to_string(), args.dpi)?;
 
-        if args.resume && st.is_done(&digest) {
+        if args.resume && st.is_done(&digest, &stems[n]) {
             eprintln!("[{}/{}] skip (done) {}", n + 1, total, input.path.display());
             continue;
         }
@@ -405,12 +414,36 @@ async fn extract(args: ExtractArgs) -> Result<()> {
 
         let ocr = session_for(&mut sessions, decision.mode).await?;
 
-        match process_one(ocr, input, &decision, &args, &mut out).await {
-            Ok(pages) => {
-                st.mark_done(&input.path, &digest, pages);
+        match process_one(ocr, input, &stems[n], &decision, &args, &mut out).await {
+            Ok(progress) => {
+                st.record_progress(
+                    &input.path,
+                    &digest,
+                    &stems[n],
+                    progress.done,
+                    progress.expected,
+                );
                 // Saved per input so an interrupt loses at most the input in
                 // flight, not the whole run's record.
                 st.save(&out_root)?;
+
+                if progress.done < progress.expected {
+                    // Said out loud because the state file's `is_done` is now
+                    // the only thing standing between an interrupted book and a
+                    // permanent skip, and an operator who does not know the book
+                    // is unfinished will not re-run it. Ctrl-C at page 3 of 500
+                    // used to print nothing here and record the book as final.
+                    eprintln!(
+                        // `--resume` restarts this book at page 1 rather than continuing from
+                        // where it stopped, so the wording says "again" instead of
+                        // "finish it". Pages already on disk are rewritten; nothing is
+                        // reused, because reusing them would need the digest recorded
+                        // per page file, or a --dpi 150 run's pages get adopted by a
+                        // --dpi 300 --resume.
+                        "  wrote {} of {} page(s); re-run with --resume to read it again",
+                        progress.done, progress.expected
+                    );
+                }
             }
             Err(e) => {
                 // One bad file must not end a 500-file batch. It is recorded,
@@ -459,16 +492,30 @@ async fn session_for(
     Ok(&mut sessions[last].1)
 }
 
+/// How far one input got.
+///
+/// Both halves travel together because "done" is a comparison. Returning the
+/// finished count alone is what let the caller record an interrupted book as
+/// complete, and the digest in `state.rs` carries no page count to catch it.
+struct Progress {
+    done: usize,
+    expected: usize,
+}
+
 async fn process_one(
     ocr: &mut monocr_onnx::MonOcr,
     input: &Input,
+    stem: &str,
     decision: &mode::Decision,
     args: &ExtractArgs,
     out: &mut OutputDir,
-) -> Result<usize> {
-    let stem = output::output_stem(&input.path, None);
+) -> Result<Progress> {
     let mut document = String::new();
     let mut pages_done = 0usize;
+    // Deferred rather than zeroed: every branch below knows its own total, and a
+    // default of 0 would make `done >= expected` true for an input that never
+    // ran, which is the comparison this whole change turns on.
+    let pages_expected;
 
     match input.kind {
         InputKind::Image => {
@@ -492,7 +539,7 @@ async fn process_one(
 
             let (text, records) = collect(&lines, page_height_of(&input.path));
 
-            out.write_page(&stem, 1, &text)?;
+            out.write_page(stem, 1, &text)?;
             document.push_str(&text);
             out.record(&ManifestEntry::Page(PageRecord {
                 input: input.path.display().to_string(),
@@ -502,11 +549,13 @@ async fn process_one(
                 ms: started.elapsed().as_millis(),
             }))?;
             pages_done = 1;
+            pages_expected = 1;
         }
 
         InputKind::Pdf => {
             let doc = render::PdfDocument::open(&input.path, args.dpi).await?;
             eprintln!("  {} page(s)", doc.pages());
+            pages_expected = doc.pages();
 
             for page in 1..=doc.pages() {
                 if args.interrupted.load(std::sync::atomic::Ordering::SeqCst) {
@@ -525,7 +574,7 @@ async fn process_one(
                 drop(rendered);
 
                 let (text, records) = collect(&lines, height);
-                out.write_page(&stem, page, &text)?;
+                out.write_page(stem, page, &text)?;
                 if !document.is_empty() {
                     document.push_str("\n\n");
                 }
@@ -543,7 +592,12 @@ async fn process_one(
         }
     }
 
-    out.write_document(&stem, &document)?;
+    // Written even when the run stopped early: it is atomic, so what lands is a
+    // truthful prefix rather than a torn file, and a resumed run rewrites it in
+    // full. Pages are re-read from page 1 on resume rather than reused off disk
+    // — reuse would need the digest recorded per page file, or a `--dpi 150`
+    // run's pages would be silently adopted by a `--dpi 300 --resume`.
+    out.write_document(stem, &document)?;
 
     if args.json {
         let mut stdout = std::io::stdout().lock();
@@ -563,7 +617,10 @@ async fn process_one(
         writeln!(stdout, "{document}")?;
     }
 
-    Ok(pages_done)
+    Ok(Progress {
+        done: pages_done,
+        expected: pages_expected,
+    })
 }
 
 /// Turn recognised lines into page text plus manifest records.

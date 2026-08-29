@@ -20,6 +20,16 @@ Built and maintained by the Mon developer community.
 - **Android**: [Google Play](https://play.google.com/store/apps/details?id=dev.janakhpon.monocr)
 - **iOS**: [App Store](https://apps.apple.com/app/monocr) *(pending review)*
 
+## Samples
+
+Three real documents, the text the CLI returned for each, and the per-line records
+behind it — nothing hand-corrected. See [`samples/`](samples/), which also states
+what was screened out and why the headline number is not an average.
+
+Two of the three carry **non-Unicode** text layers, one Zawgyi and one legacy
+8-bit, and both are among the cleanest results: rasterisation happens before the
+model, so no encoding ever reaches it.
+
 ---
 
 ## The model

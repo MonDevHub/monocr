@@ -26,6 +26,39 @@ import kotlin.math.sqrt
  */
 object PageNormalizer {
 
+    // `backgroundIsDark`, `invert`, `levelBackground`, `resizeArea` and `dilateDisk`
+    // are deliberately not private. Only `normalize` was reachable until 2026-08-28,
+    // and the consequence was that the most numerically delicate file in `engine/`
+    // had zero tests while the iOS port of the same code had eight — iOS having
+    // widened exactly these for exactly this reason.
+    //
+    // What that cost: iOS's dilation used a square structuring element where this
+    // one uses a disk, so the two ports disagreed on 7 of 8 synthetic pages, and
+    // nothing on either side could see it. `buildLinearTable` and `areaWeights` stay
+    // private; they are reached through the two functions above.
+
+    /**
+     * The dilation kernel for a downsampled page of [smallHeight] rows.
+     *
+     * `max(7, (h / 4) | 1)`: about 10% of the small image's height, forced odd so the
+     * structuring element has a centre, with a floor that keeps it wider than a stroke
+     * on small inputs. Named rather than inlined so `dilate-cases.json` can pin it
+     * against the reference's own answers — a mutation dropping the floor from 7 to 3
+     * survived the entire suite on 2026-08-28 because nothing asserted it.
+     */
+    fun kernelForSmallHeight(smallHeight: Int): Int = maxOf(7, (smallHeight / 4) or 1)
+
+    /**
+     * The corner-patch side for an image [side] pixels across that axis.
+     *
+     * `max(3, side / 10)`, matching `to_normalized_grayscale`. The floor of 3 is what
+     * keeps a patch on a tiny crop from collapsing to a single pixel, and it was
+     * likewise unpinned until `dilate-cases.json` carried the reference's answers.
+     * The caller clamps to the axis length; on a small image the four patches overlap
+     * and the shared pixels are counted twice, which is what the reference does.
+     */
+    fun cornerPatch(side: Int): Int = maxOf(3, side / 10)
+
     /** Corner patches below this median read as a dark background, so the page is inverted. */
     private const val DARK_BACKGROUND_MEDIAN = 128.0
 
@@ -48,11 +81,11 @@ object PageNormalizer {
      * background luminance even on a dense, text-heavy page where a global mean
      * would be dragged down by ink.
      */
-    private fun backgroundIsDark(page: GreyImage): Boolean {
+    fun backgroundIsDark(page: GreyImage): Boolean {
         val h = page.height
         val w = page.width
-        val ch = minOf(h, maxOf(3, h / 10))
-        val cw = minOf(w, maxOf(3, w / 10))
+        val ch = minOf(h, cornerPatch(h))
+        val cw = minOf(w, cornerPatch(w))
 
         // A 256-bin histogram gives the exact median in one pass; sorting the
         // concatenated patches would be a third of a million comparisons on a
@@ -90,7 +123,7 @@ object PageNormalizer {
         return (lower + upper) / 2.0 < DARK_BACKGROUND_MEDIAN
     }
 
-    private fun invert(page: GreyImage) {
+    fun invert(page: GreyImage) {
         val pixels = page.pixels
         for (i in pixels.indices) pixels[i] = 255 - pixels[i]
     }
@@ -109,7 +142,7 @@ object PageNormalizer {
      * milliseconds of model time per line. It is not free, and the upstream
      * docstring's "0.5 ms" is an OpenCV number, not this one.
      */
-    private fun levelBackground(page: GreyImage) {
+    fun levelBackground(page: GreyImage) {
         val h = page.height
         val w = page.width
         val smallH = maxOf(1, h / 4)
@@ -119,7 +152,7 @@ object PageNormalizer {
         // Kernel covers about 10% of the small image height, forced odd so the
         // structuring element has a centre. The floor of 7 keeps it wider than a
         // stroke on small inputs.
-        val kernel = maxOf(7, (smallH / 4) or 1)
+        val kernel = kernelForSmallHeight(smallH)
         val backgroundSmall = dilateDisk(small, smallW, smallH, kernel)
 
         // The bilinear upsample and the division are fused: a full-resolution copy of
@@ -189,7 +222,7 @@ object PageNormalizer {
      * a uint8 image returns uint8, and the dilation below then sees the same values
      * the reference implementation dilates.
      */
-    private fun resizeArea(page: GreyImage, dstW: Int, dstH: Int): IntArray {
+    fun resizeArea(page: GreyImage, dstW: Int, dstH: Int): IntArray {
         val srcW = page.width
         val srcH = page.height
         val xWeights = areaWeights(srcW, dstW)
@@ -265,7 +298,7 @@ object PageNormalizer {
      * Out-of-image parts of the kernel are skipped, which is what OpenCV's default
      * dilation border does.
      */
-    private fun dilateDisk(src: IntArray, w: Int, h: Int, k: Int): IntArray {
+    fun dilateDisk(src: IntArray, w: Int, h: Int, k: Int): IntArray {
         val r = k / 2
         val invR2 = if (r > 0) 1.0 / (r.toDouble() * r) else 0.0
         val halfWidth = IntArray(2 * r + 1)

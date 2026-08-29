@@ -26,12 +26,19 @@ nonisolated enum SegmentationMode: String, CaseIterable, Identifiable, Sendable 
     var id: String { rawValue }
 
     /// Row-density threshold as a fraction of the mean, for the projection
-    /// profile. Unused by `.line`, which never runs the profile.
-    var densityThresholdRatio: Float {
+    /// profile, or nil for a mode that never runs one.
+    ///
+    /// `.line` returns nil rather than a number nobody reads. It returned 0.03,
+    /// which was inert because `MonOcrEngine` short-circuits before consulting it,
+    /// but it meant the type could not say "this mode never segments" and a caller
+    /// that forgot the short-circuit would have got a plausible threshold instead
+    /// of a compile error. Android types this `Float?` and the Rust CLI returns
+    /// `None`; this port was the only one of the three that did not.
+    var densityThresholdRatio: Float? {
         switch self {
         case .page: return 0.03
         case .sparse: return 0.50
-        case .line: return 0.03
+        case .line: return nil
         }
     }
 
