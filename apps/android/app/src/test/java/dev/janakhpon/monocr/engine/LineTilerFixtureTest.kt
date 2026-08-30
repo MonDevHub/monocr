@@ -67,7 +67,8 @@ class LineTilerFixtureTest {
     @Test
     fun `every fixture case tiles to the expected widths`() {
         val cases = fixture["cases"].asJsonArray
-        assertTrue("fixture has no cases", cases.size() > 0)
+        // A floor rather than emptiness; see MergeFixtureTest for why.
+        assertTrue("tiling fixture shrank to ${cases.size()}", cases.size() >= 14)
 
         for (element in cases) {
             val case = element.asJsonObject

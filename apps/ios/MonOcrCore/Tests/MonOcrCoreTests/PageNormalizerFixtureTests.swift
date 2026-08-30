@@ -67,7 +67,8 @@ struct PageNormalizerFixtureTests {
     /// mistake that let a square ship here.
     @Test func theStructuringElementIsCv2sEllipse() throws {
         let fixture = try Self.loadFixture()
-        #expect(!fixture.half_widths.isEmpty, "the fixture carried no kernels")
+        // A floor rather than emptiness; see MergeFixtureTests for why.
+        #expect(fixture.half_widths.count >= 5, "kernels shrank to \(fixture.half_widths.count)")
 
         for (kernelText, expected) in fixture.half_widths {
             let kernel = Int(kernelText)!
@@ -95,7 +96,7 @@ struct PageNormalizerFixtureTests {
 
     @Test func everyDilationCaseMatchesCv2() throws {
         let fixture = try Self.loadFixture()
-        #expect(!fixture.cases.isEmpty, "the fixture carried no cases")
+        #expect(fixture.cases.count >= 12, "dilate fixture shrank to \(fixture.cases.count)")
 
         for c in fixture.cases {
             let out = PageNormalizer.dilate(

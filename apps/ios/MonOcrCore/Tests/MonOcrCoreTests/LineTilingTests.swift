@@ -127,7 +127,8 @@ struct LineTilingTests {
 
     @Test func tileWidthsMatchThePythonBinding() throws {
         let fixture = try Self.loadFixture()
-        #expect(!fixture.cases.isEmpty, "the fixture carried no cases")
+        // A floor rather than emptiness; see MergeFixtureTests for why.
+        #expect(fixture.cases.count >= 14, "tiling fixture shrank to \(fixture.cases.count)")
 
         for testCase in fixture.cases {
             let tiles = LineTiler.tileLine(
@@ -171,7 +172,7 @@ struct LineTilingTests {
     /// is at fault. These probes pin the cut search on its own.
     @Test func cutColumnProbes() throws {
         let fixture = try Self.loadFixture()
-        #expect(!fixture.cut_column_probes.isEmpty, "the fixture carried no probes")
+        #expect(fixture.cut_column_probes.count >= 3, "probes shrank to \(fixture.cut_column_probes.count)")
 
         for probe in fixture.cut_column_probes {
             let cut = LineTiler.cutColumn(

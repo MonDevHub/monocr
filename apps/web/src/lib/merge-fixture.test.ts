@@ -101,8 +101,12 @@ describe('the line merge against the shared fixture', () => {
 	});
 
 	it('carries cases and a mutation battery', () => {
-		expect(fixture.cases.length).toBeGreaterThan(0);
-		expect(Object.keys(fixture.mutations).length).toBeGreaterThan(0);
+		// Floors, not emptiness. A fixture regenerated with three of its eighteen
+		// cases is not empty, so this file went on passing while testing a sixth of
+		// what it advertises. Not equality: a fixture GAINING a case is the wanted
+		// direction and should not need an edit in four languages to land.
+		expect(fixture.cases.length).toBeGreaterThanOrEqual(18);
+		expect(Object.keys(fixture.mutations).length).toBeGreaterThanOrEqual(21);
 	});
 
 	for (const c of fixture.cases) {
