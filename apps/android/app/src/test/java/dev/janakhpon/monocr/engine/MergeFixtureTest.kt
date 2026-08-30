@@ -93,10 +93,14 @@ class MergeFixtureTest {
     @Test
     fun `every fixture case matches`() {
         val cases = fixture["cases"].asJsonArray
-        assertTrue("the fixture carried no cases", cases.size() > 0)
+        // Floors, not emptiness. A fixture regenerated with three of its eighteen
+        // cases is not empty, so this suite went on passing while testing a sixth of
+        // what it advertises. Not equality: a fixture GAINING a case is the wanted
+        // direction and should not need an edit in four languages to land.
+        assertTrue("merge fixture shrank to ${cases.size()}", cases.size() >= 18)
         assertTrue(
-            "the fixture carried no mutation battery",
-            fixture["mutations"].asJsonObject.size() > 0
+            "mutation battery shrank to ${fixture["mutations"].asJsonObject.size()}",
+            fixture["mutations"].asJsonObject.size() >= 21
         )
 
         for (element in cases) {

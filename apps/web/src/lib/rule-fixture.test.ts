@@ -89,7 +89,8 @@ describe('printed-rule suppression against the shared fixture', () => {
 	});
 
 	it('carries cases', () => {
-		expect(fixture.cases.length).toBeGreaterThan(0);
+		// A floor rather than emptiness; see merge-fixture.test.ts for why.
+		expect(fixture.cases.length).toBeGreaterThanOrEqual(23);
 	});
 
 	for (const c of fixture.cases as RuleCase[]) {

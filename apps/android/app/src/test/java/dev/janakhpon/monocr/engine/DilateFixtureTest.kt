@@ -52,7 +52,8 @@ class DilateFixtureTest {
     @Test
     fun `the structuring element is cv2's ellipse`() {
         val halfWidths = fixture["half_widths"].asJsonObject
-        assertTrue("the fixture carried no kernels", halfWidths.size() > 0)
+        // A floor rather than emptiness; see MergeFixtureTest for why.
+        assertTrue("kernels shrank to ${halfWidths.size()}", halfWidths.size() >= 5)
 
         for ((kernelText, rowsElement) in halfWidths.entrySet()) {
             val kernel = kernelText.toInt()
@@ -123,7 +124,7 @@ class DilateFixtureTest {
     @Test
     fun `every dilation case matches cv2`() {
         val cases = fixture["cases"].asJsonArray
-        assertTrue("the fixture carried no cases", cases.size() > 0)
+        assertTrue("dilate fixture shrank to ${cases.size()}", cases.size() >= 12)
         val modulus = fixture["checksum_modulus"].asLong
 
         for (element in cases) {

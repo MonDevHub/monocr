@@ -115,8 +115,12 @@ struct MergeFixtureTests {
 
     @Test func everyMergeFixtureCaseMatches() throws {
         let fixture = try Self.loadFixture()
-        #expect(!fixture.cases.isEmpty, "the fixture carried no cases")
-        #expect(!fixture.mutations.isEmpty, "the fixture carried no mutation battery")
+        // Floors, not emptiness. A fixture regenerated with three of its eighteen
+        // cases is not empty, so this suite went on passing while testing a sixth of
+        // what it advertises. Not equality: a fixture GAINING a case is the wanted
+        // direction and should not need an edit in four languages to land.
+        #expect(fixture.cases.count >= 18, "merge fixture shrank to \(fixture.cases.count)")
+        #expect(fixture.mutations.count >= 21, "mutation battery shrank to \(fixture.mutations.count)")
 
         for c in fixture.cases {
             let hist = Self.buildProfile(c)

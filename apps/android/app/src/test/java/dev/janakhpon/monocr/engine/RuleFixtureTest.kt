@@ -100,7 +100,8 @@ class RuleFixtureTest {
     @Test
     fun `every fixture case matches`() {
         val cases = fixture["cases"].asJsonArray
-        assertTrue("the fixture carried no cases", cases.size() > 0)
+        // A floor rather than emptiness; see MergeFixtureTest for why.
+        assertTrue("rule fixture shrank to ${cases.size()}", cases.size() >= 23)
 
         for (element in cases) {
             val case = element.asJsonObject

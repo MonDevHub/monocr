@@ -110,7 +110,8 @@ struct RuleFixtureTests {
 
     @Test func everyFixtureCaseMatches() throws {
         let fixture = try Self.loadFixture()
-        #expect(!fixture.cases.isEmpty, "the fixture carried no cases")
+        // A floor rather than emptiness; see MergeFixtureTests for why.
+        #expect(fixture.cases.count >= 23, "rule fixture shrank to \(fixture.cases.count)")
 
         for c in fixture.cases {
             var mask = Self.buildMask(c)

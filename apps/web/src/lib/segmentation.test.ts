@@ -67,6 +67,14 @@ function page(w: number, h: number, inked: (x: number) => boolean): ImageData {
 	return { width: w, height: h, data, colorSpace: 'srgb' } as ImageData;
 }
 
+// Floors on the shared tiling fixture, read off the file on 2026-08-30. A fixture
+// that shrank is a fixture that stopped testing what it claims, and emptiness
+// checks do not catch that: three of fourteen cases is not empty.
+it('the tiling fixture still carries its cases and probes', () => {
+	expect(fixture.cases.length).toBeGreaterThanOrEqual(14);
+	expect(fixture.cut_column_probes.length).toBeGreaterThanOrEqual(3);
+});
+
 const CASES = fixture.cases.map((c) => ({
 	name: c.name,
 	w: c.width,
