@@ -88,6 +88,30 @@ jobs:
       - name: Unit tests
         run: pnpm --filter ./apps/web test
 
+      - name: A green run must have executed tests
+        working-directory: apps/web
+        # vitest exits 1 when no test file matches, so a suite that vanishes
+        # entirely is already caught. A suite that shrinks is not: 172 -> 1 exits
+        # 0. This is the same floor the android and ios-core jobs carry, and web
+        # is the largest suite of the four.
+        run: |
+          set -euo pipefail
+          npx vitest run --reporter=json --outputFile=/tmp/vitest.json
+          python3 - <<'PY_EOF'
+          import json, sys
+          d = json.load(open("/tmp/vitest.json"))
+          total = d.get("numTotalTests", 0)
+          passed = d.get("numPassedTests", 0)
+          failed = d.get("numFailedTests", 0)
+          print(f"{passed} passed, {failed} failed, {total} total")
+          # 172, the exact count on 2026-09-03. See the android floor for why exact.
+          FLOOR = 172
+          if total < FLOOR:
+              sys.exit(f"only {total} web tests ran; expected at least {FLOOR}")
+          if failed:
+              sys.exit("the suite reported failures")
+          PY_EOF
+
       # Nothing built the app until 2026-08-19. Tests and svelte-check both run
       # against source, so a break that only appears in a production build —
       # the wasm and pdf-worker copy steps, the Cloudflare adapter, a
@@ -185,11 +209,47 @@ jobs:
         run: go build ./...
 
       - name: go test
-        # NOTE: there are currently zero *_test.go files here, so this passes
-        # vacuously. It is kept because it turns the moment someone adds a test
-        # into a real gate, and because `[no test files]` in the log is an
-        # honest signal. It is not evidence the service works.
-        run: go test ./...
+        # This comment read "there are currently zero *_test.go files here, so
+        # this passes vacuously" until 2026-09-03. There are 8, with 26 test
+        # functions across 4 packages, and they pass. The comment was stale in
+        # the safe direction, which is the expensive kind: it is why this job
+        # never got the count assertion the android and ios-core jobs both have,
+        # so 26 tests could have vanished here without the job noticing.
+        run: go test ./... -count=1
+
+      - name: A green run must have executed tests
+        # `go test` exits 0 for a package with no test files, printing
+        # `[no test files]`. So the exit code cannot distinguish a passing suite
+        # from a deleted one. Same argument as the android floor below.
+        run: |
+          set -euo pipefail
+          go test ./... -count=1 -json > /tmp/go-test.json
+          python3 - <<'PY_EOF'
+          import json, sys
+          ran = set()
+          with open("/tmp/go-test.json") as f:
+              for line in f:
+                  line = line.strip()
+                  if not line:
+                      continue
+                  ev = json.loads(line)
+                  if ev.get("Action") == "pass" and ev.get("Test"):
+                      ran.add((ev["Package"], ev["Test"]))
+          print(f"{len(ran)} Go tests passed")
+          # 60, the exact count on 2026-09-03, measured twice for stability: 26
+          # top-level functions plus 34 `t.Run` subtests. Counting subtests is
+          # deliberate — `go test -json` emits a pass event per subtest, so this
+          # catches a deleted table row and not only a deleted function, which is
+          # stronger than a `func Test` grep. If a table is refactored, the number
+          # moves for a legitimate reason; bump it in that commit.
+          #
+          # Exact rather than a margin, for the reason the android floor states:
+          # adding tests never trips a floor, so the only thing a floor catches is
+          # a removal, and a removal should be deliberate.
+          FLOOR = 60
+          if len(ran) < FLOOR:
+              sys.exit(f"only {len(ran)} Go tests ran; expected at least {FLOOR}")
+          PY_EOF
 
       - name: govulncheck
         run: |
@@ -256,6 +316,41 @@ jobs:
       - name: cargo test
         working-directory: monocr/apps/cli
         run: cargo test
+
+      - name: A green run must have executed tests
+        working-directory: monocr/apps/cli
+        # `cargo test` exits 0 for a crate with no tests, printing "running 0
+        # tests", so the exit code cannot tell a passing suite from a deleted
+        # one. That is the hole the web, go and android floors close; cli was the
+        # fourth surface and the last one without a floor.
+        #
+        # Parsed from `test result:` lines with an explicit FAILED check, because
+        # a grep that matches nothing reads as a pass. `--format json` is not used
+        # here: it still requires `-Z unstable-options`, so it would tie this gate
+        # to a nightly toolchain while the job runs `dtolnay/rust-toolchain@stable`.
+        run: |
+          set -euo pipefail
+          cargo test > /tmp/cargo-test.txt 2>&1 || {
+            cat /tmp/cargo-test.txt
+            exit 1
+          }
+          python3 - <<'PY_EOF'
+          import re, sys
+          text = open("/tmp/cargo-test.txt").read()
+          if re.search(r"^test result: FAILED", text, re.M):
+              sys.exit("the suite reported failures")
+          runs = [int(m) for m in re.findall(r"^test result: ok\. (\d+) passed", text, re.M)]
+          if not runs:
+              sys.exit("no 'test result:' line in cargo's output: the suite did not run")
+          passed = sum(runs)
+          print(f"{passed} Rust tests passed across {len(runs)} binaries")
+          # 68, the exact count on 2026-09-03. Exact rather than a margin, for the
+          # reason the android floor states: adding tests never trips a floor, so the
+          # only thing a floor catches is a removal, and a removal should be deliberate.
+          FLOOR = 68
+          if passed < FLOOR:
+              sys.exit(f"only {passed} Rust tests ran; expected at least {FLOOR}")
+          PY_EOF
 
       - name: The tiling fixture is not optional
         # The fixture is the only thing keeping four language ports in step. If

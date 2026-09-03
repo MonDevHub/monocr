@@ -112,7 +112,11 @@ class LineTilerFixtureTest {
     @Test
     fun `cut column probes land where the reference implementation puts them`() {
         val probes = fixture["cut_column_probes"].asJsonArray
-        assertTrue("fixture has no cut column probes", probes.size() > 0)
+        // A floor, not emptiness. Web and iOS both require three
+        // (segmentation.test.ts:75, LineTilingTests.swift:175); this port asked
+        // only for one, so the probe set could shrink 3 -> 1 and Android alone
+        // stayed green. That is the asymmetry a shared fixture exists to remove.
+        assertTrue("cut column probes shrank to ${probes.size()}", probes.size() >= 3)
 
         for (element in probes) {
             val probe = element.asJsonObject
