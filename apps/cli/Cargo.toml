@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 description = "Batch Mon OCR over books, PDFs and images, on-device"
 license = "MIT"
+repository = "https://github.com/MonDevHub/monocr/tree/main/apps/cli"
+homepage = "https://github.com/MonDevHub/monocr/tree/main/apps/cli"
 
 [[bin]]
 name = "monocr-cli"
@@ -29,7 +31,7 @@ path = "src/main.rs"
 # key as `monocr-onnx` (rather than renaming it to `monocr`) means every
 # `monocr_onnx::` reference in src/main.rs stays exactly as it is; Cargo
 # resolves the key to the aliased package regardless of what the key is named.
-monocr-onnx = { path = "../../../monocr-onnx/rust", package = "monocr" }
+monocr-onnx = { path = "../../../monocr-onnx/rust", package = "monocr", version = "0.3.0" }
 
 # Pinned exactly, not by range. ort is a pre-release and "2.0.0-rc.11"
 # range-matches rc.13, which changed Send bounds and does not compile

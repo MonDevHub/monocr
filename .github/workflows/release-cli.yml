@@ -1,0 +1,105 @@
+# Publishes the `monocr-cli` crate to crates.io on a `cli/v*` tag.
+#
+# A separate file from ci.yml, not a job added to it, matching the pattern
+# every other MonOCR binding uses (monocr-onnx's release-python.yml,
+# release-js.yml and release-rust.yml; mon_tokenizer's release.yml): a
+# release workflow re-runs the same checks as CI against the tagged commit,
+# gates a registry credential behind them, and stays out of the file that
+# runs on every push and pull request. Folding a publish step into ci.yml
+# would mean every ordinary CI run carries `id-token: write` in the same
+# file, whether or not a tag triggered it.
+#
+# Trusted publishing (OIDC) via rust-lang/crates-io-auth-action, so there is
+# no CARGO_REGISTRY_TOKEN long-lived secret to store, leak or rotate.
+#
+# ONE-TIME SETUP, in order — crates.io has no pending-publisher mechanism
+# (see monocr-onnx/RELEASING.md and the header of monocr-onnx's own
+# release-rust.yml for the sourced explanation):
+#   1. Publish an initial version manually once, with a personal API token:
+#        cd apps/cli && cargo login && cargo publish
+#   2. Only after that, on the crate's settings page at
+#        https://crates.io/crates/monocr-cli/settings
+#      add a GitHub Actions trusted publisher:
+#        Repository owner: MonDevHub
+#        Repository name:  monocr
+#        Workflow filename: release-cli.yml
+#        Environment: (blank)
+#   Before step 2 is done, this workflow's OIDC token exchange is refused.
+#
+# The tag is namespaced `cli/v*` rather than a bare `v*` even though this is
+# the only thing this monorepo currently publishes: the repository has zero
+# git tags today across four shipped surfaces (web, iOS, Android, CLI), and a
+# bare `v*` would become ambiguous the moment any of the others gets one.
+name: release-cli
+
+on:
+  push:
+    tags:
+      - "cli/v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    # Attach a protected environment named `crates-io` in repository settings
+    # for a manual approval step before this leaves the machine, mirroring
+    # mon_tokenizer's `environment: pypi`. GitHub creates it with no
+    # protection rules on first use if it does not exist, so this is safe
+    # either way.
+    environment: crates-io
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # This crate's own dependency on monocr is a path in the working tree
+      # (apps/cli/Cargo.toml), but carries `version = "0.3.0"` so `cargo
+      # publish` resolves and ships against the REAL published crate rather
+      # than requiring the path to exist for consumers. Verified 2026-09-03:
+      # `cargo publish --dry-run` from a clean checkout downloads and
+      # compiles the real crates.io `monocr` 0.3.0, not the local path.
+      - name: poppler
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      # A tag that disagrees with Cargo.toml publishes the wrong number
+      # under the right name, and crates.io has no undo.
+      - name: Verify the tag matches Cargo.toml
+        working-directory: apps/cli
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME#cli/v}"
+          PKG="$(awk -F'"' '/^version = /{print $2; exit}' Cargo.toml)"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error title=Tag/version mismatch::tag cli/v$TAG does not match Cargo.toml version $PKG"
+            exit 1
+          fi
+          echo "tag and Cargo.toml agree on $PKG"
+
+      # Mirrors the cli job in ci.yml: fmt, clippy, test. Not a divergent,
+      # invented gate — the same three checks that already run on every push.
+      - name: cargo fmt
+        working-directory: apps/cli
+        run: cargo fmt --check
+
+      - name: cargo clippy
+        working-directory: apps/cli
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: cargo test
+        working-directory: apps/cli
+        run: cargo test
+
+      - name: Authenticate with crates.io
+        id: auth
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+
+      - name: Publish
+        working-directory: apps/cli
+        run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
