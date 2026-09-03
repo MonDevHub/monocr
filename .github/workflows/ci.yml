@@ -291,7 +291,14 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: MonDevHub/monocr-onnx
-          ref: 627c52c
+          # Full 40 characters, not the abbreviated 627c52c this was set to on
+          # 2026-09-03. actions/checkout fetches a commit ref directly from the
+          # remote, and an abbreviated SHA cannot be fetched — the step failed
+          # with "The process '/usr/bin/git' failed with exit code 1" on every
+          # run for half a day. The cli job passed on 2026-08-30 and went red
+          # the moment the pin was added, with the checkout action itself
+          # provably unchanged from the merge-base.
+          ref: 627c52c4ca6b1c1e60263697e61910a3fc9c56d2
           path: monocr-onnx
 
       - uses: dtolnay/rust-toolchain@stable
