@@ -1,5 +1,7 @@
 # monocr-cli
 
+[![crates.io](https://img.shields.io/crates/v/monocr-cli.svg)](https://crates.io/crates/monocr-cli)
+
 Extract Mon text from books, PDFs and images, on-device and in batch.
 
 This is the batch and desktop surface for MonOCR. The apps read one page at a time through a
