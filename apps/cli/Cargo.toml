@@ -16,22 +16,14 @@ path = "src/main.rs"
 # reimplementation of the recogniser: segmentation, tiling, the model pin and
 # the charset contract all live upstream.
 #
-# TODO(before CI): this must become a pinned git rev, not a path. A path
-# dependency on a sibling checkout is a known failure mode in this ecosystem —
-# mon-lm records that "mon-vlm took an editable path install of it and that is
-# why mon-vlm's CI cannot run at all: uv sync fails on any machine without
-# mon_OCR checked out alongside". The path is here only so the CLI builds
-# against uncommitted upstream work; swap it for
-#   monocr-onnx = { git = "https://github.com/MonDevHub/monocr-onnx", rev = "...", package = "monocr" }
-# once the tiling change lands, and keep the rev pinned.
+# A registry dependency, not a path into a sibling checkout — a path made this
+# crate unpublishable (crates.io rejects path and git deps) and made CI depend
+# on a second checkout being present and at the right revision.
 #
-# `package = "monocr"` on 2026-09-03: the crate's published name on crates.io
-# is "monocr", not "monocr-onnx" — the repository name and the crate name
-# diverged the day this binding was first published. Keeping this dependency's
-# key as `monocr-onnx` (rather than renaming it to `monocr`) means every
-# `monocr_onnx::` reference in src/main.rs stays exactly as it is; Cargo
-# resolves the key to the aliased package regardless of what the key is named.
-monocr-onnx = { path = "../../../monocr-onnx/rust", package = "monocr", version = "0.3.0" }
+# `package = "monocr"` with the key left as `monocr-onnx`: the published crate
+# is named `monocr`, and Cargo takes the extern crate name from the KEY, so
+# this keeps every `monocr_onnx::` reference in src/main.rs compiling.
+monocr-onnx = { version = "0.3.1", package = "monocr" }
 
 # Pinned exactly, not by range. ort is a pre-release and "2.0.0-rc.11"
 # range-matches rc.13, which changed Send bounds and does not compile

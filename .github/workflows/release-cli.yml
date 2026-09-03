@@ -1,30 +1,38 @@
 # Publishes the `monocr-cli` crate to crates.io on a `cli/v*` tag.
 #
-# A separate file from ci.yml, not a job added to it, matching the pattern
-# every other MonOCR binding uses (monocr-onnx's release-python.yml,
-# release-js.yml and release-rust.yml; mon_tokenizer's release.yml): a
-# release workflow re-runs the same checks as CI against the tagged commit,
-# gates a registry credential behind them, and stays out of the file that
-# runs on every push and pull request. Folding a publish step into ci.yml
-# would mean every ordinary CI run carries `id-token: write` in the same
-# file, whether or not a tag triggered it.
+# Trusted publishing (OIDC), so no CARGO_REGISTRY_TOKEN is stored here.
 #
-# Trusted publishing (OIDC) via rust-lang/crates-io-auth-action, so there is
-# no CARGO_REGISTRY_TOKEN long-lived secret to store, leak or rotate.
+# ONE-TIME SETUP on crates.io, after a crate exists (crates.io has no
+# pending-publisher mechanism, unlike PyPI — see monocr-onnx/RELEASING.md):
+#   https://crates.io/crates/monocr-cli/settings -> trusted publisher
+#     owner MonDevHub · repo monocr · workflow release-cli.yml
+#     environment: crates-io
 #
-# ONE-TIME SETUP, in order — crates.io has no pending-publisher mechanism
-# (see monocr-onnx/RELEASING.md and the header of monocr-onnx's own
-# release-rust.yml for the sourced explanation):
-#   1. Publish an initial version manually once, with a personal API token:
-#        cd apps/cli && cargo login && cargo publish
-#   2. Only after that, on the crate's settings page at
-#        https://crates.io/crates/monocr-cli/settings
-#      add a GitHub Actions trusted publisher:
-#        Repository owner: MonDevHub
-#        Repository name:  monocr
-#        Workflow filename: release-cli.yml
-#        Environment: (blank)
+# `environment` must match the job's `environment:` below. A job that declares
+# one puts an `environment` claim in the OIDC token, and crates.io matches the
+# whole claim set — a publisher registered as blank rejects a token carrying one.
+#
+# 0.1.0 was published by hand on 2026-09-03, so the first tag this can succeed
+# on is a higher version: crates.io refuses duplicates and the gate below
+# refuses a tag that disagrees with Cargo.toml. Bump, then tag.
+#
+# Tag is `cli/v*`, not a bare `v*`: this repo ships four surfaces and has no
+# tags yet, so a bare prefix would become ambiguous the moment a second one does.
+name: release-cli.yml
+#        Environment: crates-io
 #   Before step 2 is done, this workflow's OIDC token exchange is refused.
+#
+#   The environment field must say `crates-io`, not be left blank. This block
+#   said blank while the job below declares `environment: crates-io`, and the
+#   two cannot both be right: a job that declares an environment puts an
+#   `environment` claim in the OIDC token, and crates.io matches the whole
+#   claim set. A publisher registered with a blank environment rejects a token
+#   that carries one.
+#
+#   Step 1 has already happened: monocr-cli 0.1.0 was published by hand on
+#   2026-09-03. So the FIRST tag this workflow can succeed on is a version
+#   above 0.1.0 — crates.io refuses a duplicate, and the gate below refuses a
+#   tag that disagrees with Cargo.toml. Bump the version, then tag.
 #
 # The tag is namespaced `cli/v*` rather than a bare `v*` even though this is
 # the only thing this monorepo currently publishes: the repository has zero
@@ -57,12 +65,8 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      # This crate's own dependency on monocr is a path in the working tree
-      # (apps/cli/Cargo.toml), but carries `version = "0.3.0"` so `cargo
-      # publish` resolves and ships against the REAL published crate rather
-      # than requiring the path to exist for consumers. Verified 2026-09-03:
-      # `cargo publish --dry-run` from a clean checkout downloads and
-      # compiles the real crates.io `monocr` 0.3.0, not the local path.
+      # poppler is a runtime dependency of the PDF path, and the renderer's
+      # tests fail rather than skip without it.
       - name: poppler
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
 
