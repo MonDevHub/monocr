@@ -8,3 +8,18 @@
 # the key is rotated and you want the reminder gone.
 d026e3d9696abe2eddac47d983fa245599512b3e:apps/android/app/src/main/java/dev/janakhpon/monocr/engine/SyncWorker.kt:generic-api-key:16
 d026e3d9696abe2eddac47d983fa245599512b3e:apps/ios/monocr-ios/SyncService.swift:generic-api-key:9
+
+# Two test placeholders, not secrets. Both lines are literally
+# `const key = "0123456789abcdef"` repeated four times, inside tests named
+# TestPanicLogDoesNotCarryTheApiKey and TestRecoveryMiddlewareDoesNotLogTheApiKey
+# — tests whose whole point is asserting a key never reaches a log. 64 hex chars
+# of ascending nibbles trips gitleaks' generic-api-key entropy rule.
+#
+# Ignored by fingerprint rather than an inline `// gitleaks:allow` because the
+# scan is `gitleaks detect` over full history: the finding is anchored to commit
+# f4de7ba and would keep being reported no matter what the working tree says.
+#
+# This is what had the secrets job red since 2026-08-28, on every run, with
+# nothing actually leaked.
+f4de7ba5c5c208ab8e90b7bded85dbaf37fb7cda:services/feedback/internal/middleware/recovery_endtoend_test.go:generic-api-key:21
+f4de7ba5c5c208ab8e90b7bded85dbaf37fb7cda:services/feedback/internal/middleware/recovery_redact_test.go:generic-api-key:17

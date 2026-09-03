@@ -96,7 +96,9 @@ class DilateFixtureTest {
     @Test
     fun `the dilation kernel matches the reference rule`() {
         val rule = fixture["kernel_for_small_height"].asJsonObject
-        assertTrue("the fixture carried no kernel rule", rule.size() > 0)
+        // A floor, for the reason `half_widths` above already gives. This table
+        // held 13 heights against a check that one would satisfy.
+        assertTrue("kernel rule shrank to ${rule.size()}", rule.size() >= 13)
         for ((heightText, expected) in rule.entrySet()) {
             val height = heightText.toInt()
             assertEquals(
@@ -114,7 +116,9 @@ class DilateFixtureTest {
     @Test
     fun `the corner patch matches the reference rule`() {
         val rule = fixture["corner_patch_for_side"].asJsonObject
-        assertTrue("the fixture carried no corner rule", rule.size() > 0)
+        // 12 sides, likewise. The docstring above notes a mutation that survived
+        // the whole suite here; a table that may shrink to one entry is how.
+        assertTrue("corner rule shrank to ${rule.size()}", rule.size() >= 12)
         for ((sideText, expected) in rule.entrySet()) {
             val side = sideText.toInt()
             assertEquals("corner patch for a side of $side", expected.asInt, PageNormalizer.cornerPatch(side))

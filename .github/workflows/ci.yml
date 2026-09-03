@@ -88,6 +88,30 @@ jobs:
       - name: Unit tests
         run: pnpm --filter ./apps/web test
 
+      - name: A green run must have executed tests
+        working-directory: apps/web
+        # vitest exits 1 when no test file matches, so a suite that vanishes
+        # entirely is already caught. A suite that shrinks is not: 172 -> 1 exits
+        # 0. This is the same floor the android and ios-core jobs carry, and web
+        # is the largest suite of the four.
+        run: |
+          set -euo pipefail
+          npx vitest run --reporter=json --outputFile=/tmp/vitest.json
+          python3 - <<'PY_EOF'
+          import json, sys
+          d = json.load(open("/tmp/vitest.json"))
+          total = d.get("numTotalTests", 0)
+          passed = d.get("numPassedTests", 0)
+          failed = d.get("numFailedTests", 0)
+          print(f"{passed} passed, {failed} failed, {total} total")
+          # 172, the exact count on 2026-09-03. See the android floor for why exact.
+          FLOOR = 172
+          if total < FLOOR:
+              sys.exit(f"only {total} web tests ran; expected at least {FLOOR}")
+          if failed:
+              sys.exit("the suite reported failures")
+          PY_EOF
+
       # Nothing built the app until 2026-08-19. Tests and svelte-check both run
       # against source, so a break that only appears in a production build —
       # the wasm and pdf-worker copy steps, the Cloudflare adapter, a
@@ -185,11 +209,47 @@ jobs:
         run: go build ./...
 
       - name: go test
-        # NOTE: there are currently zero *_test.go files here, so this passes
-        # vacuously. It is kept because it turns the moment someone adds a test
-        # into a real gate, and because `[no test files]` in the log is an
-        # honest signal. It is not evidence the service works.
-        run: go test ./...
+        # This comment read "there are currently zero *_test.go files here, so
+        # this passes vacuously" until 2026-09-03. There are 8, with 26 test
+        # functions across 4 packages, and they pass. The comment was stale in
+        # the safe direction, which is the expensive kind: it is why this job
+        # never got the count assertion the android and ios-core jobs both have,
+        # so 26 tests could have vanished here without the job noticing.
+        run: go test ./... -count=1
+
+      - name: A green run must have executed tests
+        # `go test` exits 0 for a package with no test files, printing
+        # `[no test files]`. So the exit code cannot distinguish a passing suite
+        # from a deleted one. Same argument as the android floor below.
+        run: |
+          set -euo pipefail
+          go test ./... -count=1 -json > /tmp/go-test.json
+          python3 - <<'PY_EOF'
+          import json, sys
+          ran = set()
+          with open("/tmp/go-test.json") as f:
+              for line in f:
+                  line = line.strip()
+                  if not line:
+                      continue
+                  ev = json.loads(line)
+                  if ev.get("Action") == "pass" and ev.get("Test"):
+                      ran.add((ev["Package"], ev["Test"]))
+          print(f"{len(ran)} Go tests passed")
+          # 60, the exact count on 2026-09-03, measured twice for stability: 26
+          # top-level functions plus 34 `t.Run` subtests. Counting subtests is
+          # deliberate — `go test -json` emits a pass event per subtest, so this
+          # catches a deleted table row and not only a deleted function, which is
+          # stronger than a `func Test` grep. If a table is refactored, the number
+          # moves for a legitimate reason; bump it in that commit.
+          #
+          # Exact rather than a margin, for the reason the android floor states:
+          # adding tests never trips a floor, so the only thing a floor catches is
+          # a removal, and a removal should be deliberate.
+          FLOOR = 60
+          if len(ran) < FLOOR:
+              sys.exit(f"only {len(ran)} Go tests ran; expected at least {FLOOR}")
+          PY_EOF
 
       - name: govulncheck
         run: |
@@ -197,23 +257,12 @@ jobs:
           "$(go env GOPATH)/bin/govulncheck" ./...
 
   cli:
-    # apps/cli is the batch and desktop surface (ADR-0004). It depends on the
-    # monocr-onnx Rust library, which is a SIBLING REPOSITORY, so this job
-    # currently checks out both. That is a stopgap: once the tiling work in that
-    # crate is released, Cargo.toml should point at a pinned git rev and the
-    # second checkout goes away. A path dependency on a sibling checkout is the
-    # documented reason mon-vlm's CI cannot run at all.
+    # apps/cli is the batch and desktop surface (ADR-0004). It takes the OCR
+    # library from crates.io, so this job needs no sibling checkout and builds
+    # what a consumer actually gets.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          path: monocr
-
-      - name: Check out the sibling SDK the CLI depends on
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: MonDevHub/monocr-onnx
-          path: monocr-onnx
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -227,22 +276,57 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
 
       - name: cargo fmt
-        working-directory: monocr/apps/cli
+        working-directory: apps/cli
         run: cargo fmt --check
 
       - name: cargo clippy
-        working-directory: monocr/apps/cli
+        working-directory: apps/cli
         run: cargo clippy --all-targets -- -D warnings
 
       - name: cargo test
-        working-directory: monocr/apps/cli
+        working-directory: apps/cli
         run: cargo test
+
+      - name: A green run must have executed tests
+        working-directory: apps/cli
+        # `cargo test` exits 0 for a crate with no tests, printing "running 0
+        # tests", so the exit code cannot tell a passing suite from a deleted
+        # one. That is the hole the web, go and android floors close; cli was the
+        # fourth surface and the last one without a floor.
+        #
+        # Parsed from `test result:` lines with an explicit FAILED check, because
+        # a grep that matches nothing reads as a pass. `--format json` is not used
+        # here: it still requires `-Z unstable-options`, so it would tie this gate
+        # to a nightly toolchain while the job runs `dtolnay/rust-toolchain@stable`.
+        run: |
+          set -euo pipefail
+          cargo test > /tmp/cargo-test.txt 2>&1 || {
+            cat /tmp/cargo-test.txt
+            exit 1
+          }
+          python3 - <<'PY_EOF'
+          import re, sys
+          text = open("/tmp/cargo-test.txt").read()
+          if re.search(r"^test result: FAILED", text, re.M):
+              sys.exit("the suite reported failures")
+          runs = [int(m) for m in re.findall(r"^test result: ok\. (\d+) passed", text, re.M)]
+          if not runs:
+              sys.exit("no 'test result:' line in cargo's output: the suite did not run")
+          passed = sum(runs)
+          print(f"{passed} Rust tests passed across {len(runs)} binaries")
+          # 68, the exact count on 2026-09-03. Exact rather than a margin, for the
+          # reason the android floor states: adding tests never trips a floor, so the
+          # only thing a floor catches is a removal, and a removal should be deliberate.
+          FLOOR = 68
+          if passed < FLOOR:
+              sys.exit(f"only {passed} Rust tests ran; expected at least {FLOOR}")
+          PY_EOF
 
       - name: The tiling fixture is not optional
         # The fixture is the only thing keeping four language ports in step. If
         # it goes missing, every port's parity test silently has nothing to
         # compare against.
-        working-directory: monocr
+        working-directory: .
         run: |
           set -euo pipefail
           f=shared/segmentation-fixtures/tiling-cases.json
@@ -267,7 +351,7 @@ jobs:
         # from it at borders and on even-width kernels. A fixture regenerated by
         # someone who did not read that would flip 23 pixels across two cases and
         # look like a routine refresh, so the constants are asserted here too.
-        working-directory: monocr
+        working-directory: .
         run: |
           set -euo pipefail
           f=shared/segmentation-fixtures/rule-cases.json
@@ -303,7 +387,7 @@ jobs:
         # throughout because iOS compared itself against an oracle that was also a
         # square. The half-width table below IS the kernel shape, so a fixture that
         # went missing or got hand-edited would un-gate the thing that found it.
-        working-directory: monocr
+        working-directory: .
         run: |
           set -euo pipefail
           f=shared/segmentation-fixtures/dilate-cases.json
@@ -343,7 +427,7 @@ jobs:
         # `merge_runs` is what stands between raw-profile boundary detection and a
         # 22x garbage regression, and it exists ten times in five languages. Parity
         # across those ten was checked once, by hand, before this fixture existed.
-        working-directory: monocr
+        working-directory: .
         run: |
           set -euo pipefail
           f=shared/segmentation-fixtures/merge-cases.json
@@ -477,8 +561,22 @@ jobs:
               failures += int(root.get("failures", 0))
               errors += int(root.get("errors", 0))
           print(f"{tests} tests in {len(files)} classes, {failures} failures, {errors} errors")
-          if tests < 40:
-              sys.exit(f"only {tests} tests ran; the suite has had 50 since 2026-08-28")
+          # 106, the exact count on 2026-09-03. Raised from 40 that day, where the
+          # comment beside it read "the suite has had 50 since 2026-08-28" — so the
+          # floor was stale against its own comment, and its own comment was stale
+          # against the suite. 66 tests could have vanished silently.
+          #
+          # Exact rather than a margin, deliberately. Adding tests never trips a floor,
+          # so the only thing this can catch is a removal, and a removal is exactly what
+          # should be deliberate. If this fails, either a test was lost or one was merged
+          # into another: bump the number in the same commit that removes the test, and
+          # the diff then records the removal.
+          FLOOR = 106
+          if tests < FLOOR:
+              sys.exit(
+                  f"only {tests} tests ran; expected at least {FLOOR}. Either the suite "
+                  "lost tests or a test was merged away. Bump FLOOR in the same commit."
+              )
           if failures or errors:
               sys.exit("the suite reported failures")
           PY

@@ -1056,27 +1056,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "monocr-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "assert_fs",
- "clap",
- "image",
- "monocr-onnx",
- "ort",
- "serde",
- "serde_json",
- "serde_yaml",
- "sha2",
- "tempfile",
- "tokio",
- "walkdir",
-]
-
-[[package]]
-name = "monocr-onnx"
-version = "0.3.0"
+name = "monocr"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cacdb37146ee069357706f7454d4c9f103506a93b6a249acd71e6316388f5c91"
 dependencies = [
  "anyhow",
  "clap",
@@ -1090,6 +1073,25 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tokio",
+]
+
+[[package]]
+name = "monocr-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "assert_fs",
+ "clap",
+ "image",
+ "monocr",
+ "ort",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "walkdir",
 ]
 
 [[package]]

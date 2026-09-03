@@ -1,5 +1,7 @@
 # monocr-cli
 
+[![crates.io](https://img.shields.io/crates/v/monocr-cli.svg)](https://crates.io/crates/monocr-cli)
+
 Extract Mon text from books, PDFs and images, on-device and in batch.
 
 This is the batch and desktop surface for MonOCR. The apps read one page at a time through a
@@ -22,14 +24,25 @@ before it; a sixth would be a liability. See [ADR-0004](../../docs/architecture/
 
 ## Install
 
-Needs Rust and poppler (`pdftoppm`, `pdfinfo`) for the PDF path.
+Needs poppler (`pdftoppm`, `pdfinfo`) for the PDF path, either way.
 
 ```bash
 brew install poppler          # macOS
 apt-get install poppler-utils # Debian
+```
 
+From [crates.io](https://crates.io/crates/monocr-cli):
+
+```bash
+cargo install monocr-cli
+monocr-cli download   # prime the model cache before a long run
+```
+
+Or from this checkout:
+
+```bash
 cargo build --release
-./target/release/monocr-cli download   # prime the model cache before a long run
+./target/release/monocr-cli download
 ```
 
 Without poppler the renderer's tests **fail** rather than skipping. That is
