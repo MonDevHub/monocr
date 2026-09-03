@@ -1056,26 +1056,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "monocr-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "assert_fs",
- "clap",
- "image",
- "monocr-onnx",
- "ort",
- "serde",
- "serde_json",
- "serde_yaml",
- "sha2",
- "tempfile",
- "tokio",
- "walkdir",
-]
-
-[[package]]
-name = "monocr-onnx"
+name = "monocr"
 version = "0.3.0"
 dependencies = [
  "anyhow",
@@ -1090,6 +1071,25 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tokio",
+]
+
+[[package]]
+name = "monocr-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "assert_fs",
+ "clap",
+ "image",
+ "monocr",
+ "ort",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "walkdir",
 ]
 
 [[package]]

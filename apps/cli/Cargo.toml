@@ -20,9 +20,16 @@ path = "src/main.rs"
 # why mon-vlm's CI cannot run at all: uv sync fails on any machine without
 # mon_OCR checked out alongside". The path is here only so the CLI builds
 # against uncommitted upstream work; swap it for
-#   monocr-onnx = { git = "https://github.com/MonDevHub/monocr-onnx", rev = "..." }
+#   monocr-onnx = { git = "https://github.com/MonDevHub/monocr-onnx", rev = "...", package = "monocr" }
 # once the tiling change lands, and keep the rev pinned.
-monocr-onnx = { path = "../../../monocr-onnx/rust" }
+#
+# `package = "monocr"` on 2026-09-03: the crate's published name on crates.io
+# is "monocr", not "monocr-onnx" — the repository name and the crate name
+# diverged the day this binding was first published. Keeping this dependency's
+# key as `monocr-onnx` (rather than renaming it to `monocr`) means every
+# `monocr_onnx::` reference in src/main.rs stays exactly as it is; Cargo
+# resolves the key to the aliased package regardless of what the key is named.
+monocr-onnx = { path = "../../../monocr-onnx/rust", package = "monocr" }
 
 # Pinned exactly, not by range. ort is a pre-release and "2.0.0-rc.11"
 # range-matches rc.13, which changed Send bounds and does not compile
