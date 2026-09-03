@@ -209,10 +209,29 @@ jobs:
         with:
           path: monocr
 
+      # PINNED, added 2026-09-03. This had no `ref:`, so the CLI was built against
+      # whatever was on monocr-onnx's default branch and the same monorepo commit could
+      # pass today and fail tomorrow with nothing here having changed. The CLI takes the
+      # SDK as a path dependency (`apps/cli/Cargo.toml`), so an SDK change lands directly
+      # in this build.
+      #
+      # Pinned at monocr-onnx origin/main 627c52c, which is what this job was already
+      # getting — the pin makes today's behaviour reproducible rather than changing it.
+      #
+      # A tag exists and was deliberately NOT used. `rust/v0.3.0` (fc29391) is on that
+      # repository's main, but main is 34 commits ahead of it, so pinning to the tag
+      # would change what this job compiles and could turn it red for reasons unrelated
+      # to introducing a pin. Worth revisiting: building the CLI against the released
+      # SDK is arguably more honest, since that is what a consumer gets. The Rust crate
+      # is unpublished, so "released" is doing little work here at the moment.
+      #
+      # TO BUMP: set `ref` to the new monocr-onnx SHA and build the CLI against it
+      # locally first.
       - name: Check out the sibling SDK the CLI depends on
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: MonDevHub/monocr-onnx
+          ref: 627c52c
           path: monocr-onnx
 
       - uses: dtolnay/rust-toolchain@stable
@@ -477,8 +496,22 @@ jobs:
               failures += int(root.get("failures", 0))
               errors += int(root.get("errors", 0))
           print(f"{tests} tests in {len(files)} classes, {failures} failures, {errors} errors")
-          if tests < 40:
-              sys.exit(f"only {tests} tests ran; the suite has had 50 since 2026-08-28")
+          # 106, the exact count on 2026-09-03. Raised from 40 that day, where the
+          # comment beside it read "the suite has had 50 since 2026-08-28" — so the
+          # floor was stale against its own comment, and its own comment was stale
+          # against the suite. 66 tests could have vanished silently.
+          #
+          # Exact rather than a margin, deliberately. Adding tests never trips a floor,
+          # so the only thing this can catch is a removal, and a removal is exactly what
+          # should be deliberate. If this fails, either a test was lost or one was merged
+          # into another: bump the number in the same commit that removes the test, and
+          # the diff then records the removal.
+          FLOOR = 106
+          if tests < FLOOR:
+              sys.exit(
+                  f"only {tests} tests ran; expected at least {FLOOR}. Either the suite "
+                  "lost tests or a test was merged away. Bump FLOOR in the same commit."
+              )
           if failures or errors:
               sys.exit("the suite reported failures")
           PY

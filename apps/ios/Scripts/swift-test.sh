@@ -42,9 +42,37 @@ STATUS=0
 swift test --package-path MonOcrCore --disable-xctest $FLAGS >"$LOG" 2>&1 || STATUS=$?
 cat "$LOG"
 
+# Two checks, because presence was not enough. Until 2026-09-03 this only grepped for
+# the string "Test run with", so the suite could shrink from 73 tests to 1 and still be
+# called a pass — the same defect the Android job's count floor exists to prevent, and
+# the same one this wrapper's own comment invokes when the Android job cites it.
 if ! grep -q "Test run with" "$LOG"; then
     echo "swift-test: the run reported no test count, so it ran no tests. Not calling that a pass." >&2
     exit 1
 fi
+
+# The line is: "Test run with 73 tests in 12 suites passed after 7.234 seconds."
+# Format verified 2026-09-03 by running this script against MonOcrCore.
+COUNT="$(sed -n 's/.*Test run with \([0-9][0-9]*\) tests.*/\1/p' "$LOG" | tail -1)"
+
+# 73, the exact count on 2026-09-03. Exact rather than a margin for the reason the
+# Android floor gives: adding tests never trips a floor, so the only thing this can catch
+# is a removal, and a removal should be deliberate. If this fails, bump FLOOR in the same
+# commit that removes the test so the diff records it.
+FLOOR=73
+
+if [ -z "$COUNT" ]; then
+    echo "swift-test: found the summary line but could not read a count from it. The" >&2
+    echo "  format may have changed; fix the parse rather than deleting this check." >&2
+    exit 1
+fi
+
+if [ "$COUNT" -lt "$FLOOR" ]; then
+    echo "swift-test: only $COUNT tests ran; expected at least $FLOOR." >&2
+    echo "  Either the suite lost tests or one was merged away. Bump FLOOR in the same commit." >&2
+    exit 1
+fi
+
+echo "swift-test: $COUNT tests ran (floor $FLOOR)."
 
 exit "$STATUS"
