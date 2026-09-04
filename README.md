@@ -17,8 +17,8 @@ Built and maintained by the Mon developer community.
 ## Live
 
 - **Web**: [ocr.mondevhub.com](https://ocr.mondevhub.com)
-- **Android**: [Google Play](https://play.google.com/store/apps/details?id=dev.janakhpon.monocr)
-- **iOS**: [App Store](https://apps.apple.com/app/monocr) *(pending review)*
+- **Android**: not yet on Google Play — build from [`apps/android`](apps/android)
+- **iOS**: not yet on the App Store — build from [`apps/ios`](apps/ios)
 
 ## Samples
 
