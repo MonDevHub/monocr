@@ -265,7 +265,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@stable
+      # Commit-pinned at the same commit as release-cli.yml, for the reason
+      # stated there, and so the gate and the publish job cannot disagree about
+      # which toolchain they ran.
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable branch, 2026-09-03
+        with:
+          toolchain: stable
 
       - name: poppler
         # pdftoppm and pdfinfo are runtime dependencies of the PDF path. The
@@ -319,7 +324,7 @@ jobs:
         # Parsed from `test result:` lines with an explicit FAILED check, because
         # a grep that matches nothing reads as a pass. `--format json` is not used
         # here: it still requires `-Z unstable-options`, so it would tie this gate
-        # to a nightly toolchain while the job runs `dtolnay/rust-toolchain@stable`.
+        # to a nightly toolchain while this job installs a stable one.
         run: |
           set -euo pipefail
           cargo test > /tmp/cargo-test.txt 2>&1 || {
