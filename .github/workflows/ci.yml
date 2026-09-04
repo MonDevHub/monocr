@@ -192,8 +192,58 @@ jobs:
       # supply-chain-security.md:767. Landing this took fixing what it found:
       # protobufjs (6 advisories via onnxruntime-web, one critical) and
       # fast-xml-builder, both pinned forward in pnpm.overrides.
+      # A FAILED AUDIT AND AN UNREACHABLE AUDIT ARE DIFFERENT ANSWERS, and this
+      # step reported both as `pnpm audit` exit 1.
+      #
+      # Observed rather than supposed: run #124 failed here and #125 passed, and
+      # the only diff between those two commits is markdown in three app READMEs.
+      # The step posts to the registry's /-/npm/v1/security/audits endpoint, so it
+      # depends on a live service. pnpm already retries a fetch error three times
+      # on its own (10s, then 1 minute), so what gets here has outlasted that.
+      #
+      # The two cases are cleanly separable and neither is guessed at: a real
+      # finding at or above the threshold prints "vulnerabilities found" and exits
+      # 1, while a transport failure prints a FetchError with no such line and also
+      # exits 1. Verified both ways locally, on exit code, by pointing the registry
+      # at a closed port.
+      #
+      # A real advisory therefore fails at once, with no retry to sit through. A
+      # transport failure is retried, and if it never succeeds THE STEP STILL
+      # FAILS -- an audit that did not run must never read as an audit that passed.
+      # What changes is that the annotation says which of the two happened, so
+      # nobody goes looking for a vulnerability that was never reported. The log
+      # itself needs repository admin to read, which is why every failure in this
+      # file annotates.
       - name: Audit production dependencies
-        run: pnpm audit --prod --audit-level=high
+        run: |
+          set +e
+          attempt=1
+          max=3
+          while :; do
+            output="$(pnpm audit --prod --audit-level=high 2>&1)"
+            status=$?
+            printf '%s\n' "$output"
+            [ "$status" -eq 0 ] && break
+
+            if printf '%s' "$output" | grep -q 'vulnerabilities found'; then
+              detail="$(printf '%s\n' "$output" | tail -30 \
+                | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+              echo "::error title=Production dependency advisory at high or above::${detail}"
+              exit "$status"
+            fi
+
+            if [ "$attempt" -ge "$max" ]; then
+              detail="$(printf '%s\n' "$output" | tail -20 \
+                | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+              echo "::error title=Audit service unreachable after ${max} attempts (this is NOT an advisory)::${detail}"
+              exit "$status"
+            fi
+
+            echo "attempt ${attempt} of ${max} could not reach the audit service; retrying in $((attempt * 30))s"
+            sleep "$((attempt * 30))"
+            attempt=$((attempt + 1))
+          done
+          echo "audit clean at --audit-level=high on production dependencies"
 
   go:
     # services/feedback had no CI of any kind. `go vet` and `go test` both
@@ -282,6 +332,20 @@ jobs:
     # what a consumer actually gets. Its renderer tests still need a real PDF,
     # which is fetched below rather than assumed to be beside the workspace.
     runs-on: ubuntu-latest
+    # AT JOB LEVEL, and that placement is the fix rather than a tidy-up. This was
+    # set on the `cargo test` step only, while the count floor below runs
+    # `cargo test` a second time — so the two invocations ran in different
+    # environments. The floor's run fell back to render.rs's default sibling path,
+    # `../../../monocr-onnx/...`, which is above the workspace and never exists on
+    # a runner, and the four renderer tests FAIL rather than skip there by design.
+    # The job went red at the floor with a green `cargo test` two steps above it,
+    # which reads as a broken count rather than a missing file.
+    #
+    # It survived local verification because a developer machine holds the sibling
+    # checkout, so the default path resolves and both invocations agree. Job level
+    # is the only placement where they cannot disagree again.
+    env:
+      MONOCR_PDF_FIXTURE: ${{ github.workspace }}/.fixtures-onnx/data/pdfs/Mon_E_library.pdf
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -328,13 +392,13 @@ jobs:
         working-directory: apps/cli
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: cargo test
-        working-directory: apps/cli
-        env:
-          MONOCR_PDF_FIXTURE: ${{ github.workspace }}/.fixtures-onnx/data/pdfs/Mon_E_library.pdf
-        run: cargo test
-
-      - name: A green run must have executed tests
+      # ONE `cargo test`, not two. There used to be a bare `cargo test` step here
+      # and then this one, which runs the suite again to count it — so the whole
+      # suite compiled and ran twice per job for a plain exit code the counting
+      # run already checks (it greps `test result: FAILED` and exits 1 on it,
+      # printing the captured output). The duplicate cost a second full run and
+      # was the surface the env-var split happened on.
+      - name: cargo test, and a green run must have executed tests
         working-directory: apps/cli
         # `cargo test` exits 0 for a crate with no tests, printing "running 0
         # tests", so the exit code cannot tell a passing suite from a deleted
