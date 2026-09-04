@@ -18,26 +18,6 @@
 #
 # Tag is `cli/v*`, not a bare `v*`: this repo ships four surfaces and has no
 # tags yet, so a bare prefix would become ambiguous the moment a second one does.
-name: release-cli.yml
-#        Environment: crates-io
-#   Before step 2 is done, this workflow's OIDC token exchange is refused.
-#
-#   The environment field must say `crates-io`, not be left blank. This block
-#   said blank while the job below declares `environment: crates-io`, and the
-#   two cannot both be right: a job that declares an environment puts an
-#   `environment` claim in the OIDC token, and crates.io matches the whole
-#   claim set. A publisher registered with a blank environment rejects a token
-#   that carries one.
-#
-#   Step 1 has already happened: monocr-cli 0.1.0 was published by hand on
-#   2026-09-03. So the FIRST tag this workflow can succeed on is a version
-#   above 0.1.0 — crates.io refuses a duplicate, and the gate below refuses a
-#   tag that disagrees with Cargo.toml. Bump the version, then tag.
-#
-# The tag is namespaced `cli/v*` rather than a bare `v*` even though this is
-# the only thing this monorepo currently publishes: the repository has zero
-# git tags today across four shipped surfaces (web, iOS, Android, CLI), and a
-# bare `v*` would become ambiguous the moment any of the others gets one.
 name: release-cli
 
 on:
