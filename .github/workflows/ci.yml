@@ -258,8 +258,9 @@ jobs:
 
   cli:
     # apps/cli is the batch and desktop surface (ADR-0004). It takes the OCR
-    # library from crates.io, so this job needs no sibling checkout and builds
-    # what a consumer actually gets.
+    # library from crates.io, so it needs no sibling checkout to BUILD and builds
+    # what a consumer actually gets. Its renderer tests still need a real PDF,
+    # which is fetched below rather than assumed to be beside the workspace.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -275,6 +276,25 @@ jobs:
         # here on purpose.
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
 
+      # The renderer's PDF tests rasterise a real document that lives in the
+      # monocr-onnx repository. The default path in render.rs points at a sibling
+      # checkout, which resolves on a machine holding both repos and never on a
+      # runner — `../../../monocr-onnx` is above the workspace, where
+      # actions/checkout will not write. So it is checked out here and
+      # MONOCR_PDF_FIXTURE points at it.
+      #
+      # Not MONOCR_SKIP_E2E=1. The gate fails rather than skips on purpose: three
+      # of those four tests once printed `skipping:` and returned Ok, reporting
+      # 55 passed while asserting nothing.
+      - name: Fetch the PDF fixture
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: MonDevHub/monocr-onnx
+          ref: 76459a559920e92ce00ee1c1c0d1b72e07f8319a
+          path: .fixtures-onnx
+          sparse-checkout: data/pdfs
+          sparse-checkout-cone-mode: false
+
       - name: cargo fmt
         working-directory: apps/cli
         run: cargo fmt --check
@@ -285,6 +305,8 @@ jobs:
 
       - name: cargo test
         working-directory: apps/cli
+        env:
+          MONOCR_PDF_FIXTURE: ${{ github.workspace }}/.fixtures-onnx/data/pdfs/Mon_E_library.pdf
         run: cargo test
 
       - name: A green run must have executed tests
