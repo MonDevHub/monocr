@@ -1057,9 +1057,9 @@ dependencies = [
 
 [[package]]
 name = "monocr"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cacdb37146ee069357706f7454d4c9f103506a93b6a249acd71e6316388f5c91"
+checksum = "17c3b85c4850873edd34665de5520b1af5d011547132e9ff7590072e47027de5"
 dependencies = [
  "anyhow",
  "clap",
@@ -1077,7 +1077,7 @@ dependencies = [
 
 [[package]]
 name = "monocr-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "assert_fs",
