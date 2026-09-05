@@ -103,11 +103,31 @@ jobs:
           total = d.get("numTotalTests", 0)
           passed = d.get("numPassedTests", 0)
           failed = d.get("numFailedTests", 0)
-          print(f"{passed} passed, {failed} failed, {total} total")
+          pending = d.get("numPendingTests", 0)
+          todo = d.get("numTodoTests", 0)
+          print(f"{passed} passed, {failed} failed, {pending} skipped, {todo} todo, {total} total")
           # 172, the exact count on 2026-09-03. See the android floor for why exact.
           FLOOR = 172
-          if total < FLOOR:
-              sys.exit(f"only {total} web tests ran; expected at least {FLOOR}")
+          # AGAINST `passed`, NOT `total`. This floor compared `total` until
+          # 2026-09-04, and numTotalTests counts skipped and todo tests. So
+          # `describe.skip` on the whole suite gave total=172, failed=0, passed=0
+          # and the gate went green having executed nothing — the exact "a skip
+          # reads as a pass" failure this repository's own Makefile names, in the
+          # gate built to prevent its sibling. The value was already being read
+          # into `passed` and printed, and then not used.
+          #
+          # Excluding skips from the count is the whole skip policy, and no
+          # separate check is needed: a skipped test stops counting toward the
+          # floor, so skipping one trips it. Legitimately parking a test then
+          # means lowering FLOOR in the same commit, which is the deliberate act
+          # the exact-floor design is for. The go and cli floors below already
+          # count passes only; web and android were the two that did not.
+          if passed < FLOOR:
+              sys.exit(
+                  f"only {passed} web tests PASSED ({total} total, {pending} skipped, "
+                  f"{todo} todo); expected at least {FLOOR}. A skipped test does not "
+                  "count: if the skip is deliberate, lower FLOOR in the same commit."
+              )
           if failed:
               sys.exit("the suite reported failures")
           PY_EOF
@@ -172,8 +192,58 @@ jobs:
       # supply-chain-security.md:767. Landing this took fixing what it found:
       # protobufjs (6 advisories via onnxruntime-web, one critical) and
       # fast-xml-builder, both pinned forward in pnpm.overrides.
+      # A FAILED AUDIT AND AN UNREACHABLE AUDIT ARE DIFFERENT ANSWERS, and this
+      # step reported both as `pnpm audit` exit 1.
+      #
+      # Observed rather than supposed: run #124 failed here and #125 passed, and
+      # the only diff between those two commits is markdown in three app READMEs.
+      # The step posts to the registry's /-/npm/v1/security/audits endpoint, so it
+      # depends on a live service. pnpm already retries a fetch error three times
+      # on its own (10s, then 1 minute), so what gets here has outlasted that.
+      #
+      # The two cases are cleanly separable and neither is guessed at: a real
+      # finding at or above the threshold prints "vulnerabilities found" and exits
+      # 1, while a transport failure prints a FetchError with no such line and also
+      # exits 1. Verified both ways locally, on exit code, by pointing the registry
+      # at a closed port.
+      #
+      # A real advisory therefore fails at once, with no retry to sit through. A
+      # transport failure is retried, and if it never succeeds THE STEP STILL
+      # FAILS -- an audit that did not run must never read as an audit that passed.
+      # What changes is that the annotation says which of the two happened, so
+      # nobody goes looking for a vulnerability that was never reported. The log
+      # itself needs repository admin to read, which is why every failure in this
+      # file annotates.
       - name: Audit production dependencies
-        run: pnpm audit --prod --audit-level=high
+        run: |
+          set +e
+          attempt=1
+          max=3
+          while :; do
+            output="$(pnpm audit --prod --audit-level=high 2>&1)"
+            status=$?
+            printf '%s\n' "$output"
+            [ "$status" -eq 0 ] && break
+
+            if printf '%s' "$output" | grep -q 'vulnerabilities found'; then
+              detail="$(printf '%s\n' "$output" | tail -30 \
+                | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+              echo "::error title=Production dependency advisory at high or above::${detail}"
+              exit "$status"
+            fi
+
+            if [ "$attempt" -ge "$max" ]; then
+              detail="$(printf '%s\n' "$output" | tail -20 \
+                | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+              echo "::error title=Audit service unreachable after ${max} attempts (this is NOT an advisory)::${detail}"
+              exit "$status"
+            fi
+
+            echo "attempt ${attempt} of ${max} could not reach the audit service; retrying in $((attempt * 30))s"
+            sleep "$((attempt * 30))"
+            attempt=$((attempt + 1))
+          done
+          echo "audit clean at --audit-level=high on production dependencies"
 
   go:
     # services/feedback had no CI of any kind. `go vet` and `go test` both
@@ -258,13 +328,33 @@ jobs:
 
   cli:
     # apps/cli is the batch and desktop surface (ADR-0004). It takes the OCR
-    # library from crates.io, so this job needs no sibling checkout and builds
-    # what a consumer actually gets.
+    # library from crates.io, so it needs no sibling checkout to BUILD and builds
+    # what a consumer actually gets. Its renderer tests still need a real PDF,
+    # which is fetched below rather than assumed to be beside the workspace.
     runs-on: ubuntu-latest
+    # AT JOB LEVEL, and that placement is the fix rather than a tidy-up. This was
+    # set on the `cargo test` step only, while the count floor below runs
+    # `cargo test` a second time — so the two invocations ran in different
+    # environments. The floor's run fell back to render.rs's default sibling path,
+    # `../../../monocr-onnx/...`, which is above the workspace and never exists on
+    # a runner, and the four renderer tests FAIL rather than skip there by design.
+    # The job went red at the floor with a green `cargo test` two steps above it,
+    # which reads as a broken count rather than a missing file.
+    #
+    # It survived local verification because a developer machine holds the sibling
+    # checkout, so the default path resolves and both invocations agree. Job level
+    # is the only placement where they cannot disagree again.
+    env:
+      MONOCR_PDF_FIXTURE: ${{ github.workspace }}/.fixtures-onnx/data/pdfs/Mon_E_library.pdf
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@stable
+      # Commit-pinned at the same commit as release-cli.yml, for the reason
+      # stated there, and so the gate and the publish job cannot disagree about
+      # which toolchain they ran.
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable branch, 2026-09-03
+        with:
+          toolchain: stable
 
       - name: poppler
         # pdftoppm and pdfinfo are runtime dependencies of the PDF path. The
@@ -275,6 +365,25 @@ jobs:
         # here on purpose.
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
 
+      # The renderer's PDF tests rasterise a real document that lives in the
+      # monocr-onnx repository. The default path in render.rs points at a sibling
+      # checkout, which resolves on a machine holding both repos and never on a
+      # runner — `../../../monocr-onnx` is above the workspace, where
+      # actions/checkout will not write. So it is checked out here and
+      # MONOCR_PDF_FIXTURE points at it.
+      #
+      # Not MONOCR_SKIP_E2E=1. The gate fails rather than skips on purpose: three
+      # of those four tests once printed `skipping:` and returned Ok, reporting
+      # 55 passed while asserting nothing.
+      - name: Fetch the PDF fixture
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: MonDevHub/monocr-onnx
+          ref: 76459a559920e92ce00ee1c1c0d1b72e07f8319a
+          path: .fixtures-onnx
+          sparse-checkout: data/pdfs
+          sparse-checkout-cone-mode: false
+
       - name: cargo fmt
         working-directory: apps/cli
         run: cargo fmt --check
@@ -283,11 +392,13 @@ jobs:
         working-directory: apps/cli
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: cargo test
-        working-directory: apps/cli
-        run: cargo test
-
-      - name: A green run must have executed tests
+      # ONE `cargo test`, not two. There used to be a bare `cargo test` step here
+      # and then this one, which runs the suite again to count it — so the whole
+      # suite compiled and ran twice per job for a plain exit code the counting
+      # run already checks (it greps `test result: FAILED` and exits 1 on it,
+      # printing the captured output). The duplicate cost a second full run and
+      # was the surface the env-var split happened on.
+      - name: cargo test, and a green run must have executed tests
         working-directory: apps/cli
         # `cargo test` exits 0 for a crate with no tests, printing "running 0
         # tests", so the exit code cannot tell a passing suite from a deleted
@@ -297,7 +408,7 @@ jobs:
         # Parsed from `test result:` lines with an explicit FAILED check, because
         # a grep that matches nothing reads as a pass. `--format json` is not used
         # here: it still requires `-Z unstable-options`, so it would tie this gate
-        # to a nightly toolchain while the job runs `dtolnay/rust-toolchain@stable`.
+        # to a nightly toolchain while this job installs a stable one.
         run: |
           set -euo pipefail
           cargo test > /tmp/cargo-test.txt 2>&1 || {
@@ -554,13 +665,23 @@ jobs:
           files = glob.glob("app/build/test-results/testDebugUnitTest/*.xml")
           if not files:
               sys.exit("no JUnit XML was written: the suite did not run")
-          tests = failures = errors = 0
+          tests = failures = errors = skipped = 0
           for f in files:
               root = ET.parse(f).getroot()
               tests += int(root.get("tests", 0))
               failures += int(root.get("failures", 0))
               errors += int(root.get("errors", 0))
-          print(f"{tests} tests in {len(files)} classes, {failures} failures, {errors} errors")
+              skipped += int(root.get("skipped", 0))
+          # JUnit's `tests` attribute COUNTS SKIPPED TESTS, which is why this is
+          # now a subtraction. Until 2026-09-04 the floor compared `tests`, so
+          # @Ignore on all 106 gave tests=106, failures=0, errors=0 and the gate
+          # went green having executed nothing. The go and cli floors count
+          # passes only; this one and web's were the two that did not.
+          passed = tests - failures - errors - skipped
+          print(
+              f"{tests} tests in {len(files)} classes, {passed} passed, "
+              f"{failures} failures, {errors} errors, {skipped} skipped"
+          )
           # 106, the exact count on 2026-09-03. Raised from 40 that day, where the
           # comment beside it read "the suite has had 50 since 2026-08-28" — so the
           # floor was stale against its own comment, and its own comment was stale
@@ -572,10 +693,15 @@ jobs:
           # into another: bump the number in the same commit that removes the test, and
           # the diff then records the removal.
           FLOOR = 106
-          if tests < FLOOR:
+          # Against `passed`. An @Ignore'd test stops counting toward the floor,
+          # so parking one trips it and has to be paid for by lowering FLOOR in
+          # the same commit. That is the whole skip policy, and it needs no
+          # separate check.
+          if passed < FLOOR:
               sys.exit(
-                  f"only {tests} tests ran; expected at least {FLOOR}. Either the suite "
-                  "lost tests or a test was merged away. Bump FLOOR in the same commit."
+                  f"only {passed} tests PASSED ({tests} reported, {skipped} skipped); "
+                  f"expected at least {FLOOR}. Either the suite lost tests, a test was "
+                  "merged away, or one was skipped. Bump FLOOR in the same commit."
               )
           if failures or errors:
               sys.exit("the suite reported failures")

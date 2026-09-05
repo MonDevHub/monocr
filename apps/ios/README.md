@@ -21,7 +21,10 @@ MonOCR iOS runs **Core ML**, so every character is recognised on the device. Rec
 - **Script Fidelity**: Integration of PyidaungSu fonts for correct Mon/Myanmar rendering.
 
 > [!TIP]
-> File size is limited to 50MB for web and 20MB for mobile. For larger files, or to use a machine with more memory, use the CLI or the package directly: `uv add monocr` or `pip install monocr`.
+> File size is limited to 50MB for web and 20MB for mobile. Neither cap applies off-device, but the two escape routes are different artifacts and the older wording ran them together:
+>
+> - **`cargo install monocr-cli`** — this repository's own CLI, in [`apps/cli`](../cli/README.md), published to crates.io. Same engine as this app, reading local files with no size cap. This is the one that matches what you see here.
+> - **`pip install monocr`** — the sibling Python project [`janakhpon/monocr`](https://github.com/janakhpon/monocr), not part of this repository. It reads the same trained model through its own segmentation implementation, whose density threshold and minimum line height differ from this one's, so page-level output will not match line for line.
 
 ## Architecture
 

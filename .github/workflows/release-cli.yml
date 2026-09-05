@@ -43,7 +43,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@stable
+      # Commit-pinned rather than the `stable` branch. This job holds
+      # `id-token: write` and mints a crates.io publish token, so a mutable ref
+      # hands whoever can move that branch the ability to run code in a job that
+      # publishes under our name. `actions/checkout` above was already pinned;
+      # this was the remaining mutable ref on the publish path.
+      #
+      # `toolchain` is stated explicitly: this action reads the toolchain from
+      # that input, whose default is branch-specific, so the pin fixes the action
+      # without also fixing which Rust it installs by accident.
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable branch, 2026-09-03
+        with:
+          toolchain: stable
 
       # poppler is a runtime dependency of the PDF path, and the renderer's
       # tests fail rather than skip without it.
@@ -74,8 +85,29 @@ jobs:
         working-directory: apps/cli
         run: cargo clippy --all-targets -- -D warnings
 
+      # The renderer's PDF tests rasterise a real document that lives in the
+      # monocr-onnx repository. The default path in render.rs points at a sibling
+      # checkout, which resolves on a machine holding both repos and never on a
+      # runner — `../../../monocr-onnx` is above the workspace, where
+      # actions/checkout will not write. So it is checked out here and
+      # MONOCR_PDF_FIXTURE points at it.
+      #
+      # Not MONOCR_SKIP_E2E=1. The gate fails rather than skips on purpose: three
+      # of those four tests once printed `skipping:` and returned Ok, reporting
+      # 55 passed while asserting nothing.
+      - name: Fetch the PDF fixture
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: MonDevHub/monocr-onnx
+          ref: 76459a559920e92ce00ee1c1c0d1b72e07f8319a
+          path: .fixtures-onnx
+          sparse-checkout: data/pdfs
+          sparse-checkout-cone-mode: false
+
       - name: cargo test
         working-directory: apps/cli
+        env:
+          MONOCR_PDF_FIXTURE: ${{ github.workspace }}/.fixtures-onnx/data/pdfs/Mon_E_library.pdf
         run: cargo test
 
       - name: Authenticate with crates.io

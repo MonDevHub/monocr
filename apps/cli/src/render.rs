@@ -211,9 +211,29 @@ fn find_single_output(dir: &Path, prefix: &str) -> Result<PathBuf> {
 mod tests {
     use super::*;
 
-    /// The PDF these tests rasterise. It lives in the sibling `monocr-onnx`
-    /// checkout, which CI clones and a fresh laptop may not have.
-    const FIXTURE: &str = "../../../monocr-onnx/data/pdfs/Mon_E_library.pdf";
+    /// The PDF these tests rasterise.
+    ///
+    /// The default is a path into the sibling `monocr-onnx` checkout, which
+    /// resolves on a machine that happens to have both repositories side by side
+    /// and nowhere else. That is the same shape of defect the Rust binding's
+    /// `fixture_path()` carried, and it kept both this repository's `cli` job and
+    /// `release-cli.yml` red: a runner checks out one repository, and
+    /// `../../../monocr-onnx` is above the workspace, where `actions/checkout`
+    /// will not write.
+    ///
+    /// `MONOCR_PDF_FIXTURE` overrides it, so CI can point at a PDF it checked out
+    /// wherever it likes. The escape hatch is the fix rather than a skip: the
+    /// gate below deliberately FAILS on a missing fixture, because three of this
+    /// file's four PDF tests once printed `skipping:` and returned `Ok(())`,
+    /// reporting `55 passed` while asserting nothing.
+    const FIXTURE_ENV: &str = "MONOCR_PDF_FIXTURE";
+    const FIXTURE_DEFAULT: &str = "../../../monocr-onnx/data/pdfs/Mon_E_library.pdf";
+
+    fn fixture_path() -> std::path::PathBuf {
+        std::env::var_os(FIXTURE_ENV)
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| std::path::PathBuf::from(FIXTURE_DEFAULT))
+    }
 
     /// Exact `"1"`, matching mon_OCR's `os.environ.get(...) == "1"`, so a stray
     /// `REQUIRE_E2E=0` cannot read as "yes".
@@ -311,7 +331,8 @@ mod tests {
                  pass bought without one is a green light for code nothing ran. \
                  Install poppler: `brew install poppler` on macOS, `apt-get \
                  install poppler-utils` on Debian, and keep a monocr-onnx \
-                 checkout beside this repo for the PDF. Set MONOCR_SKIP_E2E=1 to \
+                 checkout beside this repo for the PDF, or set MONOCR_PDF_FIXTURE to \
+                 one. Set MONOCR_SKIP_E2E=1 to \
                  drop this coverage deliberately."
             ),
         }
@@ -377,10 +398,10 @@ mod tests {
 
     #[tokio::test]
     async fn a_real_pdf_reports_its_page_count_and_renders_one_page() -> Result<()> {
-        let fixture = Path::new(FIXTURE);
+        let fixture = fixture_path();
         if !precondition(
             fixture.exists(),
-            &format!("the test PDF is not present at {FIXTURE}"),
+            &format!("the test PDF is not present at {}", fixture.display()),
         )? {
             return Ok(());
         }
@@ -388,7 +409,7 @@ mod tests {
             return Ok(());
         }
 
-        let doc = PdfDocument::open(fixture, 72).await?;
+        let doc = PdfDocument::open(&fixture, 72).await?;
         assert!(doc.pages() > 0);
 
         let page = doc.render_page(1).await?;
@@ -404,14 +425,17 @@ mod tests {
 
     #[tokio::test]
     async fn a_page_outside_the_document_is_an_error() -> Result<()> {
-        let fixture = Path::new(FIXTURE);
+        let fixture = fixture_path();
         if !precondition(
             fixture.exists() && is_runnable("pdftoppm").await,
-            &format!("the test PDF at {FIXTURE} or pdftoppm is not present"),
+            &format!(
+                "the test PDF at {} or pdftoppm is not present",
+                fixture.display()
+            ),
         )? {
             return Ok(());
         }
-        let doc = PdfDocument::open(fixture, 72).await?;
+        let doc = PdfDocument::open(&fixture, 72).await?;
         assert!(doc.render_page(0).await.is_err());
         assert!(doc.render_page(doc.pages() + 1).await.is_err());
         Ok(())

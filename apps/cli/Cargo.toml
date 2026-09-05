@@ -1,6 +1,6 @@
 [package]
 name = "monocr-cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Batch Mon OCR over books, PDFs and images, on-device"
 license = "MIT"
@@ -23,7 +23,7 @@ path = "src/main.rs"
 # `package = "monocr"` with the key left as `monocr-onnx`: the published crate
 # is named `monocr`, and Cargo takes the extern crate name from the KEY, so
 # this keeps every `monocr_onnx::` reference in src/main.rs compiling.
-monocr-onnx = { version = "0.3.1", package = "monocr" }
+monocr-onnx = { version = "0.4.0", package = "monocr" }
 
 # Pinned exactly, not by range. ort is a pre-release and "2.0.0-rc.11"
 # range-matches rc.13, which changed Send bounds and does not compile

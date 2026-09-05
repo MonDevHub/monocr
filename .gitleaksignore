@@ -9,11 +9,16 @@
 d026e3d9696abe2eddac47d983fa245599512b3e:apps/android/app/src/main/java/dev/janakhpon/monocr/engine/SyncWorker.kt:generic-api-key:16
 d026e3d9696abe2eddac47d983fa245599512b3e:apps/ios/monocr-ios/SyncService.swift:generic-api-key:9
 
-# Two test placeholders, not secrets. Both lines are literally
-# `const key = "0123456789abcdef"` repeated four times, inside tests named
-# TestPanicLogDoesNotCarryTheApiKey and TestRecoveryMiddlewareDoesNotLogTheApiKey
-# — tests whose whole point is asserting a key never reaches a log. 64 hex chars
-# of ascending nibbles trips gitleaks' generic-api-key entropy rule.
+# Two test placeholders, not secrets. Both are a 64-character hex constant of
+# ascending nibbles, assigned to a local named `key` and repeated four times
+# inside two middleware tests whose whole point is asserting that a key never
+# reaches a log. That length and alphabet trip gitleaks' generic-api-key
+# entropy rule.
+#
+# The constant is described here rather than quoted. Quoting it is what made
+# THIS file line 13's own finding: an ignore file that reproduces the value it
+# is explaining hands the scanner a fresh match, and the secrets job stayed red
+# for a leak that existed only in the note about the leak.
 #
 # Ignored by fingerprint rather than an inline `// gitleaks:allow` because the
 # scan is `gitleaks detect` over full history: the finding is anchored to commit
@@ -23,3 +28,10 @@ d026e3d9696abe2eddac47d983fa245599512b3e:apps/ios/monocr-ios/SyncService.swift:g
 # nothing actually leaked.
 f4de7ba5c5c208ab8e90b7bded85dbaf37fb7cda:services/feedback/internal/middleware/recovery_endtoend_test.go:generic-api-key:21
 f4de7ba5c5c208ab8e90b7bded85dbaf37fb7cda:services/feedback/internal/middleware/recovery_redact_test.go:generic-api-key:17
+
+# The note above, before it was rewritten. Commit e4082c6 quoted the test
+# placeholder verbatim while explaining that it was a placeholder, so this file
+# became its own finding and the secrets job stayed red for a leak that existed
+# only in the note about the leak. The working tree no longer quotes it; the
+# commit still does, and `gitleaks detect` reads full history.
+e4082c642f40129582cc3783719f9d38c3485160:.gitleaksignore:generic-api-key:13

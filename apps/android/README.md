@@ -20,7 +20,10 @@ MonOCR Android runs **ONNX Runtime** with NNAPI, so every character is recognise
 - **Script Fidelity**: Integration of PyidaungSu fonts for accurate Mon/Myanmar rendering.
 
 > [!TIP]
-> File size is limited to 50MB for web and 20MB for mobile. For larger files, or to use a machine with more memory, use the CLI or the package directly: `uv add monocr` or `pip install monocr`.
+> File size is limited to 50MB for web and 20MB for mobile. Neither cap applies off-device, but the two escape routes are different artifacts and the older wording ran them together:
+>
+> - **`cargo install monocr-cli`** — this repository's own CLI, in [`apps/cli`](../cli/README.md), published to crates.io. Same engine as this app, reading local files with no size cap. This is the one that matches what you see here.
+> - **`pip install monocr`** — the sibling Python project [`janakhpon/monocr`](https://github.com/janakhpon/monocr), not part of this repository. It reads the same trained model through its own segmentation implementation, whose density threshold and minimum line height differ from this one's, so page-level output will not match line for line.
 
 ## Architecture
 
@@ -133,7 +136,7 @@ troubleshooting: `docs/guides/mobile-build-and-test.md`.
 3. Grant camera and storage permissions when prompted.
 
 > [!TIP]
-> File size for mobile uploads is limited to 20MB. For processing larger datasets or high-resolution documents, we recommend using the Python CLI: `pip install monocr`.
+> File size for mobile uploads is limited to 20MB. For larger documents, `cargo install monocr-cli` gives you this repository's CLI ([`apps/cli`](../cli/README.md)) with no size cap and the same engine as this app. The tip above covers why `pip install monocr` is not the same thing.
 
 4. Deploy to a physical device for optimal performance (NNAPI acceleration).
 
