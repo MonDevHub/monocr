@@ -3,6 +3,7 @@ node_modules
 .pnpm-debug.log
 
 # build artifacts
+/result
 dist
 target
 .svelte-kit
