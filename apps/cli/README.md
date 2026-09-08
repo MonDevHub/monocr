@@ -30,7 +30,27 @@ cargo install monocr-cli
 
 Runs on macOS, Linux and Windows.
 
-**ONNX Runtime is inside the binary.** `ort` fetches a prebuilt runtime for your
+### Nix
+
+From the repository root, on Linux or macOS (x86_64 or aarch64):
+
+```bash
+nix build
+nix run . -- --help
+nix profile add .#monocr-cli
+monocr-cli download
+```
+
+The Nix package includes Poppler for PDFs and links the Nix-provided ONNX
+Runtime. The model is downloaded from Hugging Face on first use and cached in
+your home directory as described below. No development shell is provided.
+
+The flake uses flake-parts and imports every Nix module under `modules/` with
+import-tree. The CLI package is defined in `modules/packages/monocr-cli.nix`.
+
+### Runtime requirements
+
+**For Cargo installations, ONNX Runtime is inside the binary.** `ort` fetches a prebuilt runtime for your
 target at build time and links it in, so there is no shared library to install
 and no path to configure. The Go binding in `monocr-onnx` does need one; this
 does not.
