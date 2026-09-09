@@ -21,7 +21,7 @@
  * `medianLineHeight` as the honest stand-in for the advertised DPI bar.
  */
 
-import { MIN_LINE_HEIGHT, segmentLines, type LineSegment } from './segmentation';
+import { MIN_LINE_HEIGHT, segmentLines, toGrayscaleF32, type LineSegment } from './segmentation';
 
 /**
  * Laplacian-variance floor below which an image reads as soft.
@@ -92,16 +92,13 @@ export interface CaptureAssessment {
  * interior only, because the kernel needs all four neighbours and clamping at the
  * border would manufacture edges that are not in the image.
  */
-export function laplacianVariance(image: ImageData): number {
-	const { width, height, data } = image;
+export function laplacianVariance(image: ImageData, precomputedGrey?: Float32Array): number {
+	const { width, height } = image;
 	if (width < 3 || height < 3) return 0;
 
-	// Grayscale once. Rec.601, matching `segmentLines` so both judge the same signal.
-	const grey = new Float32Array(width * height);
-	for (let i = 0; i < width * height; i++) {
-		const o = i * 4;
-		grey[i] = 0.299 * data[o] + 0.587 * data[o + 1] + 0.114 * data[o + 2];
-	}
+	// Grayscale once. Rec.601, matching `segmentLines` so both judge the same
+	// signal — literally the same buffer when `assessCapture` has one to share.
+	const grey = precomputedGrey ?? toGrayscaleF32(image);
 
 	// This is the naive single-pass form, E[x^2] - E[x]^2, which is the numerically
 	// unstable one — not the two-pass or Welford form. It is safe here for a specific
@@ -136,8 +133,12 @@ export function laplacianVariance(image: ImageData): number {
  * you, which is the right shape for a standalone pre-flight check.
  */
 export function assessCapture(image: ImageData, segments?: LineSegment[]): CaptureAssessment {
-	const sharpness = laplacianVariance(image);
-	segments ??= segmentLines(image);
+	// Computed once and handed to both: segmentLines needs it only when
+	// `segments` was not already supplied, but the buffer costs the same
+	// either way, so there's no reason to gate the sharing on that.
+	const grey = toGrayscaleF32(image);
+	const sharpness = laplacianVariance(image, grey);
+	segments ??= segmentLines(image, undefined, grey);
 
 	let medianLineHeight = 0;
 	if (segments.length > 0) {
