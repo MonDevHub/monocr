@@ -68,6 +68,14 @@ nonisolated enum ImageProvenance: Sendable {
     case pdfRender
     case cameraCapture
     case photoLibrary
+    /// A page captured through a document scanner (rectified and deskewed),
+    /// as opposed to a raw camera photo. Shares `.photoLibrary`'s shape test
+    /// rather than `.cameraCapture`'s flat `.sparse`: a scanner has already
+    /// removed the perspective, skew and background clutter `.sparse`'s wider
+    /// threshold exists to tolerate, so a rectified scan is geometrically a
+    /// page render, and a short, wide one is as plausibly a single cropped
+    /// line as a photo-library image is.
+    case documentScan
 
     /// Minimum width-to-height ratio for a crop to be one line.
     ///
@@ -103,7 +111,7 @@ nonisolated enum ImageProvenance: Sendable {
             return .page
         case .cameraCapture:
             return .sparse
-        case .photoLibrary:
+        case .photoLibrary, .documentScan:
             // No area means no aspect ratio, so there is nothing to judge on.
             // Page is the safe default: it segments, where `.line` would hand a
             // degenerate image to the model whole.

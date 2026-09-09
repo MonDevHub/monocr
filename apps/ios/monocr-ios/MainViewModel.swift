@@ -221,27 +221,23 @@ class MainViewModel: ObservableObject {
                     guard let res = result else { return }
                     resultsMap[index] = res
 
-                    let currentCombinedText = (0..<totalPages).compactMap { i -> String? in
-                        guard let r = resultsMap[i] else { return nil }
-                        return "--- Page \(i + 1) ---\n\(r.text)\n\n"
-                    }.joined()
-
-                    let totalWords = resultsMap.values.reduce(0) { $0 + $1.wordCount }
-                    let totalChars = resultsMap.values.reduce(0) { $0 + $1.charCount }
-                    let allLines = (0..<totalPages).flatMap { resultsMap[$0]?.lines ?? [] }
+                    let readings = resultsMap.mapValues {
+                        PageReading(
+                            text: $0.text, wordCount: $0.wordCount, charCount: $0.charCount,
+                            lines: $0.lines, looksSoft: $0.looksSoft)
+                    }
+                    let combined = PdfPageCombiner.combine(readings: readings, totalPages: totalPages)
 
                     await MainActor.run {
                         self.ocrResult = MonOcrResult(
-                            text: currentCombinedText.trimmingCharacters(in: .whitespacesAndNewlines),
-                            wordCount: totalWords,
-                            charCount: totalChars,
+                            text: combined.text,
+                            wordCount: combined.wordCount,
+                            charCount: combined.charCount,
                             durationMs: Int(Date().timeIntervalSince(startTime) * 1000),
                             debugImage: res.debugImage,
-                            lines: allLines,
+                            lines: combined.lines,
                             mode: mode,
-                            // Any soft page makes the combined reading suspect, so
-                            // this is an OR rather than the last page's verdict.
-                            looksSoft: resultsMap.values.contains { $0.looksSoft }
+                            looksSoft: combined.looksSoft
                         )
                         self.debugImage = res.debugImage
                     }
@@ -276,13 +272,13 @@ class MainViewModel: ObservableObject {
 
             await MainActor.run {
                 self.isProcessing = false
-                if let firstFailure = failures.sorted(by: { $0.key < $1.key }).first {
+                if let firstFailure = PdfPageCombiner.firstFailure(failures) {
                     self.errorMessage = String(
                         format: NSLocalizedString(
                             "%1$d of %2$d pages could not be read (page %3$d: %4$@).",
                             comment: "PDF partial failure"
                         ),
-                        failures.count, totalPages, firstFailure.key + 1, firstFailure.value
+                        failures.count, totalPages, firstFailure.page + 1, firstFailure.reason
                     )
                 }
                 // Persist final combined result to history

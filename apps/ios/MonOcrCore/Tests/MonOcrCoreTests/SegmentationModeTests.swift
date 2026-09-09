@@ -90,6 +90,24 @@ struct SegmentationModeTests {
             ImageProvenance.cameraCapture.defaultMode(pixelWidth: 1024, pixelHeight: 64) == .sparse)
     }
 
+    /// A document scan is rectified and deskewed, geometrically a page render —
+    /// so it shares `.photoLibrary`'s shape test rather than `.cameraCapture`'s
+    /// flat `.sparse`. Same dimensions, same fixtures, same verdicts as the
+    /// photo-library tests above; the only thing under test here is that
+    /// `.documentScan` takes the shape-test branch at all.
+    @Test func documentScanSharesThePhotoLibraryShapeTest() {
+        for image in Self.genuineLines {
+            let mode = ImageProvenance.documentScan.defaultMode(
+                pixelWidth: image.width, pixelHeight: image.height)
+            #expect(mode == .line, "\(image.name) (\(image.width)x\(image.height)) is one line")
+        }
+        let block = ImageProvenance.documentScan.defaultMode(pixelWidth: 876, pixelHeight: 277)
+        #expect(
+            block == .page,
+            "876x277 passes the height test but its aspect is 3.2, so it is a block of lines")
+        #expect(ImageProvenance.documentScan.defaultMode(pixelWidth: 0, pixelHeight: 0) == .page)
+    }
+
     /// One constant for one question. The CLI uses 4.0 for the same judgement,
     /// taken from the canonical `looks_like_a_line`.
     @Test func theAspectFloorMatchesTheCanonicalOne() {
