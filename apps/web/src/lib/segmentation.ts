@@ -422,21 +422,48 @@ export function mergeRuns(
 	return merged;
 }
 
+/**
+ * Rec.601 luma over the whole image, as a flat per-pixel Float32 buffer.
+ *
+ * Pulled out of `segmentLines` so a caller needing both this and a full
+ * segmentation of the same image — `assessCapture` runs a sharpness check
+ * (`laplacianVariance`) and, when it has to segment for itself, a full
+ * `segmentLines` pass too — computes it once rather than twice. A 12MP image
+ * is 48MB as a `Float32Array`; that was being allocated and filled a second
+ * time immediately after `laplacianVariance` had already done the same work.
+ */
+export function toGrayscaleF32(imageData: ImageData): Float32Array {
+	const { width, height, data } = imageData;
+	const grey = new Float32Array(width * height);
+	for (let i = 0; i < width * height; i++) {
+		const o = i * 4;
+		// Standard luma: 0.299R + 0.587G + 0.114B
+		grey[i] = 0.299 * data[o] + 0.587 * data[o + 1] + 0.114 * data[o + 2];
+	}
+	return grey;
+}
+
 export function segmentLines(
 	imageData: ImageData,
-	smoothKernel: number = 3 // Default changed to 3 to match Android/Python
+	smoothKernel: number = 3, // Default changed to 3 to match Android/Python
+	precomputedGray?: Float32Array
 ): LineSegment[] {
 	const { width, height, data } = imageData;
 	const grayData = new Uint8Array(width * height);
 
-	// 1. Convert to Grayscale
-	for (let i = 0; i < width * height; i++) {
-		const offset = i * 4;
-		const r = data[offset];
-		const g = data[offset + 1];
-		const b = data[offset + 2];
-		// Standard luma: 0.299R + 0.587G + 0.114B
-		grayData[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+	// 1. Convert to Grayscale, or reuse a caller-supplied buffer instead of
+	// re-deriving the same Rec.601 values from the raw RGBA a second time.
+	if (precomputedGray) {
+		for (let i = 0; i < width * height; i++) grayData[i] = precomputedGray[i];
+	} else {
+		for (let i = 0; i < width * height; i++) {
+			const offset = i * 4;
+			const r = data[offset];
+			const g = data[offset + 1];
+			const b = data[offset + 2];
+			// Standard luma: 0.299R + 0.587G + 0.114B
+			grayData[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+		}
 	}
 
 	// 1b. Smooth Grayscale (3x3 Box Blur)

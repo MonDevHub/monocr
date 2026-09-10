@@ -55,11 +55,13 @@ fi
 # Format verified 2026-09-03 by running this script against MonOcrCore.
 COUNT="$(sed -n 's/.*Test run with \([0-9][0-9]*\) tests.*/\1/p' "$LOG" | tail -1)"
 
-# 73, the exact count on 2026-09-03. Exact rather than a margin for the reason the
-# Android floor gives: adding tests never trips a floor, so the only thing this can catch
-# is a removal, and a removal should be deliberate. If this fails, bump FLOOR in the same
-# commit that removes the test so the diff records it.
-FLOOR=73
+# 82, the exact count as of the PdfPageCombiner extraction and its 8 tests plus
+# documentScanSharesThePhotoLibraryShapeTest (2026-09-09; was 73 on 2026-09-03).
+# Exact rather than a margin for the reason the Android floor gives: adding tests
+# never trips a floor, so the only thing this can catch is a removal, and a
+# removal should be deliberate. If this fails, bump FLOOR in the same commit that
+# removes the test so the diff records it.
+FLOOR=82
 
 if [ -z "$COUNT" ]; then
     echo "swift-test: found the summary line but could not read a count from it. The" >&2
