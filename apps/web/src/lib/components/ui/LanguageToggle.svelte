@@ -111,7 +111,7 @@
 	{#if isOpen}
 		<div
 			transition:fly={{ y: 5, duration: 150 }}
-			class="bg-canvas border-border shadow-huge absolute right-0 z-50 mt-2 min-w-[120px] overflow-hidden rounded-[var(--radius-lg)] border"
+			class="bg-canvas border-border absolute right-0 z-50 mt-2 min-w-[120px] overflow-hidden rounded-[var(--radius-lg)] border shadow-xl"
 			role="listbox"
 		>
 			<div class="flex flex-col p-1.5">

@@ -372,7 +372,12 @@
 					onclick={() => fileInput?.click()}
 					role="button"
 					tabindex="0"
-					onkeydown={(e) => e.key === 'Enter' && fileInput?.click()}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							fileInput?.click();
+						}
+					}}
 				>
 					<input
 						type="file"
@@ -400,9 +405,7 @@
 							<h3 class="text-fg-primary text-base font-semibold tracking-tight">
 								Drop an image or PDF here
 							</h3>
-							<p class="text-fg-secondary text-sm opacity-60">
-								Or click to browse from your device
-							</p>
+							<p class="text-fg-secondary text-sm">Or click to browse from your device</p>
 						</div>
 					</div>
 				</div>
@@ -436,7 +439,7 @@
 						</div>
 						{#if processingTime > 0 && !loading && resultText}
 							<div
-								class="text-fg-secondary flex items-center gap-2.5 font-mono text-[var(--text-meta)] opacity-80"
+								class="text-fg-secondary flex items-center gap-2.5 font-mono text-[var(--text-meta)]"
 							>
 								<span
 									>{resultText
@@ -491,7 +494,7 @@
 						<div class="bg-canvas-subtle/50 flex items-center justify-between px-6 py-3">
 							<div class="flex items-center gap-3">
 								<button
-									class="btn-secondary px-3 py-1"
+									class="btn-secondary btn-compact"
 									onclick={downloadText}
 									aria-label="Save extracted text as a file"
 								>
@@ -499,7 +502,7 @@
 								</button>
 								<button
 									bind:this={copyButton}
-									class="btn-secondary px-3 py-1"
+									class="btn-secondary btn-compact"
 									onclick={() => {
 										navigator.clipboard.writeText(resultText || '');
 										copied = true;
@@ -510,7 +513,7 @@
 									{copied ? 'Copied' : 'Copy'}
 								</button>
 								<button
-									class="btn-primary px-3 py-1"
+									class="btn-primary btn-compact"
 									onclick={reset}
 									aria-label="Process another image or PDF"
 								>

@@ -28,7 +28,10 @@
 		/* Professional Productivity Palette - Neutral & Utilitarian */
 		--primary: #1a1a1a; /* Pure, deep professional gray/black */
 		--primary-tint: #4338ca; /* Indigo 700 tint for subtle accents */
-		--accent-gold: #b2940a;
+		/* #b2940a computed to 2.85:1 on --bg-canvas -- fails WCAG AA (4.5:1). Darkened for
+		   light mode only; the original value is restored under .dark below, where it
+		   already passes (6.19:1) against the much darker canvas there. */
+		--accent-gold: #7a6200;
 		--background-light: #ffffff;
 		--background-dark: #0a0a0a;
 		--color-border-raw: 224, 224, 224; /* RGB for --bg-border */
@@ -36,7 +39,12 @@
 		/* Text Hierarchy - Softered for Eye Comfort */
 		--fg-primary: #2a2a2b; /* Soft Deep Gray */
 		--fg-secondary: #5c5c5e; /* Muted Zinc */
-		--fg-muted: #8a8a8c; /* Zinc 500 equivalent */
+		/* #8a8a8c computed to 3.33:1 on --bg-canvas -- fails WCAG AA (4.5:1) for normal text,
+		   and this token is used at full size (docs body copy) as well as small/uppercase
+		   labels. Darkened to a value that clears 4.5:1 against both --bg-canvas (5.14:1)
+		   and --bg-canvas-subtle (4.83:1); dark mode's #8e8e93 already passes and is
+		   untouched. */
+		--fg-muted: #6b6b6d;
 		--fg-accent: #3a3a3c; /* Zinc 900 equivalent */
 
 		/* Buttons/Interactive */
@@ -54,6 +62,9 @@
 		--bg-canvas-subtle: #1c1c1e;
 		--bg-canvas-glass: rgba(21, 21, 23, 0.8);
 		--bg-border: #222224;
+		/* Restore the original gold -- it's the light-mode value above that fails contrast,
+		   not this one (6.19:1 against this dark canvas). */
+		--accent-gold: #b2940a;
 		--fg-primary: #d1d1d6;
 		--fg-secondary: #8e8e93;
 		--fg-muted: #8e8e93;
@@ -134,11 +145,19 @@
 	}
 
 	.btn-primary {
-		@apply bg-primary-action text-fg-on-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] px-5 py-2.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.98];
+		@apply bg-primary-action text-fg-on-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] border border-transparent px-5 py-2.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50;
 	}
 
 	.btn-secondary {
-		@apply border-border bg-btn-bg text-fg-secondary dark:text-fg-primary hover:bg-btn-hover hover:text-fg-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] border px-4 py-2.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out active:scale-[0.98];
+		@apply border-border bg-btn-bg text-fg-secondary dark:text-fg-primary hover:bg-btn-hover hover:text-fg-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] border px-4 py-2.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out active:scale-[0.98] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50;
+	}
+
+	/* A real compact variant, not a utility-class override: .btn-primary/.btn-secondary's
+	   own padding is @apply'd in this same layer, so a call site adding `px-3 py-1` on top
+	   loses the cascade -- later-in-layer wins at equal specificity, regardless of source
+	   order in the markup. Combine with .btn-primary/.btn-secondary instead of overriding. */
+	.btn-compact {
+		@apply px-3 py-1.5;
 	}
 }
 
@@ -252,11 +271,17 @@ body {
 }
 
 .section-label {
-	@apply mb-4 block text-[9px] font-bold tracking-[0.3em] text-slate-400 uppercase dark:text-slate-400;
+	/* Was hardcoded text-slate-400 in both themes (2.48:1 on light canvas, failing WCAG AA)
+	   -- text-fg-muted is theme-aware and, with --fg-muted's light-mode value corrected
+	   above, now clears 4.5:1 in both themes. */
+	@apply text-fg-muted mb-4 block text-[9px] font-bold tracking-[0.3em] uppercase;
 }
 
 .zen-label {
-	@apply text-fg-muted/50 text-[10px] font-bold tracking-[0.2em] uppercase;
+	/* Was text-fg-muted/50 (1.72:1 on light canvas at this token's old value, and opacity
+	   alone drops any color below AA regardless of the base -- dropped the opacity instead
+	   of chasing it with an ever-darker base color). */
+	@apply text-fg-muted text-[10px] font-bold tracking-[0.2em] uppercase;
 }
 
 .zen-code-block {
@@ -265,7 +290,9 @@ body {
 
 /* Improved Syntax Highlighting */
 .zen-code-comment {
-	@apply text-fg-muted/40 italic;
+	/* Was text-fg-muted/40 (well under 3:1) -- italic already differentiates comments from
+	   code without needing a contrast-failing opacity cut on top. */
+	@apply text-fg-muted italic;
 }
 
 .zen-code-keyword {
