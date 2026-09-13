@@ -29,22 +29,32 @@ export default defineConfig({
 			strategies: 'generateSW',
 			registerType: 'autoUpdate',
 			manifest: {
-				name: 'MonOCR Web',
+				name: 'MonOCR',
 				short_name: 'MonOCR',
-				description: 'Offline-capable Mon language OCR running entirely in the browser.',
-				theme_color: '#4338ca',
-				background_color: '#ffffff',
+				description:
+					'Private Mon Language OCR. Optimized for high-accuracy archival digitization, running entirely in your browser.',
+				// Matches src/app.html's own <meta name="theme-color">, and --bg-canvas in
+				// app.css -- this manifest previously carried unrelated placeholder values
+				// (an indigo theme_color, a white background_color, and literal starter-template
+				// categories) that never matched the rest of the app.
+				theme_color: '#7a1b1b',
+				background_color: '#fcfbf9',
 				display: 'standalone',
 				orientation: 'portrait-primary',
 				icons: [
 					{
-						src: '/android-chrome-192x192.png',
+						src: '/favicon-96x96.png',
+						sizes: '96x96',
+						type: 'image/png'
+					},
+					{
+						src: '/web-app-manifest-192x192.png',
 						sizes: '192x192',
 						type: 'image/png',
 						purpose: 'any maskable'
 					},
 					{
-						src: '/android-chrome-512x512.png',
+						src: '/web-app-manifest-512x512.png',
 						sizes: '512x512',
 						type: 'image/png',
 						purpose: 'any maskable'
@@ -55,7 +65,15 @@ export default defineConfig({
 						type: 'image/png'
 					}
 				],
-				categories: ['template', 'starter', 'sveltekit'],
+				screenshots: [
+					{
+						src: '/og-image.jpg',
+						sizes: '1200x630',
+						type: 'image/jpeg',
+						form_factor: 'wide'
+					}
+				],
+				categories: ['ocr', 'mon', 'language-preservation'],
 				lang: 'en',
 				dir: 'ltr'
 			},
