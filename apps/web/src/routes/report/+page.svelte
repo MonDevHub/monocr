@@ -5,7 +5,7 @@
 	import { get } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { SEO, HistorySection, SuccessModal, ActionBox } from '$lib/components';
+	import { SEO, HistorySection, SuccessModal, ActionBox, Icon } from '$lib/components';
 	import { saveRecord } from '$lib/storage/db';
 
 	let loading = $state(false);
@@ -114,7 +114,7 @@
 				/>
 				<div class="flex items-center gap-3">
 					<div class="bg-canvas-subtle flex h-8 w-8 items-center justify-center rounded-md">
-						<span class="material-symbols-outlined text-fg-muted text-lg">upload_file</span>
+						<Icon name="upload_file" size={18} class="text-fg-muted" />
 					</div>
 					<div class="text-left">
 						<p class="text-fg-primary font-semibold text-[var(--text-secondary)]">
@@ -151,7 +151,7 @@
 								"{originalText}"
 							</p>
 							<div class="text-fg-muted flex items-center gap-2 text-[var(--text-meta)]">
-								<span class="material-symbols-outlined text-sm">info</span>
+								<Icon name="info" size={14} />
 								<span>Report quality issues to help improve our model</span>
 							</div>
 						</div>
@@ -172,7 +172,7 @@
 				<label class="block">
 					<textarea
 						bind:value={correctedText}
-						class="focus-ring bg-canvas-subtle/30 hover:bg-canvas-subtle/50 focus:bg-canvas text-fg-primary placeholder:text-fg-muted/40 block w-full resize-y rounded-[var(--radius-huge)] px-5 py-4 leading-relaxed text-[var(--text-body)] transition-all duration-150 outline-none placeholder:text-[var(--text-meta)]"
+						class="focus-ring bg-canvas-subtle/30 hover:bg-canvas-subtle/50 focus:bg-canvas text-fg-primary placeholder:text-fg-muted block w-full resize-y rounded-[var(--radius-huge)] px-5 py-4 leading-relaxed text-[var(--text-body)] transition-all duration-150 outline-none placeholder:text-[var(--text-meta)]"
 						rows="5"
 						placeholder="Corrected Mon script..."
 					></textarea>
@@ -199,7 +199,7 @@
 		</section>
 
 		<!-- Consent & Actions -->
-		<section class="mb-20 space-y-10 pt-10">
+		<section class="mb-20 space-y-6 pt-6">
 			<div class="flex items-start gap-4">
 				<div class="flex h-6 items-center">
 					<input
@@ -214,21 +214,26 @@
 						class="text-fg-primary cursor-pointer font-bold text-[var(--text-body)]"
 						for="consent">I want to help improve MonOCR</label
 					>
-					<p class="text-fg-secondary leading-relaxed text-[var(--text-meta)] opacity-70">
+					<p class="text-fg-secondary leading-relaxed text-[var(--text-meta)]">
 						Allow this correction to be used for future model training and verification. We respect
 						your privacy according to our policies.
 					</p>
 				</div>
 			</div>
-			<div class="mx-auto flex w-full max-w-md flex-col gap-4">
+			<div class="flex items-center gap-4">
 				<button
 					onclick={handleSubmit}
 					disabled={!correctedText || !consent || loading}
-					class="btn-primary w-full"
+					class="btn-primary min-w-[140px]"
 				>
 					{loading ? 'Sharing...' : 'Share Correction'}
 				</button>
-				<button onclick={handleCancel} class="btn-secondary w-full"> Cancel Feedback </button>
+				<button
+					onclick={handleCancel}
+					class="text-fg-secondary hover:text-fg-primary focus-ring rounded-sm px-2 py-1 text-[11px] font-bold tracking-wider uppercase transition-colors"
+				>
+					Cancel
+				</button>
 			</div>
 		</section>
 

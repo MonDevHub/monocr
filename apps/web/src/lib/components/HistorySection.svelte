@@ -3,7 +3,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { db, getRecords, deleteRecord, clearHistory, type OCRRecord } from '$lib/storage/db';
 	import { syncService, syncEvents } from '$lib/services/sync-service';
-	import { ConfirmationModal, Badge } from './index';
+	import { ConfirmationModal, Badge, Icon } from './index';
 	import { focusTrap } from '$lib/actions/focus-trap';
 	import { m } from '$lib/paraglide/messages';
 
@@ -76,9 +76,7 @@
 			<h2 class="text-fg-primary text-xl font-bold tracking-tight">
 				{title}
 				{#if loading}
-					<span class="text-fg-muted ml-3 text-xs font-normal opacity-50"
-						>{m.history_updating()}</span
-					>
+					<span class="text-fg-muted ml-3 text-xs font-normal">{m.history_updating()}</span>
 				{/if}
 			</h2>
 			<button
@@ -101,9 +99,11 @@
 						<div
 							class="flex h-8 w-8 items-center justify-center opacity-40 transition-opacity group-hover:opacity-100"
 						>
-							<span class="material-symbols-outlined text-fg-primary text-[22px]">
-								{record.fileType.includes('pdf') ? 'description' : 'image'}
-							</span>
+							<Icon
+								name={record.fileType.includes('pdf') ? 'description' : 'image'}
+								size={22}
+								class="text-fg-primary"
+							/>
 						</div>
 
 						<div class="flex min-w-0 flex-col gap-0.5">
@@ -111,7 +111,7 @@
 								<span class="text-fg-primary truncate text-[13px] font-semibold tracking-tight"
 									>{record.fileName}</span
 								>
-								<span class="text-fg-muted text-[10px] whitespace-nowrap opacity-40"
+								<span class="text-fg-muted text-[10px] whitespace-nowrap"
 									>{new Date(record.timestamp).toLocaleDateString()}</span
 								>
 							</div>
@@ -128,7 +128,7 @@
 											await syncService.syncAll();
 											await loadHistory();
 										}}
-										class="text-primary hover:text-primary/80 focus-ring ml-1 rounded-sm px-1 text-[9px] font-bold tracking-tighter uppercase underline underline-offset-2 opacity-60 transition-opacity hover:opacity-100"
+										class="text-primary hover:text-primary/80 focus-ring ml-1 rounded-sm px-1 text-[9px] font-bold tracking-tighter uppercase underline underline-offset-2 transition-colors"
 									>
 										{m.history_retry()}
 									</button>
@@ -145,7 +145,7 @@
 							class="text-fg-muted hover:bg-fg-muted/5 hover:text-fg-primary focus-ring flex h-10 w-10 items-center justify-center rounded-full opacity-40 transition-all group-hover:opacity-100"
 							aria-label={m.history_view_record()}
 						>
-							<span class="material-symbols-outlined text-[20px]">visibility</span>
+							<Icon name="visibility" size={20} />
 						</button>
 						<button
 							onclick={async (e) => {
@@ -156,7 +156,7 @@
 							class="text-fg-muted focus-ring flex h-10 w-10 items-center justify-center rounded-full opacity-40 transition-all group-hover:opacity-100 hover:bg-red-500/5 hover:text-red-500"
 							aria-label={m.history_delete_record()}
 						>
-							<span class="material-symbols-outlined text-[20px]">delete_outline</span>
+							<Icon name="delete_outline" size={20} />
 						</button>
 					</div>
 				</div>
@@ -189,17 +189,20 @@
 		in:fade={{ duration: 200 }}
 		out:fade={{ duration: 200 }}
 	>
+		<!-- Backdrop: mouse-only click-to-close. Escape is handled by focusTrap below,
+		     once focus has moved inside -- a listener here would never see it. -->
 		<div
 			class="bg-canvas/60 absolute inset-0 backdrop-blur-md"
 			onclick={closeRecordView}
-			role="button"
-			tabindex="-1"
-			onkeydown={(e) => e.key === 'Escape' && closeRecordView()}
+			aria-hidden="true"
 		></div>
 
 		<div
-			use:focusTrap
-			class="bg-canvas shadow-huge focus-ring relative flex h-full max-h-[82vh] w-full max-w-4xl flex-col overflow-hidden rounded-[var(--radius-huge)]"
+			use:focusTrap={{ onEscape: closeRecordView }}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="history-record-title"
+			class="bg-canvas border-border focus-ring relative flex h-full max-h-[82vh] w-full max-w-4xl flex-col overflow-hidden rounded-[var(--radius-huge)] border shadow-xl"
 			in:fly={{
 				y: 20,
 				duration: 400,
@@ -209,10 +212,12 @@
 		>
 			<div class="bg-canvas-subtle/50 flex items-center justify-between px-6 py-4">
 				<div class="flex items-center gap-3">
-					<span class="material-symbols-outlined text-fg-muted text-[20px]"
-						>{selectedRecord.fileType.includes('pdf') ? 'picture_as_pdf' : 'image'}</span
-					>
-					<h2 class="text-fg-primary text-sm font-bold tracking-tight">
+					<Icon
+						name={selectedRecord.fileType.includes('pdf') ? 'picture_as_pdf' : 'image'}
+						size={20}
+						class="text-fg-muted"
+					/>
+					<h2 id="history-record-title" class="text-fg-primary text-sm font-bold tracking-tight">
 						{selectedRecord.fileName}
 					</h2>
 				</div>
@@ -221,7 +226,7 @@
 					class="text-fg-secondary hover:text-fg-primary focus-ring flex h-8 w-8 items-center justify-center rounded-full transition-colors"
 					aria-label={m.history_close_view()}
 				>
-					<span class="material-symbols-outlined text-[20px]">close</span>
+					<Icon name="close" size={20} />
 				</button>
 			</div>
 

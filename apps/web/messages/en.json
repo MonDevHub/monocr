@@ -10,7 +10,6 @@
 	"footer_tech": "Open Source OCR running in your browser. Using {ocrs} and {onnx}.",
 	"footer_github": "GitHub",
 	"nav_privacy": "Privacy",
-	"nav_mon_heritage": "Vulnerable Language",
 	"about_title": "About MonOCR",
 	"about_vulnerable": "Mon (mnw) is my mother tongue. It is currently classified as a vulnerable language by UNESCO.",
 	"about_digital_presence": "The biggest challenge is the lack of digital presence for Mon. This makes AI development difficult since most texts are in scanned books.",
@@ -92,7 +91,6 @@
 	"docs_governance": "Governance",
 	"docs_governance_privacy": "Privacy Policy",
 	"docs_governance_license": "MIT License",
-	"docs_governance_contributors": "Contributors",
 	"docs_hero_title": "Academic-grade Inference",
 	"docs_hero_desc": "High-performance, private, and localized optical character recognition framework optimized for archival language preservation.",
 	"docs_install_title": "Installation",
@@ -109,7 +107,6 @@
 	"docs_cli_desc": "Batch processing for historical archives.",
 	"docs_privacy_guarantee": "Local recognition guarantee. Data integrity is maintained on-device. No manuscript information ever leaves your environment.",
 	"docs_license_desc": "Open-source governance for research and preservation project. You are free to use and modify the engine for any purpose.",
-	"docs_contributors_title": "Core Contributors",
 	"docs_footer_prev": "Workspace",
 	"docs_footer_next": "Feedback Service"
 }

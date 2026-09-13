@@ -99,13 +99,11 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <header
-	class="fixed top-0 left-0 z-50 w-full transition-all duration-300 print:hidden"
-	class:bg-canvas={isScrolled || isSidebarOpen}
-	class:bg-opacity-90={isScrolled}
-	class:dark:bg-opacity-90={isScrolled}
-	class:backdrop-blur-md={isScrolled}
-	class:py-2={isScrolled}
-	class:py-3={!isScrolled}
+	class="fixed top-0 left-0 z-50 w-full transition-all duration-300 print:hidden {isScrolled
+		? 'bg-canvas/90 py-2 backdrop-blur-md'
+		: isSidebarOpen
+			? 'bg-canvas py-3'
+			: 'py-3'}"
 >
 	<div class="mx-auto flex items-baseline justify-between px-6 sm:px-8 lg:px-8">
 		<!-- Mobile Toggle -->
@@ -222,8 +220,7 @@
 			>
 			<!-- Injected from package.json at build time by vite define, not typed in.
 			     This read "Version 1.0.0" against a package version of 0.3.0. -->
-			<span class="text-fg-secondary text-[10px] font-medium opacity-60">Version {APP_VERSION}</span
-			>
+			<span class="text-fg-secondary text-[10px] font-medium">Version {APP_VERSION}</span>
 		</div>
 
 		<button

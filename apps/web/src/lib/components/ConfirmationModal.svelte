@@ -2,6 +2,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { focusTrap } from '$lib/actions/focus-trap';
 	import { m } from '$lib/paraglide/messages';
+	import { Icon } from './index';
 
 	interface Props {
 		isOpen: boolean;
@@ -30,41 +31,51 @@
 		in:fade={{ duration: 200 }}
 		out:fade={{ duration: 150 }}
 	>
-		<!-- Backdrop -->
+		<!-- Backdrop: mouse-only click-to-close. Escape is handled by focusTrap below,
+		     once focus has moved inside -- a listener here would never see it. -->
 		<div
 			class="bg-canvas/60 absolute inset-0 backdrop-blur-md"
 			onclick={onCancel}
-			onkeydown={(e) => e.key === 'Escape' && onCancel()}
-			role="button"
-			tabindex="-1"
+			aria-hidden="true"
 		></div>
 
 		<!-- Modal Container -->
 		<div
-			use:focusTrap
-			class="bg-canvas border-border shadow-huge focus-ring relative w-full max-w-sm overflow-hidden rounded-[var(--radius-huge)] border"
+			use:focusTrap={{ onEscape: onCancel }}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="confirmation-modal-title"
+			class="bg-canvas border-border focus-ring relative w-full max-w-sm overflow-hidden rounded-[var(--radius-huge)] border shadow-xl"
 			in:fly={{ y: 20, duration: 400, easing: (t) => 1 - Math.pow(1 - t, 4) /* cubic-out */ }}
 		>
 			<div class="px-8 pt-10 pb-8 text-center">
 				<div
 					class="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10"
 				>
-					<span class="material-symbols-outlined text-[28px] text-red-500">warning</span>
+					<Icon name="warning" size={28} class="text-red-500" />
 				</div>
 
-				<h2 class="text-fg-primary mb-3 text-xl font-bold tracking-tight">
+				<h2
+					id="confirmation-modal-title"
+					class="text-fg-primary mb-3 text-xl font-bold tracking-tight"
+				>
 					{title}
 				</h2>
-				<p class="text-fg-secondary leading-relaxed text-[var(--text-body)] opacity-80">
+				<p class="text-fg-secondary leading-relaxed text-[var(--text-body)]">
 					{message}
 				</p>
 			</div>
 
-			<div class="border-border bg-canvas-subtle/50 flex flex-col gap-3 border-t p-6 sm:flex-row">
-				<button class="btn-secondary flex-1" onclick={onCancel}>
+			<div
+				class="border-border bg-canvas-subtle/50 flex flex-col gap-3 border-t p-6 sm:flex-row sm:justify-end"
+			>
+				<button class="btn-secondary w-full sm:w-auto sm:min-w-[100px]" onclick={onCancel}>
 					{cancelLabel}
 				</button>
-				<button class="btn-primary flex-1 border-red-500 bg-red-500" onclick={onConfirm}>
+				<button
+					class="btn-primary btn-danger w-full sm:w-auto sm:min-w-[100px]"
+					onclick={onConfirm}
+				>
 					{confirmLabel}
 				</button>
 			</div>

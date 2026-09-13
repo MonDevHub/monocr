@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
-	import { SEO, HistorySection, SuccessModal, ActionBox } from '$lib/components';
+	import { SEO, HistorySection, SuccessModal, ActionBox, Icon } from '$lib/components';
 	import { saveRecord } from '$lib/storage/db';
 
 	let transcription = $state('');
@@ -75,11 +75,11 @@
 						<div
 							class="bg-primary/5 group-hover:bg-primary/10 flex h-10 w-10 items-center justify-center rounded-md transition-all duration-150"
 						>
-							<span
-								class="material-symbols-outlined text-primary text-lg font-light transition-transform duration-150 group-hover:scale-110"
-							>
-								upload_file
-							</span>
+							<Icon
+								name="upload_file"
+								size={18}
+								class="text-primary transition-transform duration-150 group-hover:scale-110"
+							/>
 						</div>
 						<div class="space-y-1">
 							<h3 class="text-fg-primary font-semibold tracking-tight text-[var(--text-secondary)]">
@@ -91,13 +91,13 @@
 			</section>
 
 			<!-- Divider -->
-			<div class="relative mx-auto mb-10 flex max-w-xs items-center py-4 opacity-30">
-				<div class="border-border flex-grow border-t"></div>
+			<div class="relative mx-auto mb-10 flex max-w-xs items-center py-4">
+				<div class="border-border flex-grow border-t opacity-30"></div>
 				<span
 					class="text-fg-muted mx-4 flex-shrink text-[10px] font-bold tracking-[0.3em] uppercase"
 					>OR</span
 				>
-				<div class="border-border flex-grow border-t"></div>
+				<div class="border-border flex-grow border-t opacity-30"></div>
 			</div>
 
 			<!-- Section 2: Textarea -->
@@ -106,7 +106,7 @@
 				<div class="relative">
 					<textarea
 						bind:value={transcription}
-						class="focus-ring font-mon border-border bg-canvas placeholder:text-fg-muted/30 w-full resize-y rounded-xl border p-5 leading-relaxed text-[var(--text-body)] transition-all duration-150 placeholder:text-[var(--text-meta)]"
+						class="focus-ring font-mon border-border bg-canvas placeholder:text-fg-muted w-full resize-y rounded-xl border p-5 leading-relaxed text-[var(--text-body)] transition-all duration-150 placeholder:text-[var(--text-meta)]"
 						rows="6"
 						placeholder="Example: မန်ဒိုင် (Type or paste the Mon script here)..."
 					></textarea>
@@ -114,11 +114,11 @@
 			</section>
 
 			<!-- Submit Action -->
-			<div class="mx-auto mb-20 w-full max-w-md">
+			<div class="mb-20">
 				<button
 					onclick={handleSubmit}
 					disabled={(!transcription && !sourceFile) || loading}
-					class="btn-primary w-full"
+					class="btn-primary min-w-[160px]"
 				>
 					{loading ? 'Submitting...' : 'Submit Contribution'}
 				</button>

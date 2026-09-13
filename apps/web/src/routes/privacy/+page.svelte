@@ -1,5 +1,10 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
+
+	// Same __APP_VERSION__ vite `define` Header.svelte already uses -- injected from
+	// package.json at build time, so it can't drift the way this page's own hardcoded
+	// "Version 0.2.0" string had (real version: 0.4.0, two minors stale).
+	const APP_VERSION = __APP_VERSION__;
 </script>
 
 <svelte:head>
@@ -104,19 +109,18 @@
 				<h2 class="text-fg-primary mb-3 text-lg font-bold tracking-tight">7. Global Compliance</h2>
 				<div class="text-fg-secondary leading-relaxed text-[var(--text-body)]">
 					<p>
-						Our architecture aligns with the **General Data Protection Regulation (GDPR)** and the
-						**California Consumer Privacy Act (CCPA)** by providing users with full access and
-						erasure rights over their local data.
+						Our architecture aligns with the
+						<strong>General Data Protection Regulation (GDPR)</strong> and the
+						<strong>California Consumer Privacy Act (CCPA)</strong> by providing users with full access
+						and erasure rights over their local data.
 					</p>
 				</div>
 			</section>
 		</div>
 
 		<footer class="border-border/50 mt-20 border-t pt-8">
-			<p
-				class="text-fg-muted font-bold tracking-[0.2em] text-[var(--text-meta)] uppercase opacity-60"
-			>
-				Effective Date: March 22, 2026 • MonOCR Version 0.2.0
+			<p class="text-fg-muted font-bold tracking-[0.2em] text-[var(--text-meta)] uppercase">
+				Effective Date: March 22, 2026 • MonOCR Version {APP_VERSION}
 			</p>
 		</footer>
 	</main>

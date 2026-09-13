@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { currentLanguage, switchLanguage, sourceLanguageTag } from '$lib/i18n';
-	import { m } from '$lib/paraglide/messages';
 	import { logger } from '$lib/logger';
 	import { browser } from '$app/environment';
 	import { fly } from 'svelte/transition';
@@ -111,7 +110,7 @@
 	{#if isOpen}
 		<div
 			transition:fly={{ y: 5, duration: 150 }}
-			class="bg-canvas border-border shadow-huge absolute right-0 z-50 mt-2 min-w-[120px] overflow-hidden rounded-[var(--radius-lg)] border"
+			class="bg-canvas border-border absolute right-0 z-50 mt-2 min-w-[120px] overflow-hidden rounded-[var(--radius-lg)] border shadow-xl"
 			role="listbox"
 		>
 			<div class="flex flex-col p-1.5">
@@ -125,16 +124,7 @@
 						role="option"
 						aria-selected={lang === language.id}
 					>
-						<div class="flex flex-col">
-							<span class="font-medium">{language.full}</span>
-							{#if language.id === 'mnw'}
-								<span
-									class="text-fg-accent text-[9px] font-semibold tracking-wide uppercase opacity-70"
-								>
-									{m.nav_mon_heritage()}
-								</span>
-							{/if}
-						</div>
+						<span class="font-medium">{language.full}</span>
 						{#if lang === language.id}
 							<svg
 								xmlns="http://www.w3.org/2000/svg"

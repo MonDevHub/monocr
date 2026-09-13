@@ -6,7 +6,7 @@
 	import { CONFIG } from '$lib/config';
 	import { renderPdfPage, loadPdf } from '$lib/utils/pdf-util';
 	import { feedbackStore } from '$lib/stores/feedback';
-	import { HistorySection } from '$lib/components';
+	import { HistorySection, Icon } from '$lib/components';
 	import { saveRecord } from '$lib/storage/db';
 	import * as m from '$lib/paraglide/messages';
 	import { goto } from '$app/navigation';
@@ -372,7 +372,12 @@
 					onclick={() => fileInput?.click()}
 					role="button"
 					tabindex="0"
-					onkeydown={(e) => e.key === 'Enter' && fileInput?.click()}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							fileInput?.click();
+						}
+					}}
 				>
 					<input
 						type="file"
@@ -389,20 +394,18 @@
 						<div
 							class="bg-canvas-subtle flex h-16 w-16 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 group-hover:scale-110"
 						>
-							<span
-								class="material-symbols-outlined text-fg-muted group-hover:text-primary text-3xl font-light transition-colors duration-300"
-							>
-								upload_file
-							</span>
+							<Icon
+								name="upload_file"
+								size={30}
+								class="text-fg-muted group-hover:text-primary transition-colors duration-300"
+							/>
 						</div>
 
 						<div class="space-y-1.5">
 							<h3 class="text-fg-primary text-base font-semibold tracking-tight">
 								Drop an image or PDF here
 							</h3>
-							<p class="text-fg-secondary text-sm opacity-60">
-								Or click to browse from your device
-							</p>
+							<p class="text-fg-secondary text-sm">Or click to browse from your device</p>
 						</div>
 					</div>
 				</div>
@@ -431,12 +434,12 @@
 								title="Clear result"
 								aria-label="Clear result"
 							>
-								<span class="material-symbols-outlined text-[18px]">close</span>
+								<Icon name="close" size={18} />
 							</button>
 						</div>
 						{#if processingTime > 0 && !loading && resultText}
 							<div
-								class="text-fg-secondary flex items-center gap-2.5 font-mono text-[var(--text-meta)] opacity-80"
+								class="text-fg-secondary flex items-center gap-2.5 font-mono text-[var(--text-meta)]"
 							>
 								<span
 									>{resultText
@@ -491,7 +494,7 @@
 						<div class="bg-canvas-subtle/50 flex items-center justify-between px-6 py-3">
 							<div class="flex items-center gap-3">
 								<button
-									class="btn-secondary px-3 py-1"
+									class="btn-secondary btn-compact"
 									onclick={downloadText}
 									aria-label="Save extracted text as a file"
 								>
@@ -499,7 +502,7 @@
 								</button>
 								<button
 									bind:this={copyButton}
-									class="btn-secondary px-3 py-1"
+									class="btn-secondary btn-compact"
 									onclick={() => {
 										navigator.clipboard.writeText(resultText || '');
 										copied = true;
@@ -510,11 +513,11 @@
 									{copied ? 'Copied' : 'Copy'}
 								</button>
 								<button
-									class="btn-primary px-3 py-1"
+									class="btn-primary btn-compact"
 									onclick={reset}
 									aria-label="Process another image or PDF"
 								>
-									<span class="material-symbols-outlined mr-1.5 text-[16px]">add</span>
+									<Icon name="add" size={16} class="mr-1.5" />
 									{m.main_process_another()}
 								</button>
 							</div>
@@ -524,10 +527,11 @@
 									onclick={reportError}
 									aria-label="Report Error or feedback for this result"
 								>
-									<span
-										class="material-symbols-outlined text-[16px] opacity-40 group-hover:opacity-100"
-										>flag</span
-									>
+									<Icon
+										name="flag"
+										size={16}
+										class="opacity-40 transition-opacity group-hover:opacity-100"
+									/>
 									<span>{m.nav_feedback()}</span>
 								</button>
 							</div>

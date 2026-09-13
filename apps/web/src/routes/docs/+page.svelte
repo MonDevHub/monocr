@@ -1,6 +1,6 @@
 <script lang="ts">
 	/* eslint-disable svelte/no-navigation-without-resolve */
-	import { SEO } from '$lib/components';
+	import { SEO, Icon } from '$lib/components';
 	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages';
 
@@ -39,8 +39,7 @@
 			title: () => m.docs_governance(),
 			links: [
 				{ id: 'privacy', label: () => m.docs_governance_privacy() },
-				{ id: 'license', label: () => m.docs_governance_license() },
-				{ id: 'contributors', label: () => m.docs_governance_contributors() }
+				{ id: 'license', label: () => m.docs_governance_license() }
 			]
 		}
 	];
@@ -54,8 +53,7 @@
 		{ id: 'sdks', label: () => m.docs_usage_sdks() },
 		{ id: 'cli-reference', label: () => m.docs_usage_cli() },
 		{ id: 'privacy', label: () => m.docs_governance_privacy() },
-		{ id: 'license', label: () => m.docs_governance_license() },
-		{ id: 'contributors', label: () => m.docs_governance_contributors() }
+		{ id: 'license', label: () => m.docs_governance_license() }
 	];
 
 	onMount(() => {
@@ -107,9 +105,7 @@
 				<div class="space-y-8 pr-6">
 					{#each sections as section (section.title())}
 						<div class="space-y-3">
-							<span
-								class="text-fg-primary/40 px-3 text-[10px] font-bold tracking-[0.2em] uppercase"
-							>
+							<span class="text-fg-muted px-3 text-[10px] font-bold tracking-[0.2em] uppercase">
 								{section.title()}
 							</span>
 							<nav class="flex flex-col gap-0.5">
@@ -136,7 +132,7 @@
 			<!-- MAIN CONTENT PANEL -->
 			<main class=" w-full min-w-0 flex-1 py-16 lg:px-12 xl:px-20">
 				<!-- Breadcrumbs -->
-				<nav class="text-fg-muted/60 mb-12 flex items-center gap-2 text-[12px] font-medium">
+				<nav class="text-fg-muted mb-12 flex items-center gap-2 text-[12px] font-medium">
 					<a href="/docs" class="hover:text-fg-primary">{m.nav_docs()}</a>
 					<span class="opacity-30">/</span>
 					<span class="text-fg-primary capitalize">{activeSection.replace('-', ' ')}</span>
@@ -183,7 +179,7 @@
 											<div class="h-2.5 w-2.5 rounded-full bg-green-500/30"></div>
 										</div>
 										<span
-											class="font-mono text-[9px] font-bold tracking-widest uppercase opacity-40"
+											class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
 											>Bash</span
 										>
 									</div>
@@ -193,12 +189,10 @@
 												>$ </span>pip install monocr</pre>
 										<button
 											onclick={() => copyToClipboard('pip install monocr')}
-											class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-1/2 right-4 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border opacity-0 transition-opacity group-hover:opacity-100"
+											class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-1/2 right-4 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg border transition-colors"
 											aria-label="Copy code"
 										>
-											<span class="material-symbols-outlined text-[16px] opacity-60"
-												>content_copy</span
-											>
+											<Icon name="content_copy" size={16} class="opacity-60" />
 										</button>
 									</div>
 								</div>
@@ -225,7 +219,7 @@
 											<div class="h-2.5 w-2.5 rounded-full bg-green-400/20"></div>
 										</div>
 										<span
-											class="font-mono text-[9px] font-bold tracking-widest uppercase opacity-40"
+											class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
 											>example.py</span
 										>
 									</div>
@@ -244,12 +238,10 @@ text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
 												copyToClipboard(
 													"from monocr import MonOCR\n\nocr = MonOCR()\ntext = ocr.predict('manuscript.jpg')\nprint(text)"
 												)}
-											class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-1/2 right-4 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border opacity-0 transition-opacity group-hover:opacity-100"
+											class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-1/2 right-4 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg border transition-colors"
 											aria-label="Copy code"
 										>
-											<span class="material-symbols-outlined text-[16px] opacity-60"
-												>content_copy</span
-											>
+											<Icon name="content_copy" size={16} class="opacity-60" />
 										</button>
 									</div>
 								</div>
@@ -273,7 +265,7 @@ text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
 								<div
 									class="bg-canvas-subtle/40 hover:bg-canvas-subtle/60 border-border/30 rounded-2xl border p-8 transition-all hover:shadow-sm"
 								>
-									<h3 class="mb-4 text-[11px] font-bold tracking-[0.2em] uppercase opacity-40">
+									<h3 class="text-fg-muted mb-4 text-[11px] font-bold tracking-[0.2em] uppercase">
 										{m.docs_standards_dpi_title()}
 									</h3>
 									<p class="text-fg-muted text-[13px] leading-relaxed font-light">
@@ -283,7 +275,7 @@ text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
 								<div
 									class="bg-canvas-subtle/40 hover:bg-canvas-subtle/60 border-border/30 rounded-2xl border p-8 transition-all hover:shadow-sm"
 								>
-									<h3 class="mb-4 text-[11px] font-bold tracking-[0.2em] uppercase opacity-40">
+									<h3 class="text-fg-muted mb-4 text-[11px] font-bold tracking-[0.2em] uppercase">
 										{m.docs_standards_light_title()}
 									</h3>
 									<p class="text-fg-muted text-[13px] leading-relaxed font-light">
@@ -335,7 +327,7 @@ text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
 											<div class="h-2.5 w-2.5 rounded-full bg-green-400/20"></div>
 										</div>
 										<span
-											class="font-mono text-[9px] font-bold tracking-widest uppercase opacity-40"
+											class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
 											>{sdks.find((s) => s.id === selectedSdk)?.pkg}</span
 										>
 									</div>
@@ -423,17 +415,30 @@ text, _ := engine.Predict(<span class="zen-code-string"
 										<div class="h-2.5 w-2.5 rounded-full bg-yellow-400/20"></div>
 										<div class="h-2.5 w-2.5 rounded-full bg-green-400/20"></div>
 									</div>
-									<span class="font-mono text-[9px] font-bold tracking-widest uppercase opacity-40"
+									<span
+										class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
 										>Terminal</span
 									>
 								</div>
-								<pre class="p-6 font-mono text-[13px] leading-[1.8]"><span class="zen-code-comment"
-										># Process single file</span
-									>
+								<div class="relative">
+									<pre class="p-6 font-mono text-[13px] leading-[1.8]"><span
+											class="zen-code-comment"># Process single file</span
+										>
 monocr read manuscript_01.jpg
 
 <span class="zen-code-comment"># Batch process archive directory</span>
 monocr batch ./scans/ --output results.txt</pre>
+									<button
+										onclick={() =>
+											copyToClipboard(
+												'# Process single file\nmonocr read manuscript_01.jpg\n\n# Batch process archive directory\nmonocr batch ./scans/ --output results.txt'
+											)}
+										class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-lg border transition-colors"
+										aria-label="Copy code"
+									>
+										<Icon name="content_copy" size={16} class="opacity-60" />
+									</button>
+								</div>
 							</div>
 						</div>
 					</section>
@@ -459,64 +464,6 @@ monocr batch ./scans/ --output results.txt</pre>
 							<p class="text-fg-muted text-justify text-[15px] leading-relaxed font-light">
 								{m.docs_license_desc()}
 							</p>
-						</div>
-					</section>
-
-					<!-- Contributors Section -->
-					<section id="contributors" class="scroll-mt-32 pt-8">
-						<div class="space-y-6">
-							<h2 class="text-fg-primary text-2xl font-bold tracking-tight">
-								{m.docs_contributors_title()}
-							</h2>
-							<div class="border-border/50 overflow-hidden rounded-xl border shadow-sm">
-								<a
-									href="https://github.com/janakhpon"
-									target="_blank"
-									rel="noopener noreferrer"
-									class="group hover:bg-canvas-subtle/50 flex w-full items-center justify-between p-4 px-6 transition-colors"
-								>
-									<div class="flex flex-col">
-										<span class="text-fg-primary text-[14px] font-semibold">Janakh Pon</span>
-										<span class="text-fg-muted text-[12px]">Project Lead & Architecture</span>
-									</div>
-									<span
-										class="material-symbols-outlined text-[18px] opacity-20 transition-all group-hover:scale-110 group-hover:opacity-100"
-										>open_in_new</span
-									>
-								</a>
-								<div class="bg-border/30 h-[1px] w-full"></div>
-								<a
-									href="https://github.com/Oungseik"
-									target="_blank"
-									rel="noopener noreferrer"
-									class="group hover:bg-canvas-subtle/50 flex w-full items-center justify-between p-4 px-6 transition-colors"
-								>
-									<div class="flex flex-col">
-										<span class="text-fg-primary text-[14px] font-semibold">Oung Seik Nyan</span>
-										<span class="text-fg-muted text-[12px]">Language Model Specialist</span>
-									</div>
-									<span
-										class="material-symbols-outlined text-[18px] opacity-20 transition-all group-hover:scale-110 group-hover:opacity-100"
-										>open_in_new</span
-									>
-								</a>
-								<div class="bg-border/30 h-[1px] w-full"></div>
-								<a
-									href="https://www.facebook.com/RJOMDK10"
-									target="_blank"
-									rel="noopener noreferrer"
-									class="group hover:bg-canvas-subtle/50 flex w-full items-center justify-between p-4 px-6 transition-colors"
-								>
-									<div class="flex flex-col">
-										<span class="text-fg-primary text-[14px] font-semibold">Rajel Da Key</span>
-										<span class="text-fg-muted text-[12px]">Dataset & Research</span>
-									</div>
-									<span
-										class="material-symbols-outlined text-[18px] opacity-20 transition-all group-hover:scale-110 group-hover:opacity-100"
-										>open_in_new</span
-									>
-								</a>
-							</div>
 						</div>
 					</section>
 
@@ -547,7 +494,7 @@ monocr batch ./scans/ --output results.txt</pre>
 				class="no-scrollbar sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto px-6 py-16 xl:block"
 			>
 				<div class="space-y-6">
-					<span class="text-fg-primary/40 px-3 text-[10px] font-bold tracking-[0.2em] uppercase">
+					<span class="text-fg-muted px-3 text-[10px] font-bold tracking-[0.2em] uppercase">
 						On this page
 					</span>
 					<nav class=" border-border/50 ml-3 flex flex-col gap-0.5 border-l">
@@ -585,12 +532,6 @@ monocr batch ./scans/ --output results.txt</pre>
 
 	pre {
 		margin: 0;
-	}
-
-	.material-symbols-outlined {
-		font-variation-settings:
-			'wght' 300,
-			'opsz' 20;
 	}
 
 	@media (max-width: 1023px) {
