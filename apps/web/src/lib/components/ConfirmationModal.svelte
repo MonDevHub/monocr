@@ -66,11 +66,16 @@
 				</p>
 			</div>
 
-			<div class="border-border bg-canvas-subtle/50 flex justify-end gap-3 border-t p-6">
-				<button class="btn-secondary min-w-[100px]" onclick={onCancel}>
+			<div
+				class="border-border bg-canvas-subtle/50 flex flex-col gap-3 border-t p-6 sm:flex-row sm:justify-end"
+			>
+				<button class="btn-secondary w-full sm:w-auto sm:min-w-[100px]" onclick={onCancel}>
 					{cancelLabel}
 				</button>
-				<button class="btn-primary min-w-[100px] border-red-500 bg-red-500" onclick={onConfirm}>
+				<button
+					class="btn-primary btn-danger w-full sm:w-auto sm:min-w-[100px]"
+					onclick={onConfirm}
+				>
 					{confirmLabel}
 				</button>
 			</div>

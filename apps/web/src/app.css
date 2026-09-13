@@ -158,6 +158,15 @@
 	.btn-compact {
 		@apply px-3 py-1.5;
 	}
+
+	/* Same cascade issue as .btn-compact above, caught by a verifier on ConfirmationModal's
+	   destructive button: `border-red-500 bg-red-500` layered on top of .btn-primary lost to
+	   its own @apply'd background, so the button rendered near-black instead of red --
+	   undercutting the one signal that a confirm action is irreversible. A real modifier,
+	   defined after .btn-primary in this same layer, wins the cascade instead of losing it. */
+	.btn-danger {
+		@apply border-red-500 bg-red-500 hover:bg-red-600;
+	}
 }
 
 /* Global focus safety for all interactive elements */
