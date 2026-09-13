@@ -106,7 +106,7 @@
 				<div class="relative">
 					<textarea
 						bind:value={transcription}
-						class="focus-ring font-mon border-border bg-canvas placeholder:text-fg-muted/30 w-full resize-y rounded-xl border p-5 leading-relaxed text-[var(--text-body)] transition-all duration-150 placeholder:text-[var(--text-meta)]"
+						class="focus-ring font-mon border-border bg-canvas placeholder:text-fg-muted w-full resize-y rounded-xl border p-5 leading-relaxed text-[var(--text-body)] transition-all duration-150 placeholder:text-[var(--text-meta)]"
 						rows="6"
 						placeholder="Example: မန်ဒိုင် (Type or paste the Mon script here)..."
 					></textarea>

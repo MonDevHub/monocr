@@ -126,7 +126,7 @@
 											await syncService.syncAll();
 											await loadHistory();
 										}}
-										class="text-primary hover:text-primary/80 focus-ring ml-1 rounded-sm px-1 text-[9px] font-bold tracking-tighter uppercase underline underline-offset-2 opacity-60 transition-opacity hover:opacity-100"
+										class="text-primary hover:text-primary/80 focus-ring ml-1 rounded-sm px-1 text-[9px] font-bold tracking-tighter uppercase underline underline-offset-2 transition-colors"
 									>
 										{m.history_retry()}
 									</button>

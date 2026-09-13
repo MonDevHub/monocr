@@ -172,7 +172,7 @@
 				<label class="block">
 					<textarea
 						bind:value={correctedText}
-						class="focus-ring bg-canvas-subtle/30 hover:bg-canvas-subtle/50 focus:bg-canvas text-fg-primary placeholder:text-fg-muted/40 block w-full resize-y rounded-[var(--radius-huge)] px-5 py-4 leading-relaxed text-[var(--text-body)] transition-all duration-150 outline-none placeholder:text-[var(--text-meta)]"
+						class="focus-ring bg-canvas-subtle/30 hover:bg-canvas-subtle/50 focus:bg-canvas text-fg-primary placeholder:text-fg-muted block w-full resize-y rounded-[var(--radius-huge)] px-5 py-4 leading-relaxed text-[var(--text-body)] transition-all duration-150 outline-none placeholder:text-[var(--text-meta)]"
 						rows="5"
 						placeholder="Corrected Mon script..."
 					></textarea>
