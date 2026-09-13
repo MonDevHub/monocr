@@ -10,7 +10,6 @@
 	"footer_tech": "Open Source OCR running in your browser. Using {ocrs} and {onnx}.",
 	"footer_github": "GitHub",
 	"nav_privacy": "Privacy",
-	"nav_mon_heritage": "Vulnerable Language",
 	"about_title": "About MonOCR",
 	"about_vulnerable": "Mon (mnw) is my mother tongue. It is currently classified as a vulnerable language by UNESCO.",
 	"about_digital_presence": "The biggest challenge is the lack of digital presence for Mon. This makes AI development difficult since most texts are in scanned books.",
