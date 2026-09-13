@@ -1,6 +1,6 @@
 <script lang="ts">
 	/* eslint-disable svelte/no-navigation-without-resolve */
-	import { SEO } from '$lib/components';
+	import { SEO, Icon } from '$lib/components';
 	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages';
 
@@ -189,12 +189,10 @@
 												>$ </span>pip install monocr</pre>
 										<button
 											onclick={() => copyToClipboard('pip install monocr')}
-											class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-1/2 right-4 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border opacity-0 transition-opacity group-hover:opacity-100"
+											class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-1/2 right-4 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg border transition-colors"
 											aria-label="Copy code"
 										>
-											<span class="material-symbols-outlined text-[16px] opacity-60"
-												>content_copy</span
-											>
+											<Icon name="content_copy" size={16} class="opacity-60" />
 										</button>
 									</div>
 								</div>
@@ -240,12 +238,10 @@ text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
 												copyToClipboard(
 													"from monocr import MonOCR\n\nocr = MonOCR()\ntext = ocr.predict('manuscript.jpg')\nprint(text)"
 												)}
-											class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-1/2 right-4 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border opacity-0 transition-opacity group-hover:opacity-100"
+											class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-1/2 right-4 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg border transition-colors"
 											aria-label="Copy code"
 										>
-											<span class="material-symbols-outlined text-[16px] opacity-60"
-												>content_copy</span
-											>
+											<Icon name="content_copy" size={16} class="opacity-60" />
 										</button>
 									</div>
 								</div>
@@ -424,13 +420,25 @@ text, _ := engine.Predict(<span class="zen-code-string"
 										>Terminal</span
 									>
 								</div>
-								<pre class="p-6 font-mono text-[13px] leading-[1.8]"><span class="zen-code-comment"
-										># Process single file</span
-									>
+								<div class="relative">
+									<pre class="p-6 font-mono text-[13px] leading-[1.8]"><span
+											class="zen-code-comment"># Process single file</span
+										>
 monocr read manuscript_01.jpg
 
 <span class="zen-code-comment"># Batch process archive directory</span>
 monocr batch ./scans/ --output results.txt</pre>
+									<button
+										onclick={() =>
+											copyToClipboard(
+												'# Process single file\nmonocr read manuscript_01.jpg\n\n# Batch process archive directory\nmonocr batch ./scans/ --output results.txt'
+											)}
+										class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-lg border transition-colors"
+										aria-label="Copy code"
+									>
+										<Icon name="content_copy" size={16} class="opacity-60" />
+									</button>
+								</div>
 							</div>
 						</div>
 					</section>

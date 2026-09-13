@@ -2,6 +2,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { focusTrap } from '$lib/actions/focus-trap';
 	import { m } from '$lib/paraglide/messages';
+	import Icon from './Icon.svelte';
 
 	interface Props {
 		isOpen: boolean;
@@ -42,9 +43,7 @@
 		>
 			<div class="mb-4 flex flex-col items-center">
 				<div class="bg-primary/5 mb-4 flex h-12 w-12 items-center justify-center rounded-full">
-					<span class="material-symbols-outlined text-primary text-[24px]" aria-hidden="true"
-						>check_circle</span
-					>
+					<Icon name="check_circle" size={24} class="text-primary" />
 				</div>
 				<h2 id="success-modal-title" class="text-fg-primary text-lg font-bold tracking-tight">
 					{title}

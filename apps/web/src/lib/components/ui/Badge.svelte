@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
+
 	interface Props {
 		type: 'success' | 'error' | 'warning' | 'neutral';
 		label: string;
@@ -21,7 +23,7 @@
 	]} transition-colors duration-200"
 >
 	{#if icon}
-		<span class="material-symbols-outlined text-[13px]">{icon}</span>
+		<Icon name={icon} size={13} />
 	{/if}
 	<span class="text-[9px] font-bold tracking-widest uppercase">{label}</span>
 </div>

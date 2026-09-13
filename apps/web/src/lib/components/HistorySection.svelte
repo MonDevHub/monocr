@@ -3,7 +3,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { db, getRecords, deleteRecord, clearHistory, type OCRRecord } from '$lib/storage/db';
 	import { syncService, syncEvents } from '$lib/services/sync-service';
-	import { ConfirmationModal, Badge } from './index';
+	import { ConfirmationModal, Badge, Icon } from './index';
 	import { focusTrap } from '$lib/actions/focus-trap';
 	import { m } from '$lib/paraglide/messages';
 
@@ -99,9 +99,11 @@
 						<div
 							class="flex h-8 w-8 items-center justify-center opacity-40 transition-opacity group-hover:opacity-100"
 						>
-							<span class="material-symbols-outlined text-fg-primary text-[22px]">
-								{record.fileType.includes('pdf') ? 'description' : 'image'}
-							</span>
+							<Icon
+								name={record.fileType.includes('pdf') ? 'description' : 'image'}
+								size={22}
+								class="text-fg-primary"
+							/>
 						</div>
 
 						<div class="flex min-w-0 flex-col gap-0.5">
@@ -143,7 +145,7 @@
 							class="text-fg-muted hover:bg-fg-muted/5 hover:text-fg-primary focus-ring flex h-10 w-10 items-center justify-center rounded-full opacity-40 transition-all group-hover:opacity-100"
 							aria-label={m.history_view_record()}
 						>
-							<span class="material-symbols-outlined text-[20px]">visibility</span>
+							<Icon name="visibility" size={20} />
 						</button>
 						<button
 							onclick={async (e) => {
@@ -154,7 +156,7 @@
 							class="text-fg-muted focus-ring flex h-10 w-10 items-center justify-center rounded-full opacity-40 transition-all group-hover:opacity-100 hover:bg-red-500/5 hover:text-red-500"
 							aria-label={m.history_delete_record()}
 						>
-							<span class="material-symbols-outlined text-[20px]">delete_outline</span>
+							<Icon name="delete_outline" size={20} />
 						</button>
 					</div>
 				</div>
@@ -210,9 +212,11 @@
 		>
 			<div class="bg-canvas-subtle/50 flex items-center justify-between px-6 py-4">
 				<div class="flex items-center gap-3">
-					<span class="material-symbols-outlined text-fg-muted text-[20px]" aria-hidden="true"
-						>{selectedRecord.fileType.includes('pdf') ? 'picture_as_pdf' : 'image'}</span
-					>
+					<Icon
+						name={selectedRecord.fileType.includes('pdf') ? 'picture_as_pdf' : 'image'}
+						size={20}
+						class="text-fg-muted"
+					/>
 					<h2 id="history-record-title" class="text-fg-primary text-sm font-bold tracking-tight">
 						{selectedRecord.fileName}
 					</h2>
@@ -222,7 +226,7 @@
 					class="text-fg-secondary hover:text-fg-primary focus-ring flex h-8 w-8 items-center justify-center rounded-full transition-colors"
 					aria-label={m.history_close_view()}
 				>
-					<span class="material-symbols-outlined text-[20px]">close</span>
+					<Icon name="close" size={20} />
 				</button>
 			</div>
 

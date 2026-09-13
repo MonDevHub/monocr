@@ -2,6 +2,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { focusTrap } from '$lib/actions/focus-trap';
 	import { m } from '$lib/paraglide/messages';
+	import { Icon } from './index';
 
 	interface Props {
 		isOpen: boolean;
@@ -51,9 +52,7 @@
 				<div
 					class="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10"
 				>
-					<span class="material-symbols-outlined text-[28px] text-red-500" aria-hidden="true"
-						>warning</span
-					>
+					<Icon name="warning" size={28} class="text-red-500" />
 				</div>
 
 				<h2

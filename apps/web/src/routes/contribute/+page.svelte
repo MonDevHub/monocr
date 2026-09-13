@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
-	import { SEO, HistorySection, SuccessModal, ActionBox } from '$lib/components';
+	import { SEO, HistorySection, SuccessModal, ActionBox, Icon } from '$lib/components';
 	import { saveRecord } from '$lib/storage/db';
 
 	let transcription = $state('');
@@ -75,11 +75,11 @@
 						<div
 							class="bg-primary/5 group-hover:bg-primary/10 flex h-10 w-10 items-center justify-center rounded-md transition-all duration-150"
 						>
-							<span
-								class="material-symbols-outlined text-primary text-lg font-light transition-transform duration-150 group-hover:scale-110"
-							>
-								upload_file
-							</span>
+							<Icon
+								name="upload_file"
+								size={18}
+								class="text-primary transition-transform duration-150 group-hover:scale-110"
+							/>
 						</div>
 						<div class="space-y-1">
 							<h3 class="text-fg-primary font-semibold tracking-tight text-[var(--text-secondary)]">

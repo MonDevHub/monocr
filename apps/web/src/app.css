@@ -100,7 +100,6 @@
 	--color-accent-gold: var(--accent-gold);
 
 	--font-display: 'Inter', system-ui, sans-serif;
-	--font-public-sans: 'Public Sans', system-ui, sans-serif;
 
 	--color-background: var(--bg-canvas);
 	--color-foreground: var(--fg-primary);
@@ -386,28 +385,4 @@ label {
 	background-size: 200% 100%;
 	animation: shimmer 1.5s infinite linear;
 	will-change: background-position;
-}
-
-@keyframes spin-slow {
-	from {
-		transform: rotate(0deg);
-	}
-	to {
-		transform: rotate(360deg);
-	}
-}
-
-.animate-spin-slow {
-	animation: spin-slow 3s linear infinite;
-}
-
-/* Material Symbols - Minimalist & Elegant */
-.material-symbols-outlined {
-	font-family: 'Material Symbols Outlined';
-	font-variation-settings:
-		'FILL' 0,
-		'wght' 300,
-		'GRAD' 0,
-		'opsz' 20 !important;
-	display: inline-block;
 }
