@@ -6,8 +6,17 @@
  * - Focus Restoration: Returns focus to previous element on destroy.
  * - Dynamic Support: Uses MutationObserver to handle content changes.
  * - Safety: Guarded against empty sets.
+ * - Escape-to-close: an optional `onEscape` callback, called on Escape.
+ *
+ * Escape handling lives here, not on each modal's backdrop element. Focus
+ * moves inside this node as soon as the trap activates, so a keydown
+ * listener on a backdrop `<div>` — a sibling, not an ancestor, of this node
+ * — never receives the event once the trap is live. Every caller gets
+ * correct Escape behavior from this one place instead of each modal
+ * re-implementing (and mis-wiring) it.
  */
-export function focusTrap(node: HTMLElement) {
+export function focusTrap(node: HTMLElement, params?: { onEscape?: () => void }) {
+	let onEscape = params?.onEscape;
 	let focusableElements: HTMLElement[] = [];
 	let firstElement: HTMLElement | undefined;
 	let lastElement: HTMLElement | undefined;
@@ -23,6 +32,11 @@ export function focusTrap(node: HTMLElement) {
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			onEscape?.();
+			return;
+		}
+
 		if (e.key !== 'Tab' || focusableElements.length === 0) return;
 
 		if (e.shiftKey) {
@@ -59,6 +73,9 @@ export function focusTrap(node: HTMLElement) {
 	}
 
 	return {
+		update(newParams?: { onEscape?: () => void }) {
+			onEscape = newParams?.onEscape;
+		},
 		destroy() {
 			node.removeEventListener('keydown', handleKeydown);
 			observer.disconnect();

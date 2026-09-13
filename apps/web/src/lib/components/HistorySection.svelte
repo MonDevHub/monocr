@@ -76,9 +76,7 @@
 			<h2 class="text-fg-primary text-xl font-bold tracking-tight">
 				{title}
 				{#if loading}
-					<span class="text-fg-muted ml-3 text-xs font-normal opacity-50"
-						>{m.history_updating()}</span
-					>
+					<span class="text-fg-muted ml-3 text-xs font-normal">{m.history_updating()}</span>
 				{/if}
 			</h2>
 			<button
@@ -111,7 +109,7 @@
 								<span class="text-fg-primary truncate text-[13px] font-semibold tracking-tight"
 									>{record.fileName}</span
 								>
-								<span class="text-fg-muted text-[10px] whitespace-nowrap opacity-40"
+								<span class="text-fg-muted text-[10px] whitespace-nowrap"
 									>{new Date(record.timestamp).toLocaleDateString()}</span
 								>
 							</div>
@@ -189,17 +187,20 @@
 		in:fade={{ duration: 200 }}
 		out:fade={{ duration: 200 }}
 	>
+		<!-- Backdrop: mouse-only click-to-close. Escape is handled by focusTrap below,
+		     once focus has moved inside -- a listener here would never see it. -->
 		<div
 			class="bg-canvas/60 absolute inset-0 backdrop-blur-md"
 			onclick={closeRecordView}
-			role="button"
-			tabindex="-1"
-			onkeydown={(e) => e.key === 'Escape' && closeRecordView()}
+			aria-hidden="true"
 		></div>
 
 		<div
-			use:focusTrap
-			class="bg-canvas shadow-huge focus-ring relative flex h-full max-h-[82vh] w-full max-w-4xl flex-col overflow-hidden rounded-[var(--radius-huge)]"
+			use:focusTrap={{ onEscape: closeRecordView }}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="history-record-title"
+			class="bg-canvas border-border focus-ring relative flex h-full max-h-[82vh] w-full max-w-4xl flex-col overflow-hidden rounded-[var(--radius-huge)] border shadow-xl"
 			in:fly={{
 				y: 20,
 				duration: 400,
@@ -209,10 +210,10 @@
 		>
 			<div class="bg-canvas-subtle/50 flex items-center justify-between px-6 py-4">
 				<div class="flex items-center gap-3">
-					<span class="material-symbols-outlined text-fg-muted text-[20px]"
+					<span class="material-symbols-outlined text-fg-muted text-[20px]" aria-hidden="true"
 						>{selectedRecord.fileType.includes('pdf') ? 'picture_as_pdf' : 'image'}</span
 					>
-					<h2 class="text-fg-primary text-sm font-bold tracking-tight">
+					<h2 id="history-record-title" class="text-fg-primary text-sm font-bold tracking-tight">
 						{selectedRecord.fileName}
 					</h2>
 				</div>
