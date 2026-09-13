@@ -214,7 +214,7 @@
 						class="text-fg-primary cursor-pointer font-bold text-[var(--text-body)]"
 						for="consent">I want to help improve MonOCR</label
 					>
-					<p class="text-fg-secondary leading-relaxed text-[var(--text-meta)] opacity-70">
+					<p class="text-fg-secondary leading-relaxed text-[var(--text-meta)]">
 						Allow this correction to be used for future model training and verification. We respect
 						your privacy according to our policies.
 					</p>

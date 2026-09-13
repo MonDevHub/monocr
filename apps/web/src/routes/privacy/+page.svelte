@@ -113,9 +113,7 @@
 		</div>
 
 		<footer class="border-border/50 mt-20 border-t pt-8">
-			<p
-				class="text-fg-muted font-bold tracking-[0.2em] text-[var(--text-meta)] uppercase opacity-60"
-			>
+			<p class="text-fg-muted font-bold tracking-[0.2em] text-[var(--text-meta)] uppercase">
 				Effective Date: March 22, 2026 • MonOCR Version 0.2.0
 			</p>
 		</footer>

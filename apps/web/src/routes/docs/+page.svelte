@@ -107,9 +107,7 @@
 				<div class="space-y-8 pr-6">
 					{#each sections as section (section.title())}
 						<div class="space-y-3">
-							<span
-								class="text-fg-primary/40 px-3 text-[10px] font-bold tracking-[0.2em] uppercase"
-							>
+							<span class="text-fg-muted px-3 text-[10px] font-bold tracking-[0.2em] uppercase">
 								{section.title()}
 							</span>
 							<nav class="flex flex-col gap-0.5">
@@ -136,7 +134,7 @@
 			<!-- MAIN CONTENT PANEL -->
 			<main class=" w-full min-w-0 flex-1 py-16 lg:px-12 xl:px-20">
 				<!-- Breadcrumbs -->
-				<nav class="text-fg-muted/60 mb-12 flex items-center gap-2 text-[12px] font-medium">
+				<nav class="text-fg-muted mb-12 flex items-center gap-2 text-[12px] font-medium">
 					<a href="/docs" class="hover:text-fg-primary">{m.nav_docs()}</a>
 					<span class="opacity-30">/</span>
 					<span class="text-fg-primary capitalize">{activeSection.replace('-', ' ')}</span>
@@ -547,7 +545,7 @@ monocr batch ./scans/ --output results.txt</pre>
 				class="no-scrollbar sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto px-6 py-16 xl:block"
 			>
 				<div class="space-y-6">
-					<span class="text-fg-primary/40 px-3 text-[10px] font-bold tracking-[0.2em] uppercase">
+					<span class="text-fg-muted px-3 text-[10px] font-bold tracking-[0.2em] uppercase">
 						On this page
 					</span>
 					<nav class=" border-border/50 ml-3 flex flex-col gap-0.5 border-l">
