@@ -67,10 +67,13 @@ export default defineConfig({
 				],
 				screenshots: [
 					{
+						// og-image.jpg is 1024x1024 (verified via sips), not the 1200x630 this
+						// entry previously claimed -- carried over uninspected from the dead
+						// static/manifest.webmanifest. Dropped form_factor too: a square image
+						// is neither "wide" nor "narrow", and a wrong hint is worse than none.
 						src: '/og-image.jpg',
-						sizes: '1200x630',
-						type: 'image/jpeg',
-						form_factor: 'wide'
+						sizes: '1024x1024',
+						type: 'image/jpeg'
 					}
 				],
 				categories: ['ocr', 'mon', 'language-preservation'],
