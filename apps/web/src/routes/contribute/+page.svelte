@@ -114,11 +114,11 @@
 			</section>
 
 			<!-- Submit Action -->
-			<div class="mx-auto mb-20 w-full max-w-md">
+			<div class="mb-20">
 				<button
 					onclick={handleSubmit}
 					disabled={(!transcription && !sourceFile) || loading}
-					class="btn-primary w-full"
+					class="btn-primary min-w-[160px]"
 				>
 					{loading ? 'Submitting...' : 'Submit Contribution'}
 				</button>

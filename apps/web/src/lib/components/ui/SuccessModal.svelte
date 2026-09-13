@@ -54,7 +54,7 @@
 				{message}
 			</p>
 
-			<button class="btn-primary w-full" onclick={onClose}>
+			<button class="btn-primary mx-auto min-w-[100px]" onclick={onClose}>
 				{m.history_done()}
 			</button>
 		</div>

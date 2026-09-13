@@ -224,7 +224,7 @@
 				<button
 					onclick={handleSubmit}
 					disabled={!correctedText || !consent || loading}
-					class="btn-primary flex-1"
+					class="btn-primary min-w-[140px]"
 				>
 					{loading ? 'Sharing...' : 'Share Correction'}
 				</button>
