@@ -587,12 +587,6 @@ monocr batch ./scans/ --output results.txt</pre>
 		margin: 0;
 	}
 
-	.material-symbols-outlined {
-		font-variation-settings:
-			'wght' 300,
-			'opsz' 20;
-	}
-
 	@media (max-width: 1023px) {
 		.scroll-mt-32 {
 			scroll-margin-top: 6rem;
