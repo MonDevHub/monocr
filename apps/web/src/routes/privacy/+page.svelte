@@ -1,5 +1,10 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
+
+	// Same __APP_VERSION__ vite `define` Header.svelte already uses -- injected from
+	// package.json at build time, so it can't drift the way this page's own hardcoded
+	// "Version 0.2.0" string had (real version: 0.4.0, two minors stale).
+	const APP_VERSION = __APP_VERSION__;
 </script>
 
 <svelte:head>
@@ -115,7 +120,7 @@
 
 		<footer class="border-border/50 mt-20 border-t pt-8">
 			<p class="text-fg-muted font-bold tracking-[0.2em] text-[var(--text-meta)] uppercase">
-				Effective Date: March 22, 2026 • MonOCR Version 0.2.0
+				Effective Date: March 22, 2026 • MonOCR Version {APP_VERSION}
 			</p>
 		</footer>
 	</main>
