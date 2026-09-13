@@ -91,7 +91,6 @@
 	"docs_governance": "စီမံခန့်ခွဲမှု",
 	"docs_governance_privacy": "ကိုယ်ရေးလုံခြုံမှု မူဝါဒ",
 	"docs_governance_license": "MIT လိုင်စင်",
-	"docs_governance_contributors": "ပါဝင်ကူညီသူများ",
 	"docs_hero_title": "အဆင့်မြင့် OCR အင်ဂျင်",
 	"docs_hero_desc": "မွန်စာပေ ထိန်းသိမ်းရန်အတွက် အထူးပြုလုပ်ထားသော မြန်နှုန်းမြင့် OCR စနစ်။",
 	"docs_install_title": "တပ်ဆင်ခြင်း",
@@ -108,7 +107,6 @@
 	"docs_cli_desc": "ဖိုင်အများအပြားကို တစ်ပြိုင်နက် လုပ်ဆောင်ရန် CLI ကို အသုံးပြုပါ။",
 	"docs_privacy_guarantee": "သင်၏ အချက်အလက်များသည် သင့်စက်ထဲတွင်သာ ရှိနေမည်ဖြစ်ပြီး မည်သည့်နေရာသို့မျှ ပေးပို့ခြင်း မရှိပါ။",
 	"docs_license_desc": "ဤပရောဂျက်သည် Open Source ဖြစ်ပြီး မည်သူမဆို လွတ်လပ်စွာ အသုံးပြုနိုင်ပါသည်။",
-	"docs_contributors_title": "အဓိက ပါဝင်သူများ",
 	"docs_footer_prev": "အလုပ်နေရာ",
 	"docs_footer_next": "တုံ့ပြန်ချက်စနစ်"
 }

@@ -39,8 +39,7 @@
 			title: () => m.docs_governance(),
 			links: [
 				{ id: 'privacy', label: () => m.docs_governance_privacy() },
-				{ id: 'license', label: () => m.docs_governance_license() },
-				{ id: 'contributors', label: () => m.docs_governance_contributors() }
+				{ id: 'license', label: () => m.docs_governance_license() }
 			]
 		}
 	];
@@ -54,8 +53,7 @@
 		{ id: 'sdks', label: () => m.docs_usage_sdks() },
 		{ id: 'cli-reference', label: () => m.docs_usage_cli() },
 		{ id: 'privacy', label: () => m.docs_governance_privacy() },
-		{ id: 'license', label: () => m.docs_governance_license() },
-		{ id: 'contributors', label: () => m.docs_governance_contributors() }
+		{ id: 'license', label: () => m.docs_governance_license() }
 	];
 
 	onMount(() => {
@@ -458,64 +456,6 @@ monocr batch ./scans/ --output results.txt</pre>
 							<p class="text-fg-muted text-justify text-[15px] leading-relaxed font-light">
 								{m.docs_license_desc()}
 							</p>
-						</div>
-					</section>
-
-					<!-- Contributors Section -->
-					<section id="contributors" class="scroll-mt-32 pt-8">
-						<div class="space-y-6">
-							<h2 class="text-fg-primary text-2xl font-bold tracking-tight">
-								{m.docs_contributors_title()}
-							</h2>
-							<div class="border-border/50 overflow-hidden rounded-xl border shadow-sm">
-								<a
-									href="https://github.com/janakhpon"
-									target="_blank"
-									rel="noopener noreferrer"
-									class="group hover:bg-canvas-subtle/50 flex w-full items-center justify-between p-4 px-6 transition-colors"
-								>
-									<div class="flex flex-col">
-										<span class="text-fg-primary text-[14px] font-semibold">Janakh Pon</span>
-										<span class="text-fg-muted text-[12px]">Project Lead & Architecture</span>
-									</div>
-									<span
-										class="material-symbols-outlined text-[18px] opacity-20 transition-all group-hover:scale-110 group-hover:opacity-100"
-										>open_in_new</span
-									>
-								</a>
-								<div class="bg-border/30 h-[1px] w-full"></div>
-								<a
-									href="https://github.com/Oungseik"
-									target="_blank"
-									rel="noopener noreferrer"
-									class="group hover:bg-canvas-subtle/50 flex w-full items-center justify-between p-4 px-6 transition-colors"
-								>
-									<div class="flex flex-col">
-										<span class="text-fg-primary text-[14px] font-semibold">Oung Seik Nyan</span>
-										<span class="text-fg-muted text-[12px]">Language Model Specialist</span>
-									</div>
-									<span
-										class="material-symbols-outlined text-[18px] opacity-20 transition-all group-hover:scale-110 group-hover:opacity-100"
-										>open_in_new</span
-									>
-								</a>
-								<div class="bg-border/30 h-[1px] w-full"></div>
-								<a
-									href="https://www.facebook.com/RJOMDK10"
-									target="_blank"
-									rel="noopener noreferrer"
-									class="group hover:bg-canvas-subtle/50 flex w-full items-center justify-between p-4 px-6 transition-colors"
-								>
-									<div class="flex flex-col">
-										<span class="text-fg-primary text-[14px] font-semibold">Rajel Da Key</span>
-										<span class="text-fg-muted text-[12px]">Dataset & Research</span>
-									</div>
-									<span
-										class="material-symbols-outlined text-[18px] opacity-20 transition-all group-hover:scale-110 group-hover:opacity-100"
-										>open_in_new</span
-									>
-								</a>
-							</div>
 						</div>
 					</section>
 
