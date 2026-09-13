@@ -181,7 +181,7 @@
 											<div class="h-2.5 w-2.5 rounded-full bg-green-500/30"></div>
 										</div>
 										<span
-											class="font-mono text-[9px] font-bold tracking-widest uppercase opacity-40"
+											class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
 											>Bash</span
 										>
 									</div>
@@ -223,7 +223,7 @@
 											<div class="h-2.5 w-2.5 rounded-full bg-green-400/20"></div>
 										</div>
 										<span
-											class="font-mono text-[9px] font-bold tracking-widest uppercase opacity-40"
+											class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
 											>example.py</span
 										>
 									</div>
@@ -271,7 +271,7 @@ text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
 								<div
 									class="bg-canvas-subtle/40 hover:bg-canvas-subtle/60 border-border/30 rounded-2xl border p-8 transition-all hover:shadow-sm"
 								>
-									<h3 class="mb-4 text-[11px] font-bold tracking-[0.2em] uppercase opacity-40">
+									<h3 class="text-fg-muted mb-4 text-[11px] font-bold tracking-[0.2em] uppercase">
 										{m.docs_standards_dpi_title()}
 									</h3>
 									<p class="text-fg-muted text-[13px] leading-relaxed font-light">
@@ -281,7 +281,7 @@ text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
 								<div
 									class="bg-canvas-subtle/40 hover:bg-canvas-subtle/60 border-border/30 rounded-2xl border p-8 transition-all hover:shadow-sm"
 								>
-									<h3 class="mb-4 text-[11px] font-bold tracking-[0.2em] uppercase opacity-40">
+									<h3 class="text-fg-muted mb-4 text-[11px] font-bold tracking-[0.2em] uppercase">
 										{m.docs_standards_light_title()}
 									</h3>
 									<p class="text-fg-muted text-[13px] leading-relaxed font-light">
@@ -333,7 +333,7 @@ text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
 											<div class="h-2.5 w-2.5 rounded-full bg-green-400/20"></div>
 										</div>
 										<span
-											class="font-mono text-[9px] font-bold tracking-widest uppercase opacity-40"
+											class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
 											>{sdks.find((s) => s.id === selectedSdk)?.pkg}</span
 										>
 									</div>
@@ -421,7 +421,8 @@ text, _ := engine.Predict(<span class="zen-code-string"
 										<div class="h-2.5 w-2.5 rounded-full bg-yellow-400/20"></div>
 										<div class="h-2.5 w-2.5 rounded-full bg-green-400/20"></div>
 									</div>
-									<span class="font-mono text-[9px] font-bold tracking-widest uppercase opacity-40"
+									<span
+										class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
 										>Terminal</span
 									>
 								</div>

@@ -12,10 +12,10 @@
 			>
 		</nav>
 		<div class="space-y-0.5">
-			<p class="text-[9px] opacity-60">
+			<p class="text-[9px]">
 				{m.footer_copy({ year: new Date().getFullYear().toString() })}
 			</p>
-			<p class="text-[8px] opacity-40">
+			<p class="text-[8px]">
 				{m.footer_tech({ ocrs: 'MobileNetV3+BiLSTM', onnx: 'ONNX Runtime Web' })}
 			</p>
 		</div>

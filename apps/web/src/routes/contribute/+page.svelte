@@ -91,13 +91,13 @@
 			</section>
 
 			<!-- Divider -->
-			<div class="relative mx-auto mb-10 flex max-w-xs items-center py-4 opacity-30">
-				<div class="border-border flex-grow border-t"></div>
+			<div class="relative mx-auto mb-10 flex max-w-xs items-center py-4">
+				<div class="border-border flex-grow border-t opacity-30"></div>
 				<span
 					class="text-fg-muted mx-4 flex-shrink text-[10px] font-bold tracking-[0.3em] uppercase"
 					>OR</span
 				>
-				<div class="border-border flex-grow border-t"></div>
+				<div class="border-border flex-grow border-t opacity-30"></div>
 			</div>
 
 			<!-- Section 2: Textarea -->
