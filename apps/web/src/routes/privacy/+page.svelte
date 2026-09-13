@@ -104,9 +104,10 @@
 				<h2 class="text-fg-primary mb-3 text-lg font-bold tracking-tight">7. Global Compliance</h2>
 				<div class="text-fg-secondary leading-relaxed text-[var(--text-body)]">
 					<p>
-						Our architecture aligns with the **General Data Protection Regulation (GDPR)** and the
-						**California Consumer Privacy Act (CCPA)** by providing users with full access and
-						erasure rights over their local data.
+						Our architecture aligns with the
+						<strong>General Data Protection Regulation (GDPR)</strong> and the
+						<strong>California Consumer Privacy Act (CCPA)</strong> by providing users with full access
+						and erasure rights over their local data.
 					</p>
 				</div>
 			</section>
