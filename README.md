@@ -56,9 +56,14 @@ is refused rather than decoded, because a mismatch of that kind returns
 well-formed Mon text that is wrong. **v2** remains served at revision `a51be11`
 for anyone pinned to it.
 
-The model has **no held-out evaluation**. The figure that selected it is a
-training-time metric over 4,096 lines in a single typeface, and it is not an
-accuracy claim — see the model card.
+The model card reports a **held-out CER of 0.0100** (95% CI 0.0056–0.0147),
+measured 2026-08-16 on 150 unseen lines in one typeface, Pyidaungsu, that was
+held out from training. Read it with its limits: the sample is small, it covers a
+single typeface, and every line is synthetic, rendered by the same generator as
+the training data, so it says nothing about real photographs. The figure that
+selected the checkpoint, `val_cer` 0.0210, is a training-time check over 4,096
+lines on a different split, and it is not an accuracy claim — see the
+[model card](https://huggingface.co/janakhpon/monocr).
 
 A **v4** server model was archived on 2026-08-05 under `mon_OCR` ADR-0011. It was
 never trained to convergence, so archiving it was a decision about maintaining a
