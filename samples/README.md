@@ -57,8 +57,7 @@ lines, and one 145-page image scan reached 33%.
 
 So this is what the tool does at its best on material of this kind — not an
 average over an archive. What still goes wrong, and by how much, is in
-[`../docs/architecture/platform/line-segmentation-parity.md`](../docs/architecture/platform/line-segmentation-parity.md)
-and in `mon_OCR`'s `docs/AUDIT-2026-08-B.md`, findings F-69 and F-70.
+[`../docs/architecture/platform/line-segmentation-parity.md`](../docs/architecture/platform/line-segmentation-parity.md).
 
 Expect dropped `်` (asat), an occasional stray Latin letter, and `ဂကောံ` for
 `ဂေကာံ`. Nothing here is error-free.

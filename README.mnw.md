@@ -6,7 +6,7 @@
 
 ---
 
-ဘာသာမန် ဝွံ ဒုင်ကျောဝ် နကဵုလိုန်ဂၠး တဝှ်ဗ္ဒဲါ ပ္ဍဲဍုင်မန်တိုင်း ကေုာံ ဍုင်တာဲ — [UNESCO ဟီုလဝ် ဒှ်ဘာသာမဒးမင်မွဲ](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger) — နွံကဵု ပရဝ်ဂျေသူဝွံ ဗဒှ်အဓိပ္ပါယ် ပ္ဍဲဂတဝွံ မၞိဟ်မတၟောဝ် OCR toolchain သောင်ကလး သ္ပစိုတ် လ္ပကၠောန်ဒၟံင်ရ။
+ဘာသာမန် ဝွံ ဒုင်ကျောဝ် နကဵုလိုန်ဂၠး တဝှ်ဗ္ဒဲါ ပ္ဍဲဍုင်မန်တိုင်း ကေုာံ ဍုင်တာဲ — [UNESCO ဟီုလဝ် ဒှ်ဘာသာမဒးမင်မွဲ](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger)။
 
 MonOCR ဝွံ ဒှ်ပရဝ်ဂျေသူ မလ္ပကၠောန်ဒၟံင် ဗိုင်ရီုဒဒှ် ပ္ဍဲကဵု community မန်ရ — ဆိင်ကေတ် ရုပ်ပ္တိုန်လိခ်မန်တုဲ ကဵုဒါန် ဗီုရ (text) ကဵုဒါန်ရ။ ဒှ်ကမၠောန် Web, Android ကေုာံ iOS ရ — offline ပြဃောဗၞော်ရ၊ data တုဲဟွံထၟောဝ်ကဵု ဗော်ဂြိုပ်ဟွံမွဲရ။
 
@@ -15,8 +15,8 @@ MonOCR ဝွံ ဒှ်ပရဝ်ဂျေသူ မလ္ပကၠော�
 ## Live
 
 - **Web**: [ocr.mondevhub.com](https://ocr.mondevhub.com)
-- **Android**: Google Play
-- **iOS**: App Store *(ပြန်လည်စစ်ဆေးဆဲ)*
+- **Android**: not yet on Google Play — build from [`apps/android`](apps/android)
+- **iOS**: not yet on the App Store — build from [`apps/ios`](apps/ios)
 
 ---
 
@@ -37,7 +37,7 @@ Android ကေုာံ iOS ဂှ် bundle လဝ်ရ (46.2 MB ကေုာ�
 
 **v3.5 ဂှ် ဟွံဒှ် v2 မတၟိမွဲဓဝ်၊ ဒှ်ကဵု contract တၞဟ်ခြာမွဲရ။** input အမြင့်ဂှ် နူ 128 စဵုကဵု 160၊ output class ဂှ် နူ 316 စဵုကဵု 277၊ အက္ခရ်ဂှ် နူ 315 စဵုကဵု 276၊ graph ဂှ် width axis နူ dynamic စဵုကဵု static 1024 ပြံင်အာရ။ v2 artifact ပ္ဍဲ cache နွံဒၟံင်ဏီဂှ် ဟွံတုပ်ရေင်သကအ်ဗီုဂှ် လိခ်မန်ဗီုပြင်ဒးဒး ဆဂး အဓိပ္ပါယ်ဒးဟွံမွဲဂှ် ကလေင်ကဵုမာန်ဂှ်ရ၊ decode ဟွံကၠောန် ကလေင်ငြင်ဆိုရ။ **v2** ဂှ် မၞိဟ်မပင်လဝ်ကဵုဍေံဂှ် revision `a51be11` ပ္ဍဲဂှ် ဆက်ပတိတ်ဒၟံင်ဖိုဟ်ရ။
 
-Model **v4** server ဂှ် ပ္ဍဲ 2026-08-05 နကဵု `mon_OCR` ADR-0011 တုဲ archive လဝ်ရ။ convergence စဵုကဵု train ဟွံလဝ်ဂှ်ရ archive ဂှ် ဒှ်ဆုံးဖြတ်ချက် ဗွဲမဆက်မင်မွဲ လမ်းကြောင်းၜါဟာဟွံသေင်ဂှ်ရ၊ ဟွံဒှ်ဆုံးဖြတ်ချက် ဗွဲအရည်အသွေးမတိုင်းလဝ်ရ။ ဟွံမင်မွဲရ။
+Model **v4** server ဂှ် ပ္ဍဲ 2026-08-05 archive လဝ်ရ။ convergence စဵုကဵု train ဟွံလဝ်ဂှ်ရ archive ဂှ် ဒှ်ဆုံးဖြတ်ချက် ဗွဲမဆက်မင်မွဲ လမ်းကြောင်းၜါဟာဟွံသေင်ဂှ်ရ၊ ဟွံဒှ်ဆုံးဖြတ်ချက် ဗွဲအရည်အသွေးမတိုင်းလဝ်ရ။ ဟွံမင်မွဲရ။
 
 Platform မွဲမွဲအတိုင် device latency ဂၞန် ဟွံမွဲရ။ ဂၞန်ဗီုဂှ် နွံဒၟံင်ပ္ဍဲဏံ စဵုကဵု 2026-08-15၊ ဂှ်ဒှ် architecture ခန့်မှန်းချက်ဓဝ်၊ ပ္ဍဲ hardware ဟွံဒှ်ချူလဝ်ရ။
 
@@ -47,13 +47,13 @@ Platform မွဲမွဲအတိုင် device latency ဂၞန် ဟွ
 
 ## Platform
 
-Model ဝွံ ဒှ်ကမၠောန် ပ္ဍဲ Web, Android ကေုာံ iOS — hardware acceleration နွံကဵု format မတူကဵုမတူဂှ်ရ-
+Model ဝွံ ဒှ်ကမၠောန် ပ္ဍဲ Web, Android ကေုာံ iOS ရ-
 
-| Platform | Format | Acceleration |
+| Platform | Format | Execution provider requested |
 | :--- | :--- | :--- |
-| Web | ONNX | WASM |
-| Android | ONNX | NNAPI |
-| iOS | CoreML `.mlpackage` | Apple Neural Engine |
+| Web | ONNX | WebGPU where the browser offers it, otherwise WASM |
+| Android | ONNX | NNAPI, with CPU fallback |
+| iOS | CoreML `.mlpackage` | Core ML, all compute units |
 
 - **[Web App](apps/web)** — SvelteKit PWA
 - **[Android App](apps/android)** — Jetpack Compose
@@ -65,7 +65,7 @@ Model ဝွံ ဒှ်ကမၠောန် ပ္ဍဲ Web, Android ကေ�
 
 ## Resources
 
-- **[HuggingFace](https://huggingface.co/janakhpon/monocr)** — ONNX, CoreML ကေုာံ checkpoint ဖိုင်တအ်
+- **[HuggingFace](https://huggingface.co/janakhpon/monocr)** — ONNX ကေုာံ CoreML ဖိုင်တအ်
 - **[npm package](https://www.npmjs.com/package/monocr)** — JavaScript SDK
 - **[Architecture decisions](docs/architecture/adr)** — ADRs
 - **[API specs](docs/api)** — OpenAPI contracts

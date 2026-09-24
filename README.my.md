@@ -6,7 +6,7 @@
 
 ---
 
-မွန်ဘာသာစကားကို လူဦးရေ တစ်သန်းခန့်က မြန်မာနိုင်ငံနှင့် ထိုင်းနိုင်ငံတို့တွင် ပြောဆိုသုံးစွဲသည်။ [UNESCO မှ ထိန်းသိမ်းရန်လိုအပ်သောဘာသာ](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger) အဖြစ် သတ်မှတ်ထားပြီး ဤပရောဂျက်မတိုင်မီ မွန်ဘာသာစကားအတွက် OCR ကိရိယာဆောင်ရွက်မှုမရှိသေးပါ။
+မွန်ဘာသာစကားကို လူဦးရေ တစ်သန်းခန့်က မြန်မာနိုင်ငံနှင့် ထိုင်းနိုင်ငံတို့တွင် ပြောဆိုသုံးစွဲသည်။ [UNESCO မှ ထိန်းသိမ်းရန်လိုအပ်သောဘာသာ](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger) အဖြစ် သတ်မှတ်ထားသည်။
 
 MonOCR သည် မွန်အက္ခရာ ပုံရိပ်ကိုယူ၍ စာသားထုတ်ပေးသည်။ Web၊ Android နှင့် iOS တို့တွင် အလုပ်လုပ်သည် — အပြည့်အဝ offline၊ ဒေတာသည် စက်မှထွက်ခွာမည်မဟုတ်ပါ။
 
@@ -17,8 +17,8 @@ MonOCR သည် မွန်အက္ခရာ ပုံရိပ်ကို�
 ## Live
 
 - **Web**: [ocr.mondevhub.com](https://ocr.mondevhub.com)
-- **Android**: Google Play
-- **iOS**: App Store *(ပြန်လည်စစ်ဆေးဆဲ)*
+- **Android**: not yet on Google Play — build from [`apps/android`](apps/android)
+- **iOS**: not yet on the App Store — build from [`apps/ios`](apps/ios)
 
 ---
 
@@ -39,7 +39,7 @@ Android နှင့် iOS သည် ၎င်းကို bundle လုပ်�
 
 **v3.5 သည် v2 ၏ ဗားရှင်းအသစ်မဟုတ်ဘဲ contract အသစ်တစ်မျိုးဖြစ်သည်။** input အမြင့်သည် 128 မှ 160 သို့၊ output class အရေအတွက်သည် 316 မှ 277 သို့၊ စာလုံးအရေအတွက်သည် 315 မှ 276 သို့ ပြောင်းလဲပြီး graph ၏ width axis သည် dynamic မှ static 1024 သို့ ပြောင်းသွားသည်။ cache ထဲတွင် v2 artifact ကျန်နေသေးပါက ထိုကဲ့သို့ မကိုက်ညီမှုမျိုးသည် ပုံစံမှန်သော်လည်း မှားယွင်းနေသည့် မွန်စာသားကို ပြန်ပေးသောကြောင့် ၎င်းကို decode မလုပ်ဘဲ ငြင်းဆိုသည်။ **v2** ကို ၎င်းအပေါ် pin ထားသူများအတွက် revision `a51be11` တွင် ဆက်လက်ဝန်ဆောင်မှုပေးထားဆဲဖြစ်သည်။
 
-**v4** server model ကို 2026-08-05 တွင် `mon_OCR` ADR-0011 အရ archive လုပ်ခဲ့သည်။ ၎င်းကို convergence အထိ လေ့ကျင့်ခဲ့ခြင်းမရှိသဖြင့် archive လုပ်ခြင်းမှာ အရည်အသွေးတိုင်းတာမှုအရမဟုတ်ဘဲ ဒုတိယလမ်းကြောင်းကို ဆက်လက်ထိန်းသိမ်းမည်/မထိန်းသိမ်းဆိုသည့် ဆုံးဖြတ်ချက်ဖြစ်သည်။ ၎င်းကို ထိန်းသိမ်းထားခြင်းမရှိပါ။
+**v4** server model ကို 2026-08-05 တွင် archive လုပ်ခဲ့သည်။ ၎င်းကို convergence အထိ လေ့ကျင့်ခဲ့ခြင်းမရှိသဖြင့် archive လုပ်ခြင်းမှာ အရည်အသွေးတိုင်းတာမှုအရမဟုတ်ဘဲ ဒုတိယလမ်းကြောင်းကို ဆက်လက်ထိန်းသိမ်းမည်/မထိန်းသိမ်းဆိုသည့် ဆုံးဖြတ်ချက်ဖြစ်သည်။ ၎င်းကို ထိန်းသိမ်းထားခြင်းမရှိပါ။
 
 မည်သည့် platform အတွက်မျှ device latency ကိန်းဂဏန်း မရှိပါ။ ထိုကဲ့သို့ ကိန်းဂဏန်းများသည် 2026-08-15 အထိ ဤနေရာတွင် ပါရှိခဲ့ပြီး၊ architecture ခန့်မှန်းချက်များသာဖြစ်ကာ hardware ပေါ်တွင် တိုင်းတာခဲ့ခြင်း မရှိပါ။
 
@@ -49,13 +49,13 @@ Android နှင့် iOS သည် ၎င်းကို bundle လုပ်�
 
 ## Platform
 
-Model သည် Web၊ Android နှင့် iOS တို့သို့ တပ်ဆင်သည် — hardware acceleration ဖွင့်ပေးသောပုံစံကို အသီးသီးအသုံးပြုသည်-
+Model သည် Web၊ Android နှင့် iOS တို့တွင် အလုပ်လုပ်သည်-
 
-| Platform | Format | Acceleration |
+| Platform | Format | Execution provider requested |
 | :--- | :--- | :--- |
-| Web | ONNX | WASM |
-| Android | ONNX | NNAPI |
-| iOS | CoreML `.mlpackage` | Apple Neural Engine |
+| Web | ONNX | WebGPU where the browser offers it, otherwise WASM |
+| Android | ONNX | NNAPI, with CPU fallback |
+| iOS | CoreML `.mlpackage` | Core ML, all compute units |
 
 - **[Web App](apps/web)** — SvelteKit PWA
 - **[Android App](apps/android)** — Jetpack Compose
@@ -67,7 +67,7 @@ Model သည် Web၊ Android နှင့် iOS တို့သို့ တ�
 
 ## Resources
 
-- **[HuggingFace](https://huggingface.co/janakhpon/monocr)** — ONNX, CoreML နှင့် checkpoint ဖိုင်များ
+- **[HuggingFace](https://huggingface.co/janakhpon/monocr)** — ONNX နှင့် CoreML ဖိုင်များ
 - **[npm package](https://www.npmjs.com/package/monocr)** — JavaScript SDK
 - **[Architecture decisions](docs/architecture/adr)** — ADRs
 - **[API specs](docs/api)** — OpenAPI contracts

@@ -91,8 +91,8 @@
 	"docs_governance": "စီမံခန့်ခွဲမှု",
 	"docs_governance_privacy": "ကိုယ်ရေးလုံခြုံမှု မူဝါဒ",
 	"docs_governance_license": "MIT လိုင်စင်",
-	"docs_hero_title": "အဆင့်မြင့် OCR အင်ဂျင်",
-	"docs_hero_desc": "မွန်စာပေ ထိန်းသိမ်းရန်အတွက် အထူးပြုလုပ်ထားသော မြန်နှုန်းမြင့် OCR စနစ်။",
+	"docs_hero_title": "OCR အင်ဂျင်",
+	"docs_hero_desc": "မွန်စာပေ ထိန်းသိမ်းရန်အတွက် အထူးပြုလုပ်ထားသော OCR စနစ်။",
 	"docs_install_title": "တပ်ဆင်ခြင်း",
 	"docs_install_desc": "တရားဝင် Package Manager ကို အသုံးပြု၍ တပ်ဆင်နိုင်ပါသည်။",
 	"docs_impl_title": "အသုံးပြုပုံ နမူနာ",
@@ -105,8 +105,9 @@
 	"docs_standards_light_desc": "အလင်းရောင် ညီညာရန် လိုအပ်ပြီး အလင်းပြန်ခြင်းကို ရှောင်ကြဉ်ပါ။",
 	"docs_sdks_desc": "ပလက်ဖောင်း အမျိုးမျိုးအတွက် အသုံးပြုနိုင်သော လိုင်ဘရီများ။",
 	"docs_cli_desc": "ဖိုင်အများအပြားကို တစ်ပြိုင်နက် လုပ်ဆောင်ရန် CLI ကို အသုံးပြုပါ။",
-	"docs_privacy_guarantee": "သင်၏ အချက်အလက်များသည် သင့်စက်ထဲတွင်သာ ရှိနေမည်ဖြစ်ပြီး မည်သည့်နေရာသို့မျှ ပေးပို့ခြင်း မရှိပါ။",
+	"docs_privacy_guarantee": "Recognition runs on your device. Your images and the recognised text stay there unless you choose to share a correction or a contribution, which uploads what you submit. The privacy policy lists what is stored.",
 	"docs_license_desc": "ဤပရောဂျက်သည် Open Source ဖြစ်ပြီး မည်သူမဆို လွတ်လပ်စွာ အသုံးပြုနိုင်ပါသည်။",
 	"docs_footer_prev": "အလုပ်နေရာ",
-	"docs_footer_next": "တုံ့ပြန်ချက်စနစ်"
+	"docs_footer_next": "တုံ့ပြန်ချက်စနစ်",
+	"report_sharing_desc": "Recognition runs on your device. Sharing a correction is different: once you tick the consent box and share, the corrected text, its error type and the file you attached (or the original output, if you attached none) are uploaded to the MonOCR project for model training."
 }

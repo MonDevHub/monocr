@@ -1,6 +1,6 @@
 # MonOCR Web
 
-MonOCR Web provides high-performance, privacy-first optical character recognition for the Mon script directly in the browser.
+MonOCR Web reads printed Mon text in the browser, on your own machine.
 
 For mission context, community guidelines, and cross-platform information, please refer to the **[MonOCR Root Documentation](../../README.md)**.
 
@@ -15,7 +15,7 @@ MonOCR Web runs **ONNX Runtime Web**, picking WebGPU when the browser offers it 
 - **Line Tiling**: Lines wider than the model window are cut at whitespace instead of squeezed into it.
 - **Privacy by Design**: Zero data collection; OCR processing is 100% local.
 - **Optional Cloud Sync**: Secure, opt-in synchronization for contributing corrected scans to the open-source Mon language dataset.
-- **High Performance**: Optimized MobileNetV3 + BiLSTM OCR engine (11.55M parameters).
+- **Model**: MobileNetV3 + BiLSTM + CTC recogniser (11.55M parameters).
 - **Format Support**: Handles PDFs and images up to 50MB.
 - **Script Specialized**: Purpose-built for Mon script recognition, with supplementary support for Burmese and English.
 
