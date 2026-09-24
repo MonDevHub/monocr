@@ -6,7 +6,7 @@
 
 ---
 
-Mon is spoken by roughly one million people across Myanmar and Thailand. [UNESCO classifies it as vulnerable](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger) — and no OCR toolchain existed for it before this project.
+Mon is spoken by roughly one million people across Myanmar and Thailand. [UNESCO classifies it as vulnerable](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger) — and it has no OCR model of its own.
 
 MonOCR takes an image of Mon script and returns text. It runs on Web, Android, and iOS — fully offline, no data leaves the device.
 
@@ -56,11 +56,22 @@ is refused rather than decoded, because a mismatch of that kind returns
 well-formed Mon text that is wrong. **v2** remains served at revision `a51be11`
 for anyone pinned to it.
 
-The model has **no held-out evaluation**. The figure that selected it is a
-training-time metric over 4,096 lines in a single typeface, and it is not an
-accuracy claim — see the model card.
+**Held-out CER 0.0100** on 150 unseen lines in a typeface the model never
+trained on (95% interval 0.0056 to 0.0147), measured 2026-08-16. Read it with
+the limits the [model card](https://huggingface.co/janakhpon/monocr#performance)
+states beside it:
 
-A **v4** server model was archived on 2026-08-05 under `mon_OCR` ADR-0011. It was
+- **n = 150**, so the interval is wide.
+- **One typeface.** All 150 lines are Pyidaungsu, held out from training.
+- **Unseen text, not an unseen renderer.** Training and test images came from
+  the same generator, so the number says nothing yet about camera photographs
+  of real pages.
+- **Disjointness is argued, not directly verified.**
+
+The figure that selected the checkpoint, `val_cer` 0.0210 over 4,096 lines
+during training, is not an evaluation and is not comparable to it.
+
+A **v4** server model was archived on 2026-08-05. It was
 never trained to convergence, so archiving it was a decision about maintaining a
 second path rather than about measured quality. It is not maintained.
 
@@ -74,13 +85,17 @@ Because high-quality Mon datasets are scarce, validated samples from the app's f
 
 ## Platform
 
-The model deploys to Web, Android, and iOS — each using the format that enables hardware acceleration:
+The model runs on Web, Android, and iOS in these formats:
 
-| Platform | Format | Acceleration |
+| Platform | Format | Execution provider requested |
 | :--- | :--- | :--- |
-| Web | ONNX | WASM |
-| Android | ONNX | NNAPI |
-| iOS | CoreML `.mlpackage` | Apple Neural Engine |
+| Web | ONNX | WebGPU where the browser offers it, otherwise WASM |
+| Android | ONNX | NNAPI, with CPU fallback |
+| iOS | CoreML `.mlpackage` | Core ML, all compute units |
+
+The provider is what each app asks for, not what was measured. Whether NNAPI or
+the Neural Engine actually runs the BiLSTM layers has not been checked on a
+device, and they are not expected to.
 
 - **[Web App](apps/web)** — SvelteKit PWA
 - **[Android App](apps/android)** — Jetpack Compose
@@ -92,7 +107,7 @@ The model deploys to Web, Android, and iOS — each using the format that enable
 
 ## Resources
 
-- **[HuggingFace](https://huggingface.co/janakhpon/monocr)** — ONNX, CoreML, and checkpoint files
+- **[HuggingFace](https://huggingface.co/janakhpon/monocr)** — ONNX and CoreML exports, and the model card
 - **[npm package](https://www.npmjs.com/package/monocr)** — JavaScript SDK
 - **[Architecture decisions](docs/architecture/adr)** — ADRs
 - **[API specs](docs/api)** — OpenAPI contracts
