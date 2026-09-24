@@ -20,7 +20,7 @@ import Testing
 
  WHAT THIS CANNOT CHECK. Whether the *choice* of mode is right for a given image —
  only that the rule classifies these known dimensions the way the CLI does. The
- upstream measurement behind the thresholds is in `mon_OCR/docs/LIMITATIONS.md`.
+ upstream measurement behind the thresholds is in the training code's limitations record.
  */
 struct SegmentationModeTests {
 

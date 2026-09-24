@@ -29,7 +29,7 @@
 //! ---------------------------------
 //! Nothing that changes what the *model* sees. The input height, the width, the
 //! normalisation and the model revision are one contract with the exported graph,
-//! and `mon_OCR/docs/CHARSET.md` records what happened the last time part of that
+//! and the training code's charset notes record what happened the last time part of that
 //! contract moved without the rest. They are not options and this file will not
 //! make them look like options.
 
@@ -207,7 +207,7 @@ pub struct Resolved {
 /// Combine flags with a config file. A pure function of its inputs, so the merge
 /// rule can be tested without a filesystem, a model or a subprocess.
 ///
-/// This used to cite `mon_OCR/scripts/segmenter_parity.py` as the same split. That
+/// This used to cite a parity script in the training code as the same split. That
 /// file has never existed: it was planned and not written, and the citation
 /// outlived the plan. A comparison to something a reader cannot open is worse than
 /// no comparison, because it costs them the search before they find that out.

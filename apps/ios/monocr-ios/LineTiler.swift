@@ -15,7 +15,7 @@ import Foundation
  Tiling hurts v2, so a build repinned to `a51be11` must stop calling this.
 
  REMEASURED 2026-08-22, and the figures above did not reproduce.
- `mon_OCR/eval/tiling-ab-2026-08-22.md` scored 201 rendered lines through both
+ An A/B over 201 rendered lines (2026-08-22) scored them through both
  the Python arms and the Rust binding and found the answer is width-dependent:
  squeezing wins at 2 tiles, the two are at parity at 3, and tiling wins from 4
  tiles up, reaching 20x-36x by 6 where squeezing exceeds 0.83 CER. At median 3

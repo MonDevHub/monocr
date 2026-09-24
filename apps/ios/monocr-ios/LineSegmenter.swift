@@ -55,7 +55,7 @@ nonisolated enum LineSegmenter {
 
      This drops nothing. Callers decide what to do with an unreliable reading.
 
-     Ported from mon_OCR `src/monocr/segmenter.py` (`looks_like_a_line`).
+     Ported from the reference segmenter (`looks_like_a_line`).
      */
     static func looksLikeALine(bbox: LineSegment, pageHeight: Int) -> Bool {
         guard bbox.height > 0, pageHeight > 0 else { return false }
@@ -87,7 +87,7 @@ nonisolated enum LineSegmenter {
      an adaptive threshold compares against a LOCAL mean, so the interior of a thick
      ink region is not ink and only its edges are.
 
-     Ported from `mon_OCR/src/monocr/segmenter.py` (`_suppress_page_rules`) via
+     Ported from the reference segmenter (`_suppress_page_rules`) via
      `apps/web/src/lib/segmentation.ts` (`suppressPageRules`), whose run-length form
      this follows exactly so the three stay comparable.
 
@@ -216,7 +216,7 @@ nonisolated enum LineSegmenter {
      profile above zero right across it.
 
      Ported from `monocr-onnx` `rust/src/segmenter.rs` (`MIN_GAP_MERGE`,
-     `merge_runs`), which took it from `mon_OCR` `segmenter.py` step 8. The value is
+     `merge_runs`), which took it from the reference segmenter, step 8. The value is
      the reference's.
      */
     static let minGapMerge = 10
@@ -445,7 +445,7 @@ nonisolated enum LineSegmenter {
             // smoothing bleeds ink across a true inter-line gap narrower than about half the
             // kernel, and a bled gap never falls under the threshold.
             //
-            // The reference states this and says why (`mon_OCR/src/monocr/segmenter.py`,
+            // The reference segmenter states this and says why (its section
             // "Valley detection (dual-histogram)"). All three ports read the smoothed profile
             // here instead, and the cost was measured on this port before changing it: pages of
             // 14px lines separated by 5, 6 and 8 pixels came back as ONE band each, against 29,

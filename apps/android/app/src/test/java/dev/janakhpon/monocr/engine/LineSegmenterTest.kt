@@ -362,7 +362,7 @@ class LineSegmenterTest {
      *
      * The threshold is still calibrated from the smoothed mean, which is what the
      * reference does and why the two profiles both exist
-     * (`mon_OCR/src/monocr/segmenter.py`, "Valley detection (dual-histogram)").
+     * (the reference segmenter, "Valley detection (dual-histogram)").
      *
      * 8px is the gap this pins. Below 5px both profiles fuse, and that is the
      * vertical smear doing its job: a kernel of 5 is meant to bridge a 4px gap so

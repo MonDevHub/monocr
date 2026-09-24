@@ -1,7 +1,7 @@
 //! Which segmentation regime an input gets, and why.
 //!
-//! One parameter set does not serve every input. `mon_OCR/docs/LIMITATIONS.md`
-//! §304-334 measured the ordering reversing between input classes: on book pages
+//! One parameter set does not serve every input. The training code's limitations
+//! record measured the ordering reversing between input classes: on book pages
 //! the low gap ratio recovered 89.0% of known 5-grams against 87.1% at 0.50,
 //! while a six-line Mon poem slide returned 3 lines at the low ratio and all 6,
 //! read correctly, at 0.50. The response is explicitly non-monotone — on one
@@ -29,7 +29,7 @@ const LINE_HEIGHT_CEILING: u32 = MODEL_INPUT_HEIGHT * 2;
 /// Minimum width-to-height ratio for a crop to be one line.
 ///
 /// The same 4.0 the canonical `looks_like_a_line` uses for the same judgement
-/// (`mon_OCR/src/monocr/segmenter.py:181-215`). Reused rather than re-picked: two
+/// (in the reference segmenter). Reused rather than re-picked: two
 /// constants for one question drift apart, and this ecosystem has a documented
 /// history of exactly that.
 const LINE_MIN_ASPECT: f64 = 4.0;
@@ -154,7 +154,7 @@ pub fn decide(kind: InputKind, path: &Path, dimensions: Option<(u32, u32)>) -> D
 
 /// Is this band a block of text rather than a line?
 ///
-/// Ported from `mon_OCR/src/monocr/segmenter.py:181-215`. It filters nothing —
+/// Ported from the reference segmenter's `looks_like_a_line`. It filters nothing —
 /// it flags. Over 66 measured bands it fired 3 times, all on the two unreadable
 /// camera photos, with no false positives. A caller shows it to the operator as
 /// "this looks fused, try another mode"; it must not silently drop a band.

@@ -15,8 +15,8 @@ struct AboutView: View {
     // Three of these rows were wrong until 2026-08-15. Precision read FP16 and
     // size read ~13 MB, both describing a quantised export this app has never
     // shipped. "Val CER 2.79%" was worse, and it is not an invented number:
-    // mon_OCR's AUDIT-2026-08.md F-07 records it as that repository's own README
-    // figure, reported as a beam-decode column beside 1.52% greedy for a code
+    // the figure came from an earlier README of the training code, reported
+    // as a beam-decode column beside 1.52% greedy for a code
     // path that could not produce two different numbers, because beam silently
     // ran greedy. It was retracted there and went on shipping here. Removed
     // rather than replaced with the v2 checkpoint's 2.5%, which was measured on

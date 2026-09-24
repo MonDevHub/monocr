@@ -9,7 +9,7 @@ import org.junit.Test
 /**
  * Checks [PageNormalizer.dilateDisk] against `shared/segmentation-fixtures/dilate-cases.json`,
  * generated from `cv2.getStructuringElement(cv2.MORPH_ELLIPSE, ...)` — the call
- * `mon_OCR`'s `_level_background` makes, and therefore the contract.
+ * the reference `_level_background` makes, and therefore the contract.
  *
  * This file exists because of a defect it would have caught. Until 2026-08-28 iOS
  * dilated with a SQUARE while this port used a disk, the two disagreed on 7 of 8

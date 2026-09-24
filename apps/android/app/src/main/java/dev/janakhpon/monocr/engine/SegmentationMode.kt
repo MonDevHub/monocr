@@ -7,7 +7,7 @@ package dev.janakhpon.monocr.engine
  * density, and no single fraction works on both regimes. A threshold that separates
  * lines on a clean book scan sits below the noise floor of a photograph; a threshold
  * that works on a poster fuses dense book lines. Measured 2026-08-15 upstream
- * (mon_OCR docs/LIMITATIONS.md): a slide holding a six-line Mon poem segmented into
+ * (the training code's limitations record): a slide holding a six-line Mon poem segmented into
  * 3 lines at the low ratio and into all 6, read correctly, at 0.50. The response is
  * not monotone either — on one photograph 0.5 gave 5 lines, 0.7 gave 4 and 1.3 gave 1.
  *

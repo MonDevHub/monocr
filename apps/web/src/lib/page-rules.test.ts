@@ -192,7 +192,7 @@ describe('suppressPageRules', () => {
 		// Five sibling implementations carry the same two values:
 		// `apps/android/.../engine/LineSegmenter.kt`, `apps/ios/monocr-ios/LineSegmenter.swift`
 		// and its byte-identical twin `apps/ios/MonOcrCore/Sources/MonOcrCore/LineSegmenter.swift`,
-		// the reference `mon_OCR/src/monocr/segmenter.py` (`_RULE_SPAN`,
+		// the reference segmenter (`_RULE_SPAN`,
 		// `_RULE_MAX_INK_SHARE`), and `monocr-onnx/python/monocr_onnx/segmenter.py`.
 		//
 		// Changing one here without the others is drift, and it IS covered across

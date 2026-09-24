@@ -5,7 +5,7 @@ import { RULE_MAX_INK_SHARE, RULE_SPAN, suppressPageRules } from './segmentation
 /**
  * Checks `suppressPageRules` against `shared/segmentation-fixtures/rule-cases.json`,
  * the expectations generated from the printed-rule specification in
- * `mon_OCR/src/monocr/segmenter.py` and shared with the Android and iOS ports.
+ * the reference segmenter and shared with the Android and iOS ports.
  *
  * The point of a shared fixture is that three ports cannot drift apart quietly. A
  * disagreement here is either a bug in this port or a regenerated fixture, and both

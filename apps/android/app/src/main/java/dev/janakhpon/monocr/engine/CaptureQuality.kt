@@ -30,8 +30,8 @@ object CaptureQuality {
      * grey and it has been calibrated against nothing in this project. It is set low
      * deliberately so a warning is rare and therefore worth reading.
      *
-     * Calibrating it needs the real-photograph set `mon_OCR/docs/DATA_STRATEGY.md`
-     * calls rung D1, which does not exist yet. Until then this should warn, never
+     * Calibrating it needs a set of real photographs with ground truth, which
+     * does not exist yet. Until then this should warn, never
      * gate. Same value as the other two ports so all three agree on "soft".
      */
     const val SOFT_IMAGE_LAPLACIAN_VARIANCE = 100.0

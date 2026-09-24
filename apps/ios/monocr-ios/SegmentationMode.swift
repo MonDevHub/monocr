@@ -7,7 +7,7 @@ import Foundation
  threshold is a fraction of the mean row density, so a value that separates lines
  on a dense book page sits below the noise floor of a photograph, and a value
  that works on a poster fuses book lines. Measured upstream 2026-08-15
- (`mon_OCR/docs/LIMITATIONS.md`): a slide holding a six-line Mon poem segmented
+ (the training code's limitations record): a slide holding a six-line Mon poem segmented
  into 3 lines at the low ratio and into all 6, read correctly, at 0.50 — while on
  book pages the low ratio recalls 89.0% of the text against 87.1% at 0.50.
 
@@ -80,7 +80,7 @@ nonisolated enum ImageProvenance: Sendable {
     /// Minimum width-to-height ratio for a crop to be one line.
     ///
     /// The same 4.0 the canonical `looks_like_a_line` uses for the same judgement
-    /// (`mon_OCR/src/monocr/segmenter.py:181-215`), and the same
+    /// (in the reference segmenter), and the same
     /// `LINE_MIN_ASPECT` the Rust CLI uses. Reused rather than re-picked: two
     /// constants for one question drift apart, and this ecosystem has a
     /// documented history of exactly that.

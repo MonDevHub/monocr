@@ -86,7 +86,7 @@ object LineSegmenter {
      * a short word on a page, which can be taller than it is wide. A band has to fail
      * both to be called a block.
      *
-     * Ported from mon_OCR `segmenter.looks_like_a_line`; same two constants.
+     * Ported from the reference segmenter's `looks_like_a_line`; same two constants.
      */
     fun looksLikeALine(bbox: LineSegment, pageHeight: Int): Boolean {
         if (bbox.height <= 0 || pageHeight <= 0) return false
@@ -118,7 +118,7 @@ object LineSegmenter {
      * an adaptive threshold compares against a LOCAL mean, so the interior of a thick
      * ink region is not ink and only its edges are.
      *
-     * Ported from `mon_OCR/src/monocr/segmenter.py` (`_suppress_page_rules`) via
+     * Ported from the reference segmenter (`_suppress_page_rules`) via
      * `apps/web/src/lib/segmentation.ts` (`suppressPageRules`), whose run-length form
      * this follows exactly so the three stay comparable.
      *
@@ -246,7 +246,7 @@ object LineSegmenter {
      * profile above zero right across it.
      *
      * Ported from `monocr-onnx` `rust/src/segmenter.rs` (`MIN_GAP_MERGE`,
-     * `merge_runs`), which took it from `mon_OCR` `segmenter.py` step 8. The value
+     * `merge_runs`), which took it from the reference segmenter, step 8. The value
      * is the reference's.
      */
     internal const val MIN_GAP_MERGE = 10
@@ -507,7 +507,7 @@ object LineSegmenter {
             // smoothing bleeds ink across a true inter-line gap narrower than about half the
             // kernel, and a bled gap never falls under the threshold.
             //
-            // The reference states this and says why (`mon_OCR/src/monocr/segmenter.py`,
+            // The reference segmenter states this and says why (its section
             // "Valley detection (dual-histogram)"). All three ports read the smoothed profile
             // here instead, and the cost was measured on this port before changing it: pages of
             // 14px lines separated by 5, 6 and 8 pixels came back as ONE band each, against 29,

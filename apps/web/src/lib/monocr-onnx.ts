@@ -605,7 +605,7 @@ export class MonOcrOnnx {
 		// Fallback: if no segments found (e.g. single large word filling bounds?), use full image
 		if (segments.length === 0) {
 			// Flagged, not left undefined. A whole page read as one line is the exact
-			// case the fused-block check exists for — mon_OCR pins it as
+			// case the fused-block check exists for — the reference's tests pin it as
 			// `(2048, 1366, 1366, false, "a whole page returned as one band")` — and
 			// `seg.lineShaped === false` silently passes over `undefined`, so the one
 			// band most in need of the warning was the one band not getting it.
@@ -637,7 +637,7 @@ export class MonOcrOnnx {
 				// was quoted here as CER 0.1434 against 0.0795 tiled; retired
 				// 2026-08-22, harness never committed, figures do not reproduce. It is
 				// width-dependent and unbounded — 0.21 CER at 4 model windows against
-				// tiling's 0.06, above 0.83 by 6 (mon_OCR/eval/tiling-ab-2026-08-22.md).
+				// tiling's 0.06, above 0.83 by 6 (an A/B over 201 rendered lines, 2026-08-22).
 				// Tiles are read separately and joined with no separator: the cut lands
 				// at a white column inside a word, so a space there would be wrong.
 				const tiles = tileLine(imageData, seg, this.TARGET_HEIGHT, this.TARGET_WIDTH);

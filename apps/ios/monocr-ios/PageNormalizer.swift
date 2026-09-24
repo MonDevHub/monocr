@@ -10,7 +10,7 @@ import Foundation
  scan the segmenter therefore measured the BACKGROUND as ink, so the lines it
  returned were the gaps. Inverting later cannot undo that.
 
- Ported from mon_OCR `src/monocr/utils.py` (`to_normalized_grayscale` and
+ Ported from the reference preprocessing (`to_normalized_grayscale` and
  `_level_background`). It is not idempotent — running it per line after running
  it per page would level an already-levelled crop — so the per-line inversion was
  removed in the same change that added this.
@@ -180,7 +180,7 @@ nonisolated enum PageNormalizer {
      Dilate with a DISK, matching `cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))`.
 
      **This was a square until 2026-08-28, and that was wrong.** The reference
-     (`mon_OCR/src/monocr/utils.py`, `_level_background`) asks cv2 for `MORPH_ELLIPSE`,
+     preprocessing (`_level_background`) asks cv2 for `MORPH_ELLIPSE`,
      and Android's `PageNormalizer.dilateDisk` has always matched it. A square contains
      the inscribed disk, so the square propagated more background over the ink, the
      estimate came back brighter, and dividing by it made every iOS page 0.13%-0.34%

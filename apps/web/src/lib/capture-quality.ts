@@ -31,8 +31,8 @@ import { MIN_LINE_HEIGHT, segmentLines, toGrayscaleF32, type LineSegment } from 
  * page in this project. It is set deliberately low so the warning is rare and
  * therefore worth reading; a floor tuned to fire often would be ignored.
  *
- * Calibrating it needs the real-photograph set `mon_OCR/docs/DATA_STRATEGY.md`
- * calls rung D1, which does not exist yet. Until it does, treat a warning here as a
+ * Calibrating it needs a set of real photographs with ground truth, which does
+ * not exist yet. Until it does, treat a warning here as a
  * prompt to look at the image, not as a verdict.
  */
 export const SOFT_IMAGE_LAPLACIAN_VARIANCE = 100;

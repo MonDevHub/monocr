@@ -18,7 +18,7 @@ import kotlin.math.sqrt
  * background, so running it twice divides twice. There is exactly one call site,
  * in [OcrRepository.performOcr], and the per-line inversion it replaced is gone.
  *
- * Ported from mon_OCR `utils.to_normalized_grayscale` and `utils._level_background`.
+ * Ported from the reference preprocessing (`to_normalized_grayscale`, `_level_background`).
  * That port is faithful to the algorithm, not bit-exact to OpenCV: the area resize,
  * the elliptical dilation and the bilinear upsample are written out here in
  * floating point, where OpenCV uses fixed-point kernels. Expect agreement to about

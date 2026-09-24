@@ -235,7 +235,7 @@ mod tests {
             .unwrap_or_else(|| std::path::PathBuf::from(FIXTURE_DEFAULT))
     }
 
-    /// Exact `"1"`, matching mon_OCR's `os.environ.get(...) == "1"`, so a stray
+    /// Exact `"1"`, matching the training code's `os.environ.get(...) == "1"`, so a stray
     /// `REQUIRE_E2E=0` cannot read as "yes".
     fn env_is_one(name: &str) -> bool {
         std::env::var(name).as_deref() == Ok("1")
@@ -263,7 +263,7 @@ mod tests {
         if met {
             Verdict::Run
         } else if require_e2e {
-            // Outranks the opt-out. This is the switch mon_OCR's Makefile sets
+            // Outranks the opt-out. This is the switch the training code's Makefile sets
             // and the one for this repo's CI to set, and a green run under it must
             // not be purchasable with a second environment variable.
             Verdict::FailRequired
@@ -285,7 +285,7 @@ mod tests {
     /// false negative se-brain `standards/testing.md` §20 names: "N passed, M
     /// skipped" with an unnoticed M is not a pass.
     ///
-    /// mon_OCR spells this guard `requires()` (`tests/e2e/test_pipeline.py:30`)
+    /// The training code spells this guard `requires()` in its end-to-end tests
     /// and defaults to `pytest.skip`, which is honest there because pytest
     /// prints the skip count. With no such channel here the default is inverted:
     /// a missing precondition fails, and dropping the coverage is something an

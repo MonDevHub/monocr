@@ -6,7 +6,7 @@ import Testing
 /**
  Checks `LineSegmenter.suppressPageRules` against
  `shared/segmentation-fixtures/rule-cases.json`, the expectations generated from the
- printed-rule specification in `mon_OCR/src/monocr/segmenter.py` and shared with the
+ printed-rule specification in the reference segmenter and shared with the
  web and Android ports.
 
  The point of a shared fixture is that three ports cannot drift apart quietly. A

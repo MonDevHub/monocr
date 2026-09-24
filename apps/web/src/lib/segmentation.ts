@@ -25,7 +25,7 @@ export interface LineSegment {
 /**
  * Is this band plausibly one line of text, or a fused block of several?
  *
- * A port of `looks_like_a_line` in `mon_OCR/src/monocr/segmenter.py:181-215`, with
+ * A port of `looks_like_a_line` in the reference segmenter, with
  * the same two constants. Android (`LineSegmenter.looksLikeALine`), iOS
  * (`LineSegmenter.looksLikeALine`) and the Rust CLI (`apps/cli/src/mode.rs:161-168`)
  * all carry it; the web app was the last surface with no equivalent and no field to
@@ -52,9 +52,9 @@ export function looksLikeALine(segment: LineSegment, pageHeight: number): boolea
  * rather than letting lines vanish — a page captured too small loses text here and
  * nowhere else reports it.
  *
- * The canonical value is 20 (`mon_OCR` `_MIN_LINE_HEIGHT`); this port has always
+ * The canonical value is 20 (the reference's `_MIN_LINE_HEIGHT`); this port has always
  * used 10. That divergence is recorded in the "Canonical Algorithm Spec v1" header
- * at `mon_OCR/src/monocr/segmenter.py:7-78`, which also forbids reconciling it by
+ * of the reference segmenter, which also forbids reconciling it by
  * editing a constant: which value is right is a measurement question and nothing in
  * this ecosystem can yet measure it.
  */
@@ -89,8 +89,8 @@ function luma(data: Uint8ClampedArray, pixel: number): number {
  * almost always background, so their median survives a dense, text-heavy page
  * where a mean would be dragged down by ink.
  *
- * Ported from iOS `PageNormalizer.backgroundIsDark`, itself from mon_OCR
- * `utils.to_normalized_grayscale`. The median averages the two middle values, as
+ * Ported from iOS `PageNormalizer.backgroundIsDark`, itself from the reference
+ * preprocessing's `to_normalized_grayscale`. The median averages the two middle values, as
  * numpy does, and the sample is always even (four patches of equal size).
  */
 export function backgroundIsDark(image: ImageData): boolean {
@@ -327,7 +327,7 @@ export function suppressPageRules(binary: Uint8Array, width: number, height: num
  * profile above zero right across it.
  *
  * Ported from `monocr-onnx` `rust/src/segmenter.rs` (`MIN_GAP_MERGE`,
- * `merge_runs`), which took it from `mon_OCR` `segmenter.py` step 8. The value is
+ * `merge_runs`), which took it from the reference segmenter, step 8. The value is
  * the reference's.
  */
 export const MIN_GAP_MERGE = 10;
@@ -622,7 +622,7 @@ export function segmentLines(
 		// smoothing bleeds ink across a true inter-line gap narrower than about half the
 		// kernel, and a bled gap never falls under the threshold.
 		//
-		// The reference states this and says why (`mon_OCR/src/monocr/segmenter.py`,
+		// The reference segmenter states this and says why (its section
 		// "Valley detection (dual-histogram)"). All three ports read the smoothed profile
 		// here instead, and the cost was measured on this port before changing it: pages of
 		// 14px lines separated by 5, 6 and 8 pixels came back as ONE band each, against 29,
@@ -733,7 +733,7 @@ export function segmentLines(
 	});
 
 	// Flag rather than drop. A fused block still carries text a reader may want,
-	// and `mon_OCR`'s api.read_page makes the same choice: return it, mark it, let
+	// and the reference `read_page` makes the same choice: return it, mark it, let
 	// the caller decide.
 	return finalSegments.map((seg) => ({ ...seg, lineShaped: looksLikeALine(seg, height) }));
 }
@@ -754,7 +754,7 @@ export function segmentLines(
  * hurts v2, so anything repinned to `a51be11` must stop calling this.
  *
  * REMEASURED 2026-08-22, and the figures above did not reproduce.
- * `mon_OCR/eval/tiling-ab-2026-08-22.md` scored 201 rendered lines through both
+ * An A/B over 201 rendered lines (2026-08-22) scored them through both
  * the Python arms and the Rust binding and found the answer is width-dependent:
  * squeezing wins at 2 tiles, the two are at parity at 3, and tiling wins from 4
  * tiles up, reaching 20x-36x by 6 where squeezing exceeds 0.83 CER. At median 3

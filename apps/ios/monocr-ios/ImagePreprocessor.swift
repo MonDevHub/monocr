@@ -32,7 +32,7 @@ nonisolated enum ImagePreprocessor {
      2026-08-22 — harness never committed, figures do not reproduce. What the
      clamp actually costs is width-dependent and unbounded: at four model windows
      a squeezed line scores 0.21 CER against tiling's 0.06, and by six it is above
-     0.83 (`mon_OCR/eval/tiling-ab-2026-08-22.md`). It stays as a backstop
+     0.83 (an A/B over 201 rendered lines, 2026-08-22). It stays as a backstop
      precisely because reaching it means something upstream failed to tile.
      */
     static func processLine(source: UIImage, segment: LineSegment) -> [Float]? {

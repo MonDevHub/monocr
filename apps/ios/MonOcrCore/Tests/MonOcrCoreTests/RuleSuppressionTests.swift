@@ -222,7 +222,7 @@ struct RuleSuppressionTests {
  exactly the drawn count, and at 12px and wider the two agree exactly.
 
  The threshold is still calibrated from the smoothed mean, which is what the
- reference does and why both profiles exist (`mon_OCR/src/monocr/segmenter.py`,
+ reference does and why both profiles exist (the reference segmenter,
  "Valley detection (dual-histogram)").
 
  Paired with `lines eight pixels apart stay separate` in

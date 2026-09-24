@@ -35,8 +35,8 @@ nonisolated enum CaptureQuality {
      grey and it has been calibrated against nothing in this project. It is set low
      deliberately so a warning is rare and therefore worth reading.
 
-     Calibrating it needs the real-photograph set `mon_OCR/docs/DATA_STRATEGY.md`
-     calls rung D1, which does not exist yet. Until then this should log, never gate.
+     Calibrating it needs a set of real photographs with ground truth, which
+     does not exist yet. Until then this should log, never gate.
      Same value as the web port so the two agree on what "soft" means.
      */
     static let softImageLaplacianVariance: Double = 100
