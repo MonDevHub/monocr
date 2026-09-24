@@ -139,11 +139,12 @@ def cross_check(quiet=False):
     """
     import cv2  # noqa: PLC0415
 
-    src = os.environ.get("REFERENCE_SRC") or os.environ.get("MON_OCR_SRC")
+    src_var = "REFERENCE_SRC" if os.environ.get("REFERENCE_SRC") else "MON_OCR_SRC"
+    src = os.environ.get(src_var)
     if src:
         path = Path(src).expanduser().resolve()
         if not (path / "monocr" / "segmenter.py").is_file():
-            sys.exit(f"REFERENCE_SRC={path} has no monocr/segmenter.py")
+            sys.exit(f"{src_var}={path} has no monocr/segmenter.py")
         sys.path.insert(0, str(path))
     try:
         from monocr.segmenter import _RULE_MAX_INK_SHARE, _RULE_SPAN  # noqa: PLC0415
