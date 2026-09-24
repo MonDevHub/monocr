@@ -177,14 +177,14 @@ of confusion.
 
 | surface | what it is | needs Xcode? | covers |
 |---|---|---|---|
-| `MonOcrCore` | SwiftPM package over the Foundation-only files | no | 12 files, 49 tests |
-| `monocr-ios` | the app target in `monocr-ios.xcodeproj` | yes | 42 files |
+| `MonOcrCore` | SwiftPM package over the Foundation-only files | no | 15 files, 82 tests |
+| `monocr-ios` | the app target in `monocr-ios.xcodeproj` | yes | 45 files |
 
 ### Testing the core package
 
 ```bash
 cd apps/ios
-sh Scripts/swift-test.sh          # Test run with 49 tests in 8 suites passed
+sh Scripts/swift-test.sh          # Test run with 82 tests in 13 suites passed
 ```
 
 **Do not export `DEVELOPER_DIR` for this command** unless you also wipe
@@ -292,7 +292,7 @@ If you hit the same error in new code: annotate the locals. Raising
 `-solver-expression-time-threshold` does **not** help — it is not a solver
 time-limit failure.
 
-### What the 49 tests do not cover
+### What the 82 tests do not cover
 
 `MonOcrCore/Sources/MonOcrCore/` is 15 relative symlinks into
 `../../../monocr-ios/`. `monocr-ios/` holds 45 Swift files, so **30 are
