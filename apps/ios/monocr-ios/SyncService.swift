@@ -12,7 +12,7 @@ actor SyncService {
     /// This was a 64-character literal on the line below from 2026-04-11 to
     /// 2026-08-16, in a public repository, directly beneath the production
     /// endpoint it authenticates against. Treat that value as burned regardless
-    /// of this change: it is in the git history and in every shipped IPA.
+    /// of this change: it is in the git history and in every IPA built before this change.
     ///
     /// Set `SYNC_API_KEY` in an xcconfig that is not committed (it reaches
     /// Info.plist through `GENERATE_INFOPLIST_FILE`), or export

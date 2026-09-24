@@ -1,16 +1,16 @@
 # MonOCR Android
 
-MonOCR Android brings high-performance, native optical character recognition for the Mon script natively to Android devices.
+MonOCR Android reads printed Mon text on Android devices, on the device itself.
 
 For mission context, community guidelines, and cross-platform information, please refer to the **[MonOCR Root Documentation](../../README.md)**.
 
 ## Overview
 
-MonOCR Android runs **ONNX Runtime** with NNAPI, so every character is recognised on the device. The model ships as `assets/monocr.onnx`. No image and no recognised text leaves the device: there is no network call on the recognition path.
+MonOCR Android runs **ONNX Runtime**, requesting NNAPI and falling back to the CPU where NNAPI is unavailable, so every character is recognised on the device. Which layers NNAPI actually takes has not been checked on a device, and the BiLSTM layers are not expected to run on it. The model ships as `assets/monocr.onnx`. No image and no recognised text leaves the device: there is no network call on the recognition path.
 
 ## Key Features
 
-- **On-Device Inference**: Powered by ONNX Runtime with hardware acceleration.
+- **On-Device Inference**: ONNX Runtime, with NNAPI requested and CPU fallback.
 - **Privacy by Design**: Zero data collection unless users want to contribute intentionally; OCR processing is 100% local.
 - **Mon Language Support**: Specialized for the Mon script (276-char charset).
 - **Line Segmentation**: Horizontal projection profiling, with a Page / Sparse / Line mode so dense scans and wide-spaced photos can use different valley thresholds.
@@ -85,7 +85,7 @@ apps/android/
 
 MonOCR is a unified cross-platform ecosystem designed for parity and performance:
 
-- **[MonOCR Web](https://github.com/MonDevHub/monocr-web)**: Privacy-first in-browser OCR.
+- **[MonOCR Web](https://ocr.mondevhub.com)**: (In this Monorepo, [`apps/web`](../web)) In-browser OCR.
 - **[MonOCR Android](https://github.com/MonDevHub/monocr)**: (In this Monorepo) Native Jetpack Compose app.
 - **[MonOCR iOS](https://github.com/MonDevHub/monocr)**: (In this Monorepo) Native SwiftUI app with SwiftData persistence.
 
@@ -116,10 +116,10 @@ Runtime, and Gradle fails at configuration time rather than falling back. The
 failure reads "Unable to download toolchain", which is a *lookup* failure and not
 an absence — the runtime is already on the machine.
 
-**CI does not run this suite, so running it locally is the only gate on it.**
-`.github/workflows/ci.yml` covers web, Go, the Rust CLI and the iOS `MonOcrCore`
-package; the Android job is still blocked on provisioning a JetBrains Runtime 21
-on the runner. Twelve of the 106 tests check `LineSegmenter`, `LineTiler` and
+**CI runs this suite on every push.** The `android` job in
+`.github/workflows/ci.yml` runs `./gradlew testDebugUnitTest` on JetBrains Runtime
+21 and fails unless tests actually executed. It does not build the app and there
+are no instrumented tests. Twelve of the 106 tests check `LineSegmenter`, `LineTiler` and
 `PageNormalizer` against the shared fixtures in `shared/segmentation-fixtures/`,
 which is the only automated check that this port still agrees with web and iOS.
 `MergeFixtureTest` is the newest of the four and pins `mergeRuns`, the step that
@@ -138,7 +138,7 @@ troubleshooting: `docs/guides/mobile-build-and-test.md`.
 > [!TIP]
 > File size for mobile uploads is limited to 20MB. For larger documents, `cargo install monocr-cli` gives you this repository's CLI ([`apps/cli`](../cli/README.md)) with no size cap and the same engine as this app. The tip above covers why `pip install monocr` is not the same thing.
 
-4. Deploy to a physical device for optimal performance (NNAPI acceleration).
+4. Deploy to a physical device. NNAPI is not available on every device or emulator, and the app falls back to the CPU where it is missing.
 
 ## Resources
 

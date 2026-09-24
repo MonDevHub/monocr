@@ -1,21 +1,21 @@
 # MonOCR iOS
 
-MonOCR iOS provides high-performance, native optical character recognition for the Mon script natively on Apple devices.
+MonOCR iOS reads printed Mon text on Apple devices, on the device itself.
 
 For mission context, community guidelines, and cross-platform information, please refer to the **[MonOCR Root Documentation](../../README.md)**.
 
 ## Overview
 
-MonOCR iOS runs **Core ML**, so every character is recognised on the device. Recognition is this project's own pipeline end to end; Vision does no text recognition here. The model ships as `monocr.mlpackage` and Core ML places it on the Neural Engine where the hardware allows. No image and no recognised text leaves the device: there is no network call on the recognition path.
+MonOCR iOS runs **Core ML**, so every character is recognised on the device. Recognition is this project's own pipeline end to end; Vision does no text recognition here. The model is bundled as `monocr.mlpackage`, and the app asks Core ML for all compute units. Which layers actually run on the Neural Engine has not been checked on a device, and the BiLSTM layers are not expected to. No image and no recognised text leaves the device: there is no network call on the recognition path.
 
 ## Key Features
 
-- **On-Device Inference**: Optimized Core ML execution with ANE acceleration.
+- **On-Device Inference**: Core ML, with all compute units requested.
 - **Privacy by Design**: Zero data collection; OCR processing is 100% local.
 - **Mon Language Support**: Specialized for the Mon script (276-char charset).
 - **Line Segmentation**: Horizontal projection profiling, with a Page / Sparse / Line mode so dense scans and wide-spaced photos can use different thresholds.
 - **Printed-Rule Suppression**: Ruled paper, table borders and underlines are cleared from the binarised mask before the projection profile runs, so a printed line is not read as ink. Shares a fixture with the web and Android ports.
-- **Line Tiling**: Lines wider than the model window are cut at whitespace instead of squeezed into it. Squeezing degrades sharply as a line gets wider: 0.21 CER at four model windows against tiling's 0.06, and above 0.83 by six, while tiling costs a fraction of a point on narrower lines. Measured over 201 rendered lines, 2026-08-22, in the sibling repository `janakhpon/mon_OCR` at `eval/tiling-ab-2026-08-22.md`.
+- **Line Tiling**: Lines wider than the model window are cut at whitespace instead of squeezed into it. Squeezing degrades sharply as a line gets wider: 0.21 CER at four model windows against tiling's 0.06, and above 0.83 by six, while tiling costs a fraction of a point on narrower lines. Measured over 201 rendered lines, 2026-08-22.
 - **Modern UI**: 100% SwiftUI with native animations and light/dark theme support.
 - **Format Support**: Handles high-resolution images and multi-page PDFs.
 - **Script Fidelity**: Integration of PyidaungSu fonts for correct Mon/Myanmar rendering.
@@ -100,7 +100,7 @@ The engine files are `MonOcrEngine.swift`, `PageNormalizer.swift`,
 
 MonOCR is a unified cross-platform ecosystem designed for parity and performance:
 
-- **[MonOCR Web](https://github.com/MonDevHub/monocr-web)**: Privacy-first in-browser OCR.
+- **[MonOCR Web](https://ocr.mondevhub.com)**: (In this Monorepo, [`apps/web`](../web)) In-browser OCR.
 - **[MonOCR Android](https://github.com/MonDevHub/monocr)**: (In this Monorepo) Native Jetpack Compose app.
 - **[MonOCR iOS](https://github.com/MonDevHub/monocr)**: (In this Monorepo) Native SwiftUI app.
 
@@ -149,7 +149,7 @@ target against the package's. It affects nothing the app ships.
 
 1.  Clone the repository and open `monocr-ios.xcodeproj` in **Xcode**.
 2.  Ensure `monocr.mlpackage` is correctly referenced in the app target.
-3.  Build and run on a physical device for optimal performance (ANE acceleration).
+3.  Build and run on a physical device.
 4.  Use the **Document Picker** or **Camera** to begin character recognition.
 
 ## Known gap: most of the app's own strings are not in the catalogue
