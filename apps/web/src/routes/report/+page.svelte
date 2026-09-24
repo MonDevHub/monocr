@@ -98,7 +98,7 @@
 				{m.nav_feedback()}
 			</h1>
 			<p class="text-fg-secondary max-w-lg leading-relaxed text-[var(--text-body)]">
-				{m.docs_privacy_desc()}
+				{m.report_sharing_desc()}
 			</p>
 		</section>
 		<!-- Original Source Selection -->
