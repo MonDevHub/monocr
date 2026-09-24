@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: MonOCR Feedback API
   description: |
-    Production-grade feedback and contribution service for the MonOCR platform.
+    Feedback and contribution service for the MonOCR platform.
     This service facilitates the secure upload of character recognition feedback and 
     dataset contributions to Cloudflare R2 storage.
   version: 1.0.0

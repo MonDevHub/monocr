@@ -10,7 +10,7 @@ struct DocsView: View {
         NavigationStack {
             List {
                 Section {
-                    Text("Academic-grade OCR engine for Mon script. High-performance, private, and localized.")
+                    Text("On-device OCR for printed Mon text. Works offline.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .listRowBackground(Color.clear)
@@ -42,7 +42,7 @@ struct DocsView: View {
                 Section {
                     DocRow(number: "3", title: "Multi-Platform SDKs", systemImage: "code.square") {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Official libraries for high-performance inference.")
+                            Text("Libraries for JavaScript, Python, Go and Rust.")
                                 .font(MonTheme.Typography.meta)
                                 .foregroundColor(.secondary)
                             

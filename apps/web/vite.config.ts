@@ -31,8 +31,7 @@ export default defineConfig({
 			manifest: {
 				name: 'MonOCR',
 				short_name: 'MonOCR',
-				description:
-					'Private Mon Language OCR. Optimized for high-accuracy archival digitization, running entirely in your browser.',
+				description: 'Open-source OCR for printed Mon text. Recognition runs in your browser.',
 				// Matches src/app.html's own <meta name="theme-color">, and --bg-canvas in
 				// app.css -- this manifest previously carried unrelated placeholder values
 				// (an indigo theme_color, a white background_color, and literal starter-template

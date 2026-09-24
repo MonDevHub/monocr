@@ -27,7 +27,7 @@ import (
 
 // @title MonOCR Feedback API
 // @version 1.0
-// @description Production-grade image feedback and contribution service for MonOCR.
+// @description Image feedback and contribution service for MonOCR.
 // @contact.name MonDevHub Support
 // @license.name MIT
 // @license.url https://opensource.org/licenses/MIT

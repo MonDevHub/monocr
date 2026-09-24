@@ -90,10 +90,7 @@
 	}
 </script>
 
-<SEO
-	title={`${m.docs_title()} - MonOCR Professional Academic OCR`}
-	description={m.docs_hero_desc()}
-/>
+<SEO title={`${m.docs_title()} - MonOCR`} description={m.docs_hero_desc()} />
 
 <div class="selection:bg-primary-tint/20">
 	<div class="mx-auto max-w-[1400px] px-6 lg:px-8">
@@ -348,9 +345,9 @@ text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
 													class="zen-code-keyword">await</span
 												> ocr.predict(<span class="zen-code-string">'page.jpg'</span>);
 											{:else if selectedSdk === 'python'}
-												<span class="zen-code-comment"># Python / Academic Research</span>
-<span
-													class="zen-code-keyword">from</span
+												<span class="zen-code-comment"># Python</span>
+<span class="zen-code-keyword"
+													>from</span
 												> monocr <span class="zen-code-keyword">import</span
 												> MonOCR
 
@@ -362,9 +359,10 @@ res = ocr.predict_with_confidence(<span
 													>f"Confidence: &#123;res['confidence']:.2%&#125;"</span
 												>)
 											{:else if selectedSdk === 'go'}
-												<span class="zen-code-comment">// High-performance Go implementation</span
-												>
-<span class="zen-code-keyword">import</span> <span class="zen-code-string"
+												<span class="zen-code-comment">// Go binding</span>
+<span
+													class="zen-code-keyword">import</span
+												> <span class="zen-code-string"
 													>"github.com/MonDevHub/monocr-onnx/go/pkg/ocr"</span
 												>
 

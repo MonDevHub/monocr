@@ -8,7 +8,7 @@
     <string name="nav_contribute">ပါဝင်ကူညီရန်</string>
     <string name="nav_privacy">ကိုယ်ရေးလုံခြုံမှု</string>
     <string name="hero_tagline">မွန်ဘာသာစကားကို ဒစ်ဂျစ်တယ်ခေတ်တွင် ထိန်းသိမ်းရန်</string>
-    <string name="hero_subtitle">မွန်စာများအတွက် အဆင့်မြင့် OCR အင်ဂျင်။ မြန်ဆန်၊ လုံခြုံပြီး အော့ဖ်လိုင်း အသုံးပြုနိုင်သည်။</string>
+    <string name="hero_subtitle">မွန်စာများအတွက် OCR အင်ဂျင်။ အော့ဖ်လိုင်း အသုံးပြုနိုင်သည်။</string>
     <string name="engine_initializing">မော်ဒယ်ကို ပြင်ဆင်နေသည်…</string>
     <string name="engine_ready">အင်ဂျင် အဆင်သင့်ဖြစ်ပါပြီ</string>
     <string name="loading_model">မော်ဒယ်ကို ဒေါင်းလုဒ်ဆွဲနေသည်… (ခဏစောင့်ပါ)</string>
@@ -66,7 +66,7 @@
     <string name="docs_cli_reference">CLI လမ်းညွှန်</string>
     <string name="docs_cli_desc">ကြီးမားသော PDF များ (&gt;50MB) သို့မဟုတ် ဖိုင်တွဲလိုက် လုပ်ဆောင်ရန်အတွက် Command Line ကို အသုံးပြုပါ။</string>
     <string name="docs_sdks">ပလက်ဖောင်းစုံ SDK များ</string>
-    <string name="docs_sdks_desc">စွမ်းဆောင်ရည်မြင့်မားသော တရားဝင် Library များ။</string>
+    <string name="docs_sdks_desc">တရားဝင် Library များ။</string>
     <string name="docs_input_standards">အသုံးပြုမှု စံနှုန်းများ</string>
     <string name="docs_resolution">ကြည်လင်ပြတ်သားမှု</string>
     <string name="docs_resolution_desc">အနည်းဆုံး 300 DPI လိုအပ်သည်။ ပေမူများအတွက် 600 DPI လိုအပ်သည်။</string>

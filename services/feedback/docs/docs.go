@@ -160,7 +160,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "MonOCR Feedback API",
-	Description:      "Production-grade image feedback and contribution service for MonOCR.",
+	Description:      "Image feedback and contribution service for MonOCR.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
