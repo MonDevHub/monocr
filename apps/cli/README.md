@@ -57,7 +57,7 @@ does not.
 
 Two things are not, and one of them is only for PDFs.
 
-**The model.** About 55 MB, About 55 MB, fetched from the pinned Hugging Face revision
+**The model.** About 46 MB, fetched from the pinned Hugging Face revision
 on first use and cached under `~/.monocr/models/<revision>/`
 (`%USERPROFILE%\.monocr\models\<revision>\` on Windows). `extract` downloads
 it if the cache is cold, so the first run needs network. `monocr-cli download`

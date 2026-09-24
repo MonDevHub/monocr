@@ -16,8 +16,10 @@
 # on is a higher version: crates.io refuses duplicates and the gate below
 # refuses a tag that disagrees with Cargo.toml. Bump, then tag.
 #
-# Tag is `cli/v*`, not a bare `v*`: this repo ships four surfaces and has no
-# tags yet, so a bare prefix would become ambiguous the moment a second one does.
+# Tag is `cli/vX.Y.Z` (first: cli/v0.1.1), not a bare `v*`: this repo ships
+# four surfaces, so a bare prefix would be ambiguous the moment a second one is
+# tagged. Cut the tag from the merged commit on main, after the version bump
+# has landed there, never from a feature branch.
 name: release-cli
 
 on:
@@ -34,11 +36,12 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    # Attach a protected environment named `crates-io` in repository settings
-    # for a manual approval step before this leaves the machine, mirroring
-    # mon_tokenizer's `environment: pypi`. GitHub creates it with no
-    # protection rules on first use if it does not exist, so this is safe
-    # either way.
+    # The `crates-io` environment scopes the trusted publisher: crates.io
+    # accepts only a token whose `environment` claim matches the one
+    # registered above. It is not an approval gate — it has no required
+    # reviewers and no deployment-branch policy, so pushing a `cli/v*` tag
+    # publishes without a manual step. Adding reviewers in repository
+    # settings would make it one; update this comment if that happens.
     environment: crates-io
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
