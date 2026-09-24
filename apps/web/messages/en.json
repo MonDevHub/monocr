@@ -25,7 +25,6 @@
 	"docs_usage_step3": "3. Review the extracted text.",
 	"docs_usage_step4": "4. Copy or download the result.",
 	"docs_privacy": "Privacy & Security",
-	"docs_privacy_desc": "All processing happens on your machine. No files are uploaded to the internet.",
 	"main_hero": "Mon OCR Project for preserving Mon language in the digital age.",
 	"main_requirements": "Requirements: Modern browser with hardware acceleration and 4GB+ RAM.",
 	"main_model_info": "Model file (46.2MB) is downloaded once and works offline.",
