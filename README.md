@@ -6,7 +6,7 @@
 
 ---
 
-Mon is spoken by roughly one million people across Myanmar and Thailand. [UNESCO classifies it as vulnerable](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger) — and it has no OCR model of its own.
+Mon is spoken by roughly one million people across Myanmar and Thailand. [UNESCO classifies it as vulnerable](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger).
 
 MonOCR takes an image of Mon script and returns text. It runs in the browser at [ocr.mondevhub.com](https://ocr.mondevhub.com), offline once the model is cached. The Android and iOS apps build from source and are not in an app store yet.
 
