@@ -1,6 +1,6 @@
 //! Batch Mon OCR over books, PDFs and images.
 //!
-//! The stream contract, per se-brain `standards/cli-design.md` §2-§4: **stdout
+//! The stream contract, per the CLI design standard: **stdout
 //! carries results and nothing else**; progress, warnings and errors go to
 //! stderr. That is what lets `monocr-cli extract book.pdf --json | jq` work while
 //! the operator still sees progress. Exit 0 on success, 1 on failure, 130 on
@@ -9,8 +9,8 @@
 //!
 //! This is a delivery surface, not an OCR implementation. Segmentation, tiling,
 //! the model pin and the charset contract live in the `monocr-onnx` library; a
-//! sixth copy of that logic here is exactly what se-brain
-//! `standards/delivery-surfaces.md` §1 exists to prevent.
+//! sixth copy of that logic here is exactly what the delivery-surfaces
+//! standard exists to prevent.
 
 mod config;
 mod discover;

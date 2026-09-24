@@ -282,7 +282,7 @@ mod tests {
     /// `a_real_pdf_reports_its_page_count_and_renders_one_page` "passed" in
     /// 0.00s having asserted nothing. libtest has no runtime skip channel, so
     /// the summary was identical whether the coverage ran or evaporated — the
-    /// false negative se-brain `standards/testing.md` §20 names: "N passed, M
+    /// false negative the testing standard names: "N passed, M
     /// skipped" with an unnoticed M is not a pass.
     ///
     /// The training code spells this guard `requires()` in its end-to-end tests

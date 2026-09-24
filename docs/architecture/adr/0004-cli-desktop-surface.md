@@ -47,7 +47,7 @@ Rust is also the path to a Tauri GUI if the desktop surface grows a window.
 
 ### The CLI is a thin adapter
 
-Per se-brain `standards/delivery-surfaces.md` §1, domain logic stays in the library and the
+Per the delivery-surfaces standard, domain logic stays in the library and the
 surface only adapts a transport. Concretely, three capabilities the CLI needed were added
 **upstream in `monocr-onnx/rust`, not here**:
 
@@ -98,9 +98,9 @@ absences. The tiling fix landed in the library, so the published Rust binding im
 
 - **The dependency is a path, and must become a pinned git rev.** `Cargo.toml` currently points
   at `../../../monocr-onnx/rust` so the CLI could build against uncommitted upstream work. A
-  sibling-checkout path dependency is a known failure mode here: `mon-lm` records that "mon-vlm
-  took an editable path install of it and that is why mon-vlm's CI cannot run at all". The CI
-  job cannot be green on a fresh clone until this is a git rev.
+  sibling-checkout path dependency is a known failure mode here: a sibling project records that
+  a downstream consumer took an editable path install of it and that is why that consumer's CI
+  cannot run at all. The CI job cannot be green on a fresh clone until this is a git rev.
 - **`ort` must stay pinned exactly.** `ort = "2.0.0-rc.11"` range-matches `rc.13`, which
   changed `Send` bounds and does not compile against this crate. Pre-release dependencies need
   `=`, not a caret.

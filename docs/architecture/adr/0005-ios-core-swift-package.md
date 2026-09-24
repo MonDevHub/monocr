@@ -17,7 +17,7 @@ Two facts, both verified:
   tests. It reported success.
 
 So the repository had a green iOS test command that executed nothing, for months. That is the
-failure shape se-brain `standards/testing.md` guards against, one level up: not a test that
+failure shape the testing standard guards against, one level up: not a test that
 cannot fail, but a _suite_ that cannot run.
 
 Two further constraints:

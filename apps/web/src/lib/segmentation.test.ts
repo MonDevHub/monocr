@@ -577,9 +577,8 @@ describe('mergeRuns', () => {
  *
  * In the Rust port a mutation that deleted the `merge_runs` call from the
  * pipeline SURVIVED all four helper tests, because they call the helper directly
- * and the call site was unguarded. That is the gap `se-brain`
- * `rules/standards/testing.md` §23 names: a tested helper does not make its call
- * site safe.
+ * and the call site was unguarded. That is the gap the testing standard names:
+ * a tested helper does not make its call site safe.
  *
  * Geometry is this port's measured one. Rust's is not reusable here: this port
  * dilates the mask vertically with reach 2 before the profile, so a source gap

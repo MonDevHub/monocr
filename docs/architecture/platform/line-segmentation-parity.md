@@ -210,8 +210,8 @@ ratio is.
 **All four have it.** Web already did; Android and iOS were ported on 2026-08-28,
 and `monocr-onnx/rust` the same day, which the CLI inherits. Rust was the last of
 **ten** implementations across five repositories without it — the others being
-the reference segmenter, `monocr`, `mon-corpus-scraper` and the Python, JS and Go bindings, all
-of which had gained it independently. This file said "only web has it" for long
+the reference segmenter, `monocr`, the training-data tooling and the Python, JS and Go
+bindings, all of which had gained it independently. This file said "only web has it" for long
 enough to be wrong in both directions. Each port
 was measured through its own parameter set rather than inheriting the reference
 figure — bands over the same twelve pages, without → with:

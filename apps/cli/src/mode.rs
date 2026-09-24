@@ -18,7 +18,7 @@ use crate::discover::InputKind;
 const MODEL_INPUT_HEIGHT: u32 = 160;
 
 /// Below this height an image may be an already-cropped line. Taken from
-/// `mon-corpus-scraper`, which uses `height > MODEL_H * 2` for the same call.
+/// a sibling project, which uses `height > MODEL_H * 2` for the same call.
 ///
 /// Height alone is not sufficient, which the fixture set demonstrates:
 /// `pdf_screenshot.png` is 876x277, so it passes this test, and at aspect 3.2 it

@@ -1,12 +1,10 @@
 # Automated dependency updates.
 #
-# se-brain/rules/standards/supply-chain-security.md:130 — "Renovate or Dependabot
-# running on every repository is a security control, not just maintenance.
-# Unpatched dependencies are the primary target."
+# Renovate or Dependabot running on every repository is a security control, not
+# just maintenance. Unpatched dependencies are the primary target.
 #
-# Grouped, per :160 — "Group related packages ... to avoid review fatigue from
-# dozens of single-package PRs." Ungrouped, this repo would open a PR per package
-# and the review would stop happening, which is the failure mode that matters.
+# Grouped: ungrouped, this repo would open a PR per package and the review
+# would stop happening, which is the failure mode that matters.
 #
 # Only ecosystems CI can actually verify are listed. Android (gradle) is neither
 # built nor tested in CI, so a dependency PR for it could not be checked by
