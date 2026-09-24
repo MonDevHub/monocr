@@ -17,8 +17,8 @@ MonOCR သည် မွန်အက္ခရာ ပုံရိပ်ကို�
 ## Live
 
 - **Web**: [ocr.mondevhub.com](https://ocr.mondevhub.com)
-- **Android**: not yet on Google Play — build from [`apps/android`](apps/android)
-- **iOS**: not yet on the App Store — build from [`apps/ios`](apps/ios)
+- **Android**: Google Play တွင် မရရှိသေးပါ — [`apps/android`](apps/android) မှ build လုပ်ပါ
+- **iOS**: App Store တွင် မရရှိသေးပါ — [`apps/ios`](apps/ios) မှ build လုပ်ပါ
 
 ---
 

@@ -15,8 +15,8 @@ MonOCR ဝွံ ဒှ်ပရဝ်ဂျေသူ မလ္ပကၠော�
 ## Live
 
 - **Web**: [ocr.mondevhub.com](https://ocr.mondevhub.com)
-- **Android**: not yet on Google Play — build from [`apps/android`](apps/android)
-- **iOS**: not yet on the App Store — build from [`apps/ios`](apps/ios)
+- **Android**: ပ္ဍဲ Google Play ဟွံနွံဏီ — build နူကဵု [`apps/android`](apps/android) ညိ
+- **iOS**: ပ္ဍဲ App Store ဟွံနွံဏီ — build နူကဵု [`apps/ios`](apps/ios) ညိ
 
 ---
 
