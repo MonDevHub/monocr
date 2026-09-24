@@ -11,7 +11,7 @@
 		{ id: 'js', name: 'JavaScript', pkg: 'monocr' },
 		{ id: 'python', name: 'Python', pkg: 'monocr-onnx' },
 		{ id: 'go', name: 'Go', pkg: 'monocr-onnx/go' },
-		{ id: 'rust', name: 'Rust', pkg: 'monocr-onnx' }
+		{ id: 'rust', name: 'Rust', pkg: 'monocr' }
 	];
 
 	interface DocLink {
@@ -348,41 +348,38 @@ text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
 												<span class="zen-code-comment"># Python</span>
 <span class="zen-code-keyword"
 													>from</span
-												> monocr <span class="zen-code-keyword">import</span
+												> monocr_onnx <span class="zen-code-keyword">import</span
 												> MonOCR
 
-ocr = MonOCR()
-res = ocr.predict_with_confidence(<span
-													class="zen-code-string">"sample.png"</span
+engine = MonOCR()
+text = engine.predict(<span class="zen-code-string"
+													>"document.png"</span
 												>)
-<span class="zen-code-keyword">print</span>(<span class="zen-code-string"
-													>f"Confidence: &#123;res['confidence']:.2%&#125;"</span
-												>)
+<span class="zen-code-keyword">print</span>(text)
 											{:else if selectedSdk === 'go'}
 												<span class="zen-code-comment">// Go binding</span>
 <span
 													class="zen-code-keyword">import</span
-												> <span class="zen-code-string"
-													>"github.com/MonDevHub/monocr-onnx/go/pkg/ocr"</span
+												> monocr <span class="zen-code-string"
+													>"github.com/MonDevHub/monocr-onnx/go"</span
 												>
 
-engine, _ := ocr.NewMonOCR(<span class="zen-code-string">""</span
-												>)
-text, _ := engine.Predict(<span class="zen-code-string"
+text, _ := monocr.ReadImage(<span class="zen-code-string"
 													>"manuscript.jpg"</span
 												>)
 											{:else if selectedSdk === 'rust'}
 												<span class="zen-code-comment">// Memory-safe Rust implementation</span
 												>
-<span class="zen-code-keyword">use</span> monocr_onnx::MonOCR;
+<span class="zen-code-keyword">use</span> monocr_onnx::MonOcr;
 
 <span
 													class="zen-code-keyword">let</span
-												> ocr = MonOCR::new(<span class="zen-code-string">"monocr.onnx"</span
-												>)?;
-<span class="zen-code-keyword">let</span> text = ocr.predict(<span
+												> <span class="zen-code-keyword">mut</span
+												> ocr = MonOcr::builder().build().<span class="zen-code-keyword">await</span
+												>?;
+<span class="zen-code-keyword">let</span> text = ocr.read_image(<span
 													class="zen-code-string">"scan.jpg"</span
-												>)?;
+												>).<span class="zen-code-keyword">await</span>?;
 											{/if}</pre>
 									</div>
 								</div>
