@@ -97,7 +97,7 @@ point. It is an incremental radius-growing disk dilation, ported from Android on
 same disk at four kernel sizes, which pins the ALGORITHM and says nothing about the
 kernel's SHAPE. That distinction is not academic here. From 2026-08-22 to 2026-08-28
 this port dilated with a SQUARE against an elliptical reference, `_level_background`
-in `mon_OCR/src/monocr/utils.py` asking cv2 for `MORPH_ELLIPSE`, and the oracle test
+in the reference preprocessing asking cv2 for `MORPH_ELLIPSE`, and the oracle test
 was green the whole six days because the naive oracle was a square too. An
 implementation and its oracle agreed about a shape neither had checked. The shape is
 pinned independently now, by `PageNormalizerFixtureTests` against

@@ -47,14 +47,10 @@ cross-app invariants (the three bundled charsets must stay byte-identical, one
 model revision everywhere, one architecture string, no accuracy figure that
 traces to no run).
 
-**CI does not build or test Android, and covers only part of iOS.** Both halves
-of what this paragraph used to say were dead: it claimed "there is no Gradle
-wrapper committed and iOS needs a macOS runner", but all four wrapper files are
-tracked, and the `ios-core` job already runs on `macos-latest`.
-
-What is actually true: Android is excluded because the build pins a
-JetBrains-vendor JDK 21 that a runner would have to provision explicitly, and CI
-runs `Scripts/swift-test.sh` over `MonOcrCore` only — 12 of the app target's 42
+**CI tests the logic of both mobile apps but builds neither.** The `android` job
+runs the unit tests (`./gradlew testDebugUnitTest` on JetBrains Runtime 21) but
+does not build the app, and there are no instrumented tests. The `ios-core` job
+runs `Scripts/swift-test.sh` over `MonOcrCore` only — 15 of the app target's 45
 Swift files. If you touch either app, especially a decoder or a segmenter, run its tests
 locally and say so in the PR. See
 `docs/guides/mobile-build-and-test.md`.

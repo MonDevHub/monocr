@@ -8,7 +8,7 @@
 
 Mon is spoken by roughly one million people across Myanmar and Thailand. [UNESCO classifies it as vulnerable](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger) — and it has no OCR model of its own.
 
-MonOCR takes an image of Mon script and returns text. It runs on Web, Android, and iOS — fully offline, no data leaves the device.
+MonOCR takes an image of Mon script and returns text. It runs in the browser at [ocr.mondevhub.com](https://ocr.mondevhub.com), offline once the model is cached. The Android and iOS apps build from source and are not in an app store yet.
 
 Built and maintained by the Mon developer community.
 
@@ -85,7 +85,7 @@ Because high-quality Mon datasets are scarce, validated samples from the app's f
 
 ## Platform
 
-The model runs on Web, Android, and iOS in these formats:
+Each app runs the model in this format:
 
 | Platform | Format | Execution provider requested |
 | :--- | :--- | :--- |

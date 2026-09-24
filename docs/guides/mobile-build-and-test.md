@@ -294,8 +294,8 @@ time-limit failure.
 
 ### What the 49 tests do not cover
 
-`MonOcrCore/Sources/MonOcrCore/` is 12 relative symlinks into
-`../../../monocr-ios/`. `monocr-ios/` holds 42 Swift files, so **30 are
+`MonOcrCore/Sources/MonOcrCore/` is 15 relative symlinks into
+`../../../monocr-ios/`. `monocr-ios/` holds 45 Swift files, so **30 are
 app-target-only and exercised by nothing**, including `ImagePreprocessor.swift`,
 `MonOcrEngine.swift`, `MainViewModel.swift`, `SyncService.swift`, `PdfUtil.swift`,
 and every SwiftUI view.

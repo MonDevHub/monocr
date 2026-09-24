@@ -17,7 +17,7 @@ tool.
 Two constraints shaped the decision.
 
 **The recogniser must not be reimplemented.** There are already five line segmenters and four
-preprocessing paths in this ecosystem, and `mon_OCR/docs/LIMITATIONS.md:175-198` records the
+preprocessing paths in this ecosystem, and the training code's limitations record shows the
 cost: of 14 canonical constants, only 3 survive into every implementation that has them. A
 sixth copy is a liability, not a feature.
 
@@ -62,7 +62,7 @@ resume, output layout, and the stream/exit-code contract.
 ### Page-level and image-level segmentation are separate regimes
 
 One parameter set does not serve every input, and this is measured rather than assumed.
-`mon_OCR/docs/LIMITATIONS.md:304-334`: on book pages the low gap ratio recovers 89.0% of known
+In the training code's limitations record, on book pages the low gap ratio recovers 89.0% of known
 5-grams against 87.1% at 0.50, but a six-line Mon poem slide returns **3 lines at the low ratio
 and all 6, read correctly, at 0.50**. The ordering reverses by input class and the response is
 not monotone — on one photograph 0.5 gave 5 lines, 0.7 gave 4, 1.3 gave 1.
@@ -113,15 +113,15 @@ absences. The tiling fix landed in the library, so the published Rust binding im
   have to serialise the manifest writer, the resume state and the ordered document accumulator.
   The release baseline below is what any future implementation has to beat. An earlier draft of
   the CLI README claimed the flag was "accepted but not implemented", which was simply false.
-- **Measured 2026-08-22, and it changed the framing.** `ROADMAP.md:438` required measuring on
+- **Measured 2026-08-22, and it changed the framing.** The roadmap required measuring on
   the ported pipeline before trusting the direction; that is now done, twice, over the same 201
-  rendered lines — `mon_OCR/scripts/tiling_ab.py` for the Python arms and
+  rendered lines — an A/B script in the training code for the Python arms and
   `monocr-onnx/rust/examples/tiling_ab.rs` for this binding. The result is width-dependent:
   squeezing wins at 2 tiles, parity at 3, tiling wins from 4 up and by 20-36x at 6 tiles where
   squeezing exceeds 0.83 CER. **At median 3 tiles there is no tiling advantage**, which
   contradicts the 0.1434-against-0.0795 figures cited earlier in this ADR; those came from a
-  harness that was never committed and do not reproduce. Report and limits:
-  `mon_OCR/eval/tiling-ab-2026-08-22.md`.
+  harness that was never committed and do not reproduce. The report and its limits are kept
+  with the training code (an A/B over 201 rendered lines, 2026-08-22).
 
   Two consequences for this CLI. Tiling stays on by default, because its downside is bounded and
   squeezing's is not — but it is a **safety net, not an accuracy feature**, and on a real book

@@ -158,8 +158,8 @@ verdict as an advisory field. So the narrowing is unobserved, and where it does
 change that flag it moves it toward the band's true extent.
 
 **The risk this created is no longer a risk. It was measured on 2026-08-28 and it
-is worse than the fusing this row fixed.** Full finding: `mon_OCR`
-`docs/AUDIT-2026-08-B.md` F-69.
+is worse than the fusing this row fixed.** The measurement
+follows.
 
 Mon stacks diacritics above and below the base line, and at print resolution the
 gap between a diacritic row and its base clears zero in the **raw** profile — so
@@ -193,7 +193,7 @@ equivalent knob, because they segment whatever the camera hands them.
 The lesson for the rest of the table is to check which kind of divergence each row
 is before filing it here. A value with no ground truth is one thing; a documented
 reason the ports had not read is another. The
-upstream trainer, `mon_OCR`, uses different values again: smoothing 15,
+upstream training code uses different values again: smoothing 15,
 adaptive window 31, constant 15, density ratio 0.12, tuned against rendered
 book pages. Its own documentation records that the ratio suits books at 0.12
 and posters at 0.50. There is no single correct setting across document types,
@@ -201,7 +201,7 @@ which is part of why this is recorded rather than unified.
 
 ## A fifth divergence, newer and larger than any above
 
-`mon_OCR`'s segmenter gained printed-rule suppression on 2026-08-27 (step 3.5).
+The reference segmenter gained printed-rule suppression on 2026-08-27 (step 3.5).
 Measured on twelve real MNEC papers, nine collapsed to a single band without it and
 seven of those returned 0–2 characters. Pages carrying no rules come back
 byte-identical, so it is not a trade-off between document types the way the density
@@ -210,7 +210,7 @@ ratio is.
 **All four have it.** Web already did; Android and iOS were ported on 2026-08-28,
 and `monocr-onnx/rust` the same day, which the CLI inherits. Rust was the last of
 **ten** implementations across five repositories without it — the others being
-`mon_OCR`, `monocr`, `mon-corpus-scraper` and the Python, JS and Go bindings, all
+the reference segmenter, `monocr`, `mon-corpus-scraper` and the Python, JS and Go bindings, all
 of which had gained it independently. This file said "only web has it" for long
 enough to be wrong in both directions. Each port
 was measured through its own parameter set rather than inheriting the reference
@@ -250,7 +250,7 @@ would not notice a pass that removed the right _number_ of pixels in the wrong p
 which is the failure an off-by-one in a run-length scan actually produces.
 
 **Generated from the specification, not from the reference implementation, because
-the two disagree.** `mon_OCR`'s `_suppress_page_rules` is a pair of cv2 morphological
+the two disagree.** The reference's `_suppress_page_rules` is a pair of cv2 morphological
 openings implementing the sentence "a rule is an unbroken ink run spanning at least
 `_RULE_SPAN` of the page in one direction". It deviates from that sentence twice, and
 both were found by generating this fixture rather than by reading the code:
@@ -262,7 +262,7 @@ both were found by generating this fixture rather than by reading the code:
 
 Both make the reference remove the wrong _pixels_ rather than the wrong _number_ of
 them, which is why neither showed up in the band-count measurement that justified the
-step, and why the ports follow the sentence instead. Raised for `mon_OCR` to resolve.
+step, and why the ports follow the sentence instead. Raised upstream to resolve.
 
 **An earlier version of this paragraph overstated the second one**, and the correction
 is worth keeping because the overstatement was the plausible reading rather than a
@@ -282,7 +282,7 @@ the known pair.
 That makes step 3.5 different in kind from everything above. The rows in the first
 table are unresolved because picking a winner needs ground truth nobody has; this one
 was unresolved only because it had not been ported, and now it is, everywhere the
-port could be verified. `mon_OCR`'s ROADMAP 4.5.7 tracks the remainder.
+port could be verified. The remainder is tracked with the training code.
 
 ## A sixth, in the same pipeline and absent from this file until it was fixed
 
@@ -355,7 +355,7 @@ on the grounds that "`monocr-onnx` and the reference … both take the median ov
 unfiltered list", and three of four `monocr-onnx` bindings no longer do. The stanza
 needs rewriting whichever way the divergence is resolved.
 
-`mon_OCR`'s `scripts/segmenter_parity.py` extracts all 152 registry rows with no dead
+The training code's parity harness extracts all 152 registry rows with no dead
 basis pattern after these edits, and its `min_gap_merge` row now reports the
 four-decision form for nine surfaces and the OR-form for `monocr` alone. That harness
 is the cross-repository check; the fixture below is the behavioural one.
@@ -467,7 +467,7 @@ surfacing it either, which was wrong, and it is noted because the difference bet
 ## What would close it
 
 A page set with counted lines, run through all four surfaces. That is the same
-missing artifact as `mon_OCR`'s `DATA_STRATEGY.md` rung D2, real page images
+missing artifact the training code lacks: real page images
 with ground truth, and it closes several open questions at once. Until it
 exists, aligning them would be choosing one arbitrary setting over three others
 and calling it parity.
