@@ -7,7 +7,7 @@
 	<div class="mx-auto max-w-4xl space-y-2">
 		<nav class="flex justify-center gap-4 text-[9px] font-bold tracking-widest uppercase">
 			<a href="/privacy" class="hover:text-primary transition-colors">Privacy & Trust</a>
-			<a href="https://github.com/mondevhub/monocr-web" class="hover:text-primary transition-colors"
+			<a href="https://github.com/MonDevHub/monocr" class="hover:text-primary transition-colors"
 				>Source Code</a
 			>
 		</nav>

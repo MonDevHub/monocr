@@ -93,8 +93,8 @@ struct AboutView: View {
                     Link(destination: URL(string: "https://huggingface.co/janakhpon/monocr")!) {
                         Label("Hugging Face Models", systemImage: "cpu")
                     }
-                    Link(destination: URL(string: "https://github.com/MonDevHub/monocr-web")!) {
-                        Label("monocr-web (GitHub)", systemImage: "terminal")
+                    Link(destination: URL(string: "https://github.com/MonDevHub/monocr")!) {
+                        Label("monocr (GitHub)", systemImage: "terminal")
                     }
                     Link(destination: URL(string: "https://www.npmjs.com/package/monocr")!) {
                         Label("NPM Package", systemImage: "shippingbox")

@@ -252,7 +252,7 @@ private fun LinksCard(
     data class Link(val label: String, val url: String)
     val links = listOf(
         Link("Hugging Face Models",  "https://huggingface.co/janakhpon/monocr"),
-        Link("monocr-web (GitHub)",  "https://github.com/MonDevHub/monocr-web"),
+        Link("monocr (GitHub)",      "https://github.com/MonDevHub/monocr"),
         Link("NPM Package",          "https://www.npmjs.com/package/monocr"),
         Link("PyPI Package",         "https://pypi.org/project/monocr-onnx/"),
     )
