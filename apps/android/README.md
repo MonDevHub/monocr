@@ -20,7 +20,7 @@ MonOCR Android runs **ONNX Runtime**, requesting NNAPI and falling back to the C
 - **Script Fidelity**: Integration of PyidaungSu fonts for accurate Mon/Myanmar rendering.
 
 > [!TIP]
-> File size is limited to 50MB for web and 20MB for mobile. Neither cap applies off-device, but the two escape routes are different artifacts and the older wording ran them together:
+> File size is limited to 50MB for import on web and mobile; the mobile contribute and sync path is capped lower, at 20 MiB. Neither cap applies off-device, but the two escape routes are different artifacts and the older wording ran them together:
 >
 > - **`cargo install monocr-cli`** — this repository's own CLI, in [`apps/cli`](../cli/README.md), published to crates.io. Same engine as this app, reading local files with no size cap. This is the one that matches what you see here.
 > - **`pip install monocr`** — the sibling Python project [`janakhpon/monocr`](https://github.com/janakhpon/monocr), not part of this repository. It reads the same trained model through its own segmentation implementation, whose density threshold and minimum line height differ from this one's, so page-level output will not match line for line.
@@ -136,7 +136,7 @@ troubleshooting: `docs/guides/mobile-build-and-test.md`.
 3. Grant camera and storage permissions when prompted.
 
 > [!TIP]
-> File size for mobile uploads is limited to 20MB. For larger documents, `cargo install monocr-cli` gives you this repository's CLI ([`apps/cli`](../cli/README.md)) with no size cap and the same engine as this app. The tip above covers why `pip install monocr` is not the same thing.
+> File size is limited to 50MB for import, and to 20 MiB on the contribute and sync path. For larger documents, `cargo install monocr-cli` gives you this repository's CLI ([`apps/cli`](../cli/README.md)) with no size cap and the same engine as this app. The tip above covers why `pip install monocr` is not the same thing.
 
 4. Deploy to a physical device. NNAPI is not available on every device or emulator, and the app falls back to the CPU where it is missing.
 
