@@ -70,10 +70,13 @@ model revision or export.
   does not ship. If the change is still worth keeping, it goes behind an option that is off by
   default.
 - **Put the result in the pull request:** the inputs, both arms' numbers, any per-bucket split (for
-  example by line width), the exact command, and what the test doesn't cover.
+  example by line width), the exact command, and what the comparison doesn't cover.
 - **Keep the shared fixtures passing.** The A/B decides whether the change is better; the fixtures
   under `shared/segmentation-fixtures/` check that every app still agrees. A change that alters a
-  fixture's expected output regenerates it in the same pull request, with the A/B as the reason.
+  fixture's expected output regenerates it with its generator in `shared/segmentation-fixtures/`,
+  never by hand, in the same pull request, and updates any constant `.github/workflows/ci.yml`
+  asserts, with the A/B as the reason. The tiling fixture is generated from monocr-onnx's
+  `tile_line`, so a tiling change lands there first.
 
 ### Claims in documentation and UI
 
