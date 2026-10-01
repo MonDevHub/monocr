@@ -4,16 +4,13 @@
 
 ### Fixed
 
-- Android: cancelling an import while the file is still being prepared returns
-  the app to a usable state, and an older selection can no longer replace a
-  newer one.
+- Android: an older image or PDF selection can no longer replace a newer one.
 - Android: a PDF in which no page could be read shows an error instead of an
   empty result. A page that cannot be rendered or read is named in a warning
   instead of being skipped without notice, and no longer fails the whole PDF.
 - Android: images with a mirrored or transposed EXIF orientation are read
   upright, and transparent images are read on a white background.
-- Android: a damaged cached model is detected and replaced at start, and copies
-  left behind by an interrupted start are deleted.
+- Android: a damaged cached model is detected and replaced at start.
 - Android: if hardware-accelerated recognition fails, it is retried on the CPU.
 - iOS: history is kept when its store cannot be opened, instead of being
   deleted. The app uses temporary storage for the session and says so.
