@@ -425,10 +425,11 @@ jobs:
               sys.exit("no 'test result:' line in cargo's output: the suite did not run")
           passed = sum(runs)
           print(f"{passed} Rust tests passed across {len(runs)} binaries")
-          # 68, the exact count on 2026-09-03. Exact rather than a margin, for the
+          # 80, the exact count on 2026-10-01: the 68 before, eleven exit-code rule
+          # tests in outcome.rs and the unreadable-input test. Exact rather than a margin, for the
           # reason the android floor states: adding tests never trips a floor, so the
           # only thing a floor catches is a removal, and a removal should be deliberate.
-          FLOOR = 68
+          FLOOR = 80
           if passed < FLOOR:
               sys.exit(f"only {passed} Rust tests ran; expected at least {FLOOR}")
           PY_EOF

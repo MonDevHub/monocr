@@ -4,8 +4,9 @@
 //! carries results and nothing else**; progress, warnings and errors go to
 //! stderr. That is what lets `monocr-cli extract book.pdf --json | jq` work while
 //! the operator still sees progress. Exit 0 on success, 1 on failure, 130 on
-//! Ctrl-C. Colour and progress switch off when stdout is not a TTY, and
-//! `NO_COLOR` is honoured.
+//! Ctrl-C; what counts as a failure is decided in `outcome.rs` and stated in the
+//! README's "Exit codes" section. Colour and progress switch off when stdout is
+//! not a TTY, and `NO_COLOR` is honoured.
 //!
 //! This is a delivery surface, not an OCR implementation. Segmentation, tiling,
 //! the model pin and the charset contract live in the `monocr-onnx` library; a
@@ -15,6 +16,7 @@
 mod config;
 mod discover;
 mod mode;
+mod outcome;
 mod output;
 mod render;
 mod state;
@@ -377,6 +379,10 @@ async fn extract(args: ExtractArgs) -> Result<()> {
     let mut sessions: Vec<(Mode, monocr_onnx::MonOcr)> = Vec::new();
 
     let mut failures = 0usize;
+    // Inputs with some pages read and some failed. They do not change the exit
+    // code, so they are counted to be named again at the end of a long batch,
+    // where the per-input warning has long scrolled away.
+    let mut partial = 0usize;
     let total = found.inputs.len();
 
     // Resolved for the run as a whole, not per input, because a name collision
@@ -397,7 +403,18 @@ async fn extract(args: ExtractArgs) -> Result<()> {
         let decision = args
             .mode
             .resolve(input.kind, &input.path, image_dimensions(input));
-        let digest = state::work_digest(&input.path, &decision.mode.to_string(), args.dpi)?;
+        // Per input, not with `?`: the digest opens the file, so `?` here let one
+        // file without read permission end the whole batch, with no manifest
+        // record and every later input left unread.
+        let digest = match state::work_digest(&input.path, &decision.mode.to_string(), args.dpi) {
+            Ok(d) => d,
+            Err(e) => {
+                eprintln!("[{}/{}] {}", n + 1, total, input.path.display());
+                failures += 1;
+                record_failure(&mut out, input, &e)?;
+                continue;
+            }
+        };
 
         if args.resume && st.is_done(&digest, &stems[n]) {
             eprintln!("[{}/{}] skip (done) {}", n + 1, total, input.path.display());
@@ -427,7 +444,10 @@ async fn extract(args: ExtractArgs) -> Result<()> {
                 // flight, not the whole run's record.
                 st.save(&out_root)?;
 
-                if progress.done < progress.expected {
+                if progress.failed > 0 {
+                    partial += 1;
+                }
+                if progress.done + progress.failed < progress.expected {
                     // Said out loud because the state file's `is_done` is now
                     // the only thing standing between an interrupted book and a
                     // permanent skip, and an operator who does not know the book
@@ -449,20 +469,30 @@ async fn extract(args: ExtractArgs) -> Result<()> {
                 // One bad file must not end a 500-file batch. It is recorded,
                 // reported, and the exit code reflects it at the end.
                 failures += 1;
-                eprintln!("  failed: {e:#}");
-                out.record(&ManifestEntry::Failure(FailureRecord {
-                    input: input.path.display().to_string(),
-                    page: None,
-                    error: format!("{e:#}"),
-                }))?;
+                record_failure(&mut out, input, &e)?;
             }
         }
     }
 
-    if failures > 0 {
-        anyhow::bail!("{failures} of {total} input(s) failed; see manifest.jsonl");
+    match outcome::run_end(failures, partial, total) {
+        outcome::RunEnd::Failure(msg) => anyhow::bail!(msg),
+        outcome::RunEnd::Success { warning } => {
+            if let Some(w) = warning {
+                eprintln!("{w}");
+            }
+            Ok(())
+        }
     }
-    Ok(())
+}
+
+/// Report an input that could not be read, on stderr and in the manifest.
+fn record_failure(out: &mut OutputDir, input: &Input, e: &anyhow::Error) -> Result<()> {
+    eprintln!("  failed: {e:#}");
+    out.record(&ManifestEntry::Failure(FailureRecord {
+        input: input.path.display().to_string(),
+        page: None,
+        error: format!("{e:#}"),
+    }))
 }
 
 /// Get the session for a mode, building it on first use.
@@ -499,6 +529,10 @@ async fn session_for(
 /// complete, and the digest in `state.rs` carries no page count to catch it.
 struct Progress {
     done: usize,
+    /// Pages that were tried and could not be read. Not counted in `done`, so a
+    /// book with a failed page is not recorded as finished and `--resume` tries
+    /// it again.
+    failed: usize,
     expected: usize,
 }
 
@@ -512,6 +546,7 @@ async fn process_one(
 ) -> Result<Progress> {
     let mut document = String::new();
     let mut pages_done = 0usize;
+    let mut tally = outcome::PageTally::default();
     // Deferred rather than zeroed: every branch below knows its own total, and a
     // default of 0 would make `done >= expected` true for an input that never
     // ran, which is the comparison this whole change turns on.
@@ -537,6 +572,7 @@ async fn process_one(
                 vec![line]
             };
 
+            tally.read(!lines.is_empty());
             let (text, records) = collect(&lines, page_height_of(&input.path));
 
             out.write_page(stem, 1, &text)?;
@@ -563,15 +599,24 @@ async fn process_one(
                 }
                 let started = Instant::now();
 
-                // Rendered, read, then dropped before the next page is touched:
-                // peak memory is one page, not one book.
-                let rendered = doc.render_page(page).await?;
-                let height = page_height_of(rendered.path());
-                let lines = ocr
-                    .predict_page(rendered.path())
-                    .await
-                    .with_context(|| format!("cannot read page {page}"))?;
-                drop(rendered);
+                // A page that cannot be rendered or read is recorded and passed
+                // over rather than ending the book. With `?` here, one bad page
+                // in a 500-page book discarded every page after it, and the book
+                // was reported as failed even though most of it was readable.
+                let (lines, height) = match read_pdf_page(ocr, &doc, page).await {
+                    Ok(read) => read,
+                    Err(e) => {
+                        eprintln!("  page {page} could not be read: {e:#}");
+                        out.record(&ManifestEntry::Failure(FailureRecord {
+                            input: input.path.display().to_string(),
+                            page: Some(page),
+                            error: format!("{e:#}"),
+                        }))?;
+                        tally.failed(page, format!("page {page}: {e:#}"));
+                        continue;
+                    }
+                };
+                tally.read(!lines.is_empty());
 
                 let (text, records) = collect(&lines, height);
                 out.write_page(stem, page, &text)?;
@@ -590,6 +635,16 @@ async fn process_one(
                 pages_done += 1;
             }
         }
+    }
+
+    let verdict = tally.verdict();
+    if verdict.is_failure() {
+        // Nothing was read, so no document is written: an empty `<book>.txt`
+        // would look like a book with no text in it.
+        anyhow::bail!(verdict.message().unwrap_or_default());
+    }
+    if let Some(msg) = verdict.message() {
+        eprintln!("  {msg}");
     }
 
     // Written even when the run stopped early: it is atomic, so what lands is a
@@ -619,8 +674,27 @@ async fn process_one(
 
     Ok(Progress {
         done: pages_done,
+        failed: tally.failed_pages().len(),
         expected: pages_expected,
     })
+}
+
+/// Render one PDF page and recognise it, returning its lines and its height.
+///
+/// Rendered, read, then dropped before the next page is touched: peak memory is
+/// one page, not one book.
+async fn read_pdf_page(
+    ocr: &mut monocr_onnx::MonOcr,
+    doc: &render::PdfDocument,
+    page: usize,
+) -> Result<(Vec<monocr_onnx::LineResult>, u32)> {
+    let rendered = doc.render_page(page).await?;
+    let height = page_height_of(rendered.path());
+    let lines = ocr
+        .predict_page(rendered.path())
+        .await
+        .with_context(|| format!("cannot read page {page}"))?;
+    Ok((lines, height))
 }
 
 /// Turn recognised lines into page text plus manifest records.
