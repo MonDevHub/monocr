@@ -13,8 +13,10 @@ monocr-cli extract ./books --dry-run           # list the work, write nothing
 
 It is a thin adapter, not an OCR implementation. Segmentation, tiling, the charset contract and
 the model pin all live in the [`monocr-onnx`](https://github.com/MonDevHub/monocr-onnx) Rust
-library. See [ADR-0004](../../docs/architecture/adr/0004-cli-desktop-surface.md). The model and its
-accuracy figures are in the [root README](../../README.md).
+library. See
+[ADR-0004](https://github.com/MonDevHub/monocr/blob/main/docs/architecture/adr/0004-cli-desktop-surface.md).
+The model and its accuracy figures are in the
+[root README](https://github.com/MonDevHub/monocr/blob/main/README.md).
 
 ## Install
 
@@ -118,7 +120,8 @@ input that could not be read at all has no object; its failure is in `manifest.j
 - **stdout is data, stderr is everything else**, so `--json | jq` works while you still see
   progress. The exception is the first model download, which prints two status lines to stdout: run
   `monocr-cli download` first when piping. Exit 0 on success, 1 on failure, 2 on a usage error,
-  130 on Ctrl-C; [Exit codes](#exit-codes) says what counts as a failure.
+  130 on Ctrl-C (1 if an input had already failed); [Exit codes](#exit-codes) says what counts
+  as a failure.
 - **Memory is one page, not one document.** Pages are rasterised on demand and dropped. On a
   release build a 5-page book peaked at 215 MB and a 20-page book at 221 MB.
 - **Build release for real work.** On the same 5-page book at 150 dpi: **33.3 s release against
@@ -140,14 +143,15 @@ input that could not be read at all has no object; its failure is in `manifest.j
 | ---- | ---- |
 | 0 | Every input was read, including an input with no text on it and a PDF with some unreadable pages |
 | 1 | At least one input could not be read at all, or the run could not start |
-| 2 | A usage error: an unknown flag, a missing argument or a flag value that does not parse |
-| 130 | Stopped with Ctrl-C |
+| 2 | A usage error the argument parser rejects: an unknown flag, a missing argument or a flag value that does not parse |
+| 130 | Stopped with Ctrl-C, unless an input had already failed, which exits 1 |
 
 An input "could not be read at all" when the file cannot be opened or decoded, or when it is
 a PDF and none of its pages could be rendered and recognised. The batch carries on past it; the
 exit code reports it at the end, and the input has a `failure` record in `manifest.jsonl`. "The
-run could not start" covers a bad config file, no supported inputs, a locked output
-directory and a model that cannot be loaded.
+run could not start" covers a bad config file, no inputs given, no supported inputs, a
+missing `--output` without `--dry-run`, a locked output directory and a model that cannot be
+loaded.
 
 A PDF with some pages that could not be read is not a failure. Each failed page is named on
 stderr and has a `failure` record with its page number, the other pages are written, and a
@@ -176,7 +180,8 @@ monocr-cli extract                   # reads ./monocr.yaml
 monocr-cli extract --config ci.yaml  # or name another file
 ```
 
-[`monocr.example.yaml`](monocr.example.yaml) documents every key and is the reference.
+[`monocr.example.yaml`](https://github.com/MonDevHub/monocr/blob/main/apps/cli/monocr.example.yaml)
+documents every key and is the reference.
 
 | section        | keys                                        |
 | :------------- | :------------------------------------------ |

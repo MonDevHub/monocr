@@ -4,9 +4,10 @@
 //! warnings and errors go to stderr. That is what lets
 //! `monocr-cli extract book.pdf --json | jq` work while the operator still sees
 //! progress. Exit 0 on success, 1 on failure, 2 on a usage error (from `clap`),
-//! 130 on Ctrl-C; what counts as a failure is decided in `outcome.rs` and stated in the
-//! README's "Exit codes" section. Colour and progress switch off when stdout is
-//! not a TTY, and `NO_COLOR` is honoured.
+//! 130 on Ctrl-C (1 if an input had already failed); what counts as a failure
+//! is decided in `outcome.rs` and stated in the README's "Exit codes" section.
+//! Colour and progress switch off when stdout is not a TTY, and `NO_COLOR` is
+//! honoured.
 //!
 //! This is a delivery surface, not an OCR implementation. Segmentation, tiling,
 //! the model pin and the charset contract live in the `monocr-onnx` library.
