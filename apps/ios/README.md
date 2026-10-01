@@ -14,8 +14,8 @@ layers run on the Neural Engine has not been checked on a device, and the BiLSTM
 expected to. No image and no recognised text leaves the device: there is no network call on the
 recognition path. Contributing a sample is opt-in.
 
-Imports are capped at 50 MB, and PDFs on the contribute and feedback screens at 20 MiB. For larger files, use
-[`monocr-cli`](../cli/README.md), which runs the same model with no size cap. The
+Imports are capped at 50 MiB, and PDFs on the contribute and feedback screens at 20 MiB. For larger files, use
+[`monocr-cli`](../cli/README.md), which runs the same model and takes PDFs up to 500 MiB. The
 `pip install monocr` on the app's docs screen is a different project,
 [`janakhpon/monocr`](https://github.com/janakhpon/monocr): same model, its own segmentation, so
 page-level output will not match this app line for line.
@@ -55,10 +55,15 @@ directory, so moving a file into a subfolder means editing `monocr-ios.xcodeproj
 
 ## Build and run
 
-Requires Xcode 26.2 or later: `project.pbxproj` sets `IPHONEOS_DEPLOYMENT_TARGET = 26.2`.
+Requires Xcode 26.2 or later, and a device on iOS 26.2 or later: `project.pbxproj` sets
+`IPHONEOS_DEPLOYMENT_TARGET = 26.2`.
 
 1. Open `apps/ios/monocr-ios.xcodeproj` in Xcode.
-2. Build and run the `monocr-ios` scheme on a physical device.
+2. Signing is Automatic with no team set, so choose your own team under Signing & Capabilities.
+3. Build and run the `monocr-ios` scheme on a physical device.
+
+The project resolves `onnxruntime-swift-package-manager` over an SSH URL
+(`git@github.com:microsoft/...`), so Xcode needs GitHub SSH access to resolve packages.
 
 The command-line build, with the `DEVELOPER_DIR` it needs on a machine whose active developer
 directory is the Command Line Tools, is in
@@ -73,8 +78,9 @@ sh Scripts/swift-test.sh      # or: pnpm test
 
 This runs `MonOcrCore`, a Swift package over the platform-free half of the app: `GreyImage`,
 `PageNormalizer`, `LineSegmenter`, `LineTiler`, `CtcDecoder`, `LogitsLayout` and the small value
-types. It needs Xcode 16 or later (`swift-tools-version: 6.0`) but no simulator. Anything that
-imports UIKit, SwiftUI or Core ML has no test, because running it needs a simulator.
+types. It needs a Swift 6 toolchain (`swift-tools-version: 6.0`); the Command Line Tools are
+enough, and neither Xcode nor a simulator is required. Anything that imports UIKit, SwiftUI or
+Core ML has no test, because running it needs a simulator.
 
 - `MonOcrCore/Sources/MonOcrCore/` holds 15 relative symlinks into `monocr-ios/`, not copies, so
   the package tests the app's own files without a second copy that can drift. Adding a file to the
@@ -95,7 +101,7 @@ CI runs this package on every push. It does not build the app.
 `NSLocalizedString` literals in the Swift sources are not among them**. Those 16 fall back to their
 English key, for the two languages this app exists to serve. They include every segmentation mode
 label and description (`SegmentationMode.swift`), both accuracy warnings (`ResultCardView.swift`),
-every engine error message (`MonOcrEngine.swift`) and the multi-page failure notice
+most of the engine's error messages (`MonOcrEngine.swift`) and the multi-page failure notice
 (`MainViewModel.swift`). A further 29 of the 207 entries are not translated into both languages.
 
 The entries need real translations, and inventing them would be worse than the gap. Re-derive the

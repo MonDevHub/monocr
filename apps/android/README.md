@@ -13,9 +13,9 @@ the CPU where NNAPI is unavailable. Which layers NNAPI actually takes has not be
 device, and the BiLSTM layers are not expected to run on it. No image and no recognised text leaves
 the device: there is no network call on the recognition path. Contributing a sample is opt-in.
 
-Imports are capped at 50 MB, and the contribute and sync path at 20 MiB
+Imports are capped at 50 MiB, and the contribute and sync path at 20 MiB
 (`SyncPolicy.MAX_REQUEST_BODY_BYTES`, matching the feedback service). For larger files, use
-[`monocr-cli`](../cli/README.md), which runs the same model with no size cap. The
+[`monocr-cli`](../cli/README.md), which runs the same model and takes PDFs up to 500 MiB. The
 `pip install monocr` on the app's docs screen is a different project,
 [`janakhpon/monocr`](https://github.com/janakhpon/monocr): same model, its own segmentation, so
 page-level output will not match this app line for line.
@@ -48,10 +48,11 @@ and view models, `data/` persistence, and `app/src/main/assets/` the model and c
 
 ## Build and run
 
-Requires Android Studio with its bundled **JetBrains Runtime 21**, and Android SDK 36
-(`compileSdk = 36`, `targetSdk = 36`, `minSdk = 24`). `JAVA_HOME` must point at that runtime even
-if you never open Android Studio: `gradle/gradle-daemon-jvm.properties` pins
-`toolchainVendor=jetbrains`, `toolchainVersion=21`, which no generic JDK satisfies.
+Requires a **JetBrains Runtime 21** and Android SDK 36 (`compileSdk = 36`, `targetSdk = 36`,
+`minSdk = 24`). `gradle/gradle-daemon-jvm.properties` pins `toolchainVendor=jetbrains`,
+`toolchainVersion=21`, which no generic JDK satisfies, and `JAVA_HOME` must point at that runtime.
+Android Studio bundles one; the path below is the macOS location. CI installs one with
+`actions/setup-java` (`distribution: jetbrains`).
 
 ```bash
 cd apps/android

@@ -13,8 +13,8 @@ Wasm backend otherwise. The model is fetched once and kept in the Cache API. No 
 recognised text leaves the machine: there is no network call on the recognition path. Sending a
 correction or a contribution is opt-in.
 
-Imports are capped at 50 MB (`CONFIG.UI.MAX_IMAGE_SIZE_MB`). For larger files or whole folders,
-use [`monocr-cli`](../cli/README.md), which runs the same model with no size cap. The
+Imports are capped at 50 MiB (`CONFIG.UI.MAX_IMAGE_SIZE_MB`). For larger files or whole folders,
+use [`monocr-cli`](../cli/README.md), which runs the same model and takes PDFs up to 500 MiB. The
 `pip install monocr` on the app's docs page is a different project,
 [`janakhpon/monocr`](https://github.com/janakhpon/monocr): same model, its own segmentation, so
 page-level output will not match this app line for line.
@@ -81,7 +81,7 @@ pnpm run lint         # prettier --check and eslint
 pnpm build            # production build
 ```
 
-CI runs all four on every push, and fails the test step unless at least 172 tests passed.
+CI runs all four on every push, and a separate step fails unless at least 172 tests passed.
 
 ## Deploy
 

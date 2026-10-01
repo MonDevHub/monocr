@@ -30,7 +30,7 @@ pnpm install
 cd apps/web && pnpm dev
 ```
 
-**Android.** Needs Android Studio, whose bundled JetBrains Runtime 21 the build requires:
+**Android.** The build requires a JetBrains Runtime 21, such as the one bundled with Android Studio (macOS path shown):
 
 ```bash
 cd apps/android
@@ -89,7 +89,7 @@ The [samples](samples/) are selected best cases, and their README says what was 
 
 No on-device latency has been measured on any platform. The execution providers above are what each app asks for: whether NNAPI or the Neural Engine actually runs the BiLSTM layers has not been checked on a device, and they are not expected to.
 
-Imports are capped at 50 MB on web, Android and iOS, and the mobile contribute and sync path at 20 MiB. The CLI has no cap. The `pip install monocr` shown on the apps' docs pages is a separate Python project, [`janakhpon/monocr`](https://github.com/janakhpon/monocr), with its own segmentation, so its page-level output will not match the apps line for line.
+Imports are capped at 50 MiB on web, Android and iOS, and the mobile contribute and sync path at 20 MiB. The CLI refuses PDFs over 500 MiB or 3,000 pages. The `pip install monocr` shown on the apps' docs pages is a separate Python project, [`janakhpon/monocr`](https://github.com/janakhpon/monocr), with its own segmentation, so its page-level output will not match the apps line for line.
 
 CI runs the web unit tests and production build, the Android unit tests, the iOS `MonOcrCore` package tests, the CLI tests and the feedback service tests on every push. It does not build the Android or iOS app, and there are no instrumented or UI tests.
 
