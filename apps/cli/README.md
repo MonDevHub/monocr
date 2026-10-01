@@ -6,7 +6,7 @@ time through a UI; this reads a shelf.
 ```bash
 monocr-cli extract ./books -o ./out            # every PDF and image in a directory
 monocr-cli extract ./scans -o ./out -r --resume # recursive, and safe to re-run
-monocr-cli extract book.pdf --json | jq        # results on stdout, progress on stderr
+monocr-cli extract book.pdf -o ./out --json | jq # a JSON summary per input on stdout
 monocr-cli inspect ./books                     # what would happen, and why
 monocr-cli extract ./books --dry-run           # list the work, write nothing
 ```
@@ -23,8 +23,10 @@ cargo install monocr-cli
 ```
 
 Published on [crates.io](https://crates.io/crates/monocr-cli). Runs on macOS, Linux and Windows.
-ONNX Runtime is linked into the binary, so there is no shared library to install. Two things are
-not:
+`cargo install` downloads a prebuilt ONNX Runtime for your target at build time and links it into
+the binary, so the build needs network and a target ONNX Runtime publishes binaries for, and there
+is no shared library to install afterwards. On Linux the build also needs OpenSSL headers and
+`pkg-config` (`libssl-dev pkg-config` on Debian and Ubuntu). Two things are needed at run time:
 
 **The model.** About 46 MB, fetched from the pinned Hugging Face revision on first use and cached
 under `~/.monocr/models/<revision>/` (`%USERPROFILE%\.monocr\models\<revision>\` on Windows).
@@ -96,7 +98,7 @@ then override if you disagree.
 
 ```
 out/
-  manifest.jsonl        one record per page, plus failures and skips
+  manifest.jsonl        one record per page, plus failures and skips; appended on every run
   <book>.txt            the whole document
   <book>/page-0001.txt  one file per page, zero-padded so a glob is in reading order
 ```
@@ -107,8 +109,10 @@ bad file does not end a 500-file batch, and the exit code still reflects it.
 
 ## Behaviour worth knowing
 
-- **stdout is data, stderr is everything else.** `--json | jq` works while you still see
-  progress. Exit 0 on success, 1 on failure, 130 on Ctrl-C.
+- **stdout is data, stderr is everything else**, so `--json | jq` works while you still see
+  progress. The exception is the first model download, which prints its progress to stdout: run
+  `monocr-cli download` first when piping. Exit 0 on success, 1 on failure, 2 on a usage error,
+  130 on Ctrl-C.
 - **Memory is one page, not one document.** Pages are rasterised on demand and dropped. On a
   release build a 5-page book peaked at 215 MB and a 20-page book at 221 MB.
 - **Build release for real work.** On the same 5-page book at 150 dpi: **33.3 s release against
@@ -116,8 +120,10 @@ bad file does not end a 500-file batch, and the exit code still reflects it.
   the ONNX kernels, so `opt-level = 0` costs more than it looks.
 - **Resume keys on content plus settings.** Changing `--mode` or `--dpi` redoes the work instead
   of reporting it done.
-- **Every write is atomic.** A page file is written to a temp file, fsynced and renamed, so an
-  interrupted run never leaves a half-written page that resume would count as finished.
+- **Results are written atomically.** Page files, the document file and the resume state go to
+  a temp file, are fsynced and renamed, so an interrupted run never leaves a half-written page
+  that resume would count as finished. `manifest.jsonl` is the exception: it is appended to and
+  never truncated, so re-running into the same directory adds another set of records.
 - **Two runs cannot share an output directory.** The second is refused rather than interleaving
   state.
 - **Skipped files are reported.** A batch that passed over 40 files says so.
@@ -169,11 +175,12 @@ rest, the model returns well-formed Mon text that is wrong.
 
 - **A `--config` path that does not exist.** You named a file, so running with defaults would
   ignore every setting you meant to apply. A _missing_ `monocr.yaml` is fine.
-- **An unknown or misplaced key.** `input: {recursiv: true}` reports `unknown field \`recursiv\`,
-  expected \`paths\` or \`recursive\``.
+- **An unknown or misplaced key.** `input: {recursiv: true}` reports
+  ``unknown field `recursiv`, expected `paths` or `recursive` ``.
 - **A bad `mode`**, naming the valid values: `segmentation.mode is "pages", expected one of auto,
   page, sparse, line`.
-- **A `dpi` outside 72..=1200**, refused with the reason rather than clamped.
+- **A `render.dpi` outside 72..=1200**, refused with the reason rather than clamped. The `--dpi`
+  flag is not range-checked.
 
 ## Tests
 
@@ -197,6 +204,8 @@ which `cargo test` here does not compile.
 
 ## Known limits
 
+- **PDFs over 500 MiB or 3,000 pages are refused.** PDFs render at 300 dpi unless `--dpi` or
+  `render.dpi` says otherwise.
 - **Runs are serial, and there is no `--jobs` flag**; passing one is a usage error. ONNX Runtime
   already parallelises a single inference across every core, so the headroom is small, while N
   workers would mean N sessions at roughly 700 MB-1 GB for N=4 and would have to serialise the
