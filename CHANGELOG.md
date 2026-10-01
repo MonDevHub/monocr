@@ -2,11 +2,6 @@
 
 ## Unreleased
 
-### Added
-
-- CLI: `--json` output for a PDF has `expected_pages` and `failed_pages`, so a
-  pipeline can tell a partly read PDF from a whole one.
-
 ### Changed
 
 - Android: warnings about the reading (soft photo, merged or failed lines) are
@@ -18,14 +13,6 @@
 - iOS: moving the app to the background cancels a running scan. The pages of a
   PDF read so far stay in history, and the message says whether anything was
   kept.
-- CLI: a PDF with some unreadable pages exits 0 with a warning, and is not
-  recorded as finished, so `--resume` reads it again. A PDF in which no page
-  could be read still exits 1.
-- CLI: an input on which every page was read and none has text prints
-  `no text found` on stderr. It still exits 0. A page has no text when the
-  model returned no lines, or only empty or whitespace lines, so a blank image
-  read in line mode is reported too.
-- CLI: the README has an "Exit codes" section stating which cases exit 1.
 
 ### Fixed
 
@@ -56,11 +43,33 @@
   the remaining pages are reported missing rather than waited on. An image
   that times out also restarts the engine, so the next image does not wait
   behind it.
-- CLI: an input file that cannot be opened is recorded as a failure in
-  `manifest.jsonl` and the batch continues. It used to end the run before any
-  later input was read, with no manifest record.
-- CLI: a PDF page that cannot be rendered or read is named on stderr and
-  recorded in `manifest.jsonl` with its page number, and the other pages are
-  still read and written. One bad page used to fail the whole PDF.
 
 Lifecycle behaviour on physical Android and iOS devices has not been tested yet.
+
+## monocr-cli 0.2.0 — 2026-10-01
+
+### Added
+
+- `--json` output for a PDF has `expected_pages` and `failed_pages`, so a
+  pipeline can tell a partly read PDF from a whole one.
+
+### Changed
+
+- A PDF with some unreadable pages exits 0 with a warning, where 0.1 exited 1.
+  It is not recorded as finished, so `--resume` reads it again, and a pipeline
+  that needs to tell it from a whole PDF reads `failed_pages` from `--json`. A
+  PDF in which no page could be read still exits 1.
+- An input on which every page was read and none has text prints
+  `no text found` on stderr. It still exits 0. A page has no text when the
+  model returned no lines, or only empty or whitespace lines, so a blank image
+  read in line mode is reported too.
+- The README has an "Exit codes" section stating what 0, 1, 2 and 130 mean.
+
+### Fixed
+
+- An input file that cannot be opened is recorded as a failure in
+  `manifest.jsonl` and the batch continues. It used to end the run before any
+  later input was read, with no manifest record.
+- A PDF page that cannot be rendered or read is named on stderr and
+  recorded in `manifest.jsonl` with its page number, and the other pages are
+  still read and written. One bad page used to fail the whole PDF.
