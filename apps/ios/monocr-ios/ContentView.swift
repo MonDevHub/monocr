@@ -231,10 +231,6 @@ struct ContentView: View {
                     viewModel.cancelProcessing(modelContext: modelContext)
                 }
             }
-            .onDisappear {
-                selectedItem = nil
-                viewModel.cancelProcessing(modelContext: modelContext)
-            }
             .onChange(of: viewModel.status) { _, status in
                 if case .ready = status, viewModel.ocrResult != nil {
                     let generator = UINotificationFeedbackGenerator()

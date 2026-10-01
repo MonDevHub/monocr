@@ -33,6 +33,16 @@ enum OcrError: LocalizedError {
     }
 }
 
+extension OcrError: EngineWideError {
+    /// Not initialized, or a model that breaks the contract, fails every tile alike.
+    nonisolated var isEngineWide: Bool {
+        switch self {
+        case .notInitialized, .modelContract: return true
+        case .modelNotFound, .processingError, .inferenceFailed: return false
+        }
+    }
+}
+
 /**
  Main OCR engine for Mon language.
  Migration: Now using native Core ML for better performance on ANE.
@@ -336,8 +346,8 @@ actor MonOcrEngine {
                 for (tileIndex, tile) in tiles.enumerated() {
                     try Task.checkCancellation()
                     // Wait for a slot before adding, so the group never holds more
-                    // than `inFlight` buffers. Cancellation still propagates;
-                    // individual failures remain typed tile evidence.
+                    // than `inFlight` buffers. Cancellation and engine-wide errors
+                    // still propagate; other failures remain typed tile evidence.
                     if submitted >= inFlight, let piece = try await group.next() {
                         pieces.append((band: piece.0, reading: piece.1))
                     }
@@ -352,6 +362,9 @@ actor MonOcrEngine {
                             return (bandIndex, TileReading.decoded(index: tileIndex, bbox: tile, rawText: rawText))
                         } catch is CancellationError {
                             throw CancellationError()
+                        } catch let error where TileFailurePolicy.isEngineWide(error) {
+                            // Thrown, so the group cancels and the scan fails as a whole.
+                            throw error
                         } catch {
                             return (bandIndex, TileReading.failed(index: tileIndex, bbox: tile,
                                                                   error: error.localizedDescription))

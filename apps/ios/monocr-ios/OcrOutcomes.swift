@@ -1,5 +1,22 @@
 import Foundation
 
+/// An error that every tile would hit alike, because the engine or the model itself
+/// is unusable. Marking it on one tile and reading on would turn a broken engine into
+/// a page of failed lines that is then saved and announced as a result.
+nonisolated protocol EngineWideError: Error {
+    var isEngineWide: Bool { get }
+}
+
+nonisolated enum TileFailurePolicy {
+    /// True when a tile's error has to stop the whole recognition instead of being
+    /// recorded against that tile.
+    static func isEngineWide(_ error: Error) -> Bool {
+        // The charset and the model disagree, which no other tile can avoid.
+        if error is ModelContractError { return true }
+        return (error as? EngineWideError)?.isEngineWide ?? false
+    }
+}
+
 nonisolated struct TileReading: Codable {
     enum State: String, Codable { case text, empty, failed }
     let index: Int
@@ -53,6 +70,20 @@ nonisolated struct PageOutcome: Codable {
     let pageIndex: Int
     let state: State
     let error: String?
+
+    /// Recognition ran on this page and returned, whether or not it read text.
+    var wasRead: Bool {
+        switch state {
+        case .completed, .partial, .emptyUnverified, .noRegionsDetected: return true
+        case .notAttempted, .renderFailed, .inferenceFailed, .cancelled: return false
+        }
+    }
+
+    /// Every page failed to render or to be read. That is a failed scan to report
+    /// as an error, not a result to save or to confirm with a success haptic.
+    static func noPageRead(_ pages: [PageOutcome]) -> Bool {
+        !pages.isEmpty && pages.allSatisfy { $0.state == .renderFailed || $0.state == .inferenceFailed }
+    }
 
     static func recognition(pageIndex: Int, lines: [RecognizedLine]) -> PageOutcome {
         let failed = lines.filter { $0.reviewReasons.contains("tile_failed") }.count

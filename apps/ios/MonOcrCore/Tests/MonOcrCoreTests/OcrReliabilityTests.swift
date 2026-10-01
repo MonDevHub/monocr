@@ -126,6 +126,39 @@ struct OcrReliabilityTests {
         #expect(PageOutcome.recognition(pageIndex: 0, lines: [success]).state == .completed)
     }
 
+    @Test func engineWideErrorsStopRecognitionAndTileErrorsDoNot() {
+        struct Engine: EngineWideError { let isEngineWide: Bool }
+        struct Other: Error {}
+        #expect(TileFailurePolicy.isEngineWide(ModelContractError(predictedClass: 9, charsetLength: 2)))
+        #expect(TileFailurePolicy.isEngineWide(Engine(isEngineWide: true)))
+        #expect(!TileFailurePolicy.isEngineWide(Engine(isEngineWide: false)))
+        #expect(!TileFailurePolicy.isEngineWide(Other()))
+        #expect(!TileFailurePolicy.isEngineWide(CtcDecoder.InvalidOutput.nonfinite))
+        #expect(!TileFailurePolicy.isEngineWide(CancellationError()))
+    }
+
+    @Test func aScanInWhichNoPageWasReadIsAFailureNotAResult() {
+        let failed = RecognizedLine(text: "", bbox: box, tileCount: 1,
+            looksLikeALine: true, reviewReasons: ["tile_failed"])
+        let image = [PageOutcome.recognition(pageIndex: 0, lines: [failed])]
+        #expect(PageOutcome.noPageRead(image))
+        let imageRead = image.contains(where: \.wasRead)
+        #expect(!imageRead)
+        let pdf = [PageOutcome(pageIndex: 0, state: .renderFailed, error: "bad page"),
+                   PageOutcome(pageIndex: 1, state: .inferenceFailed, error: "bad tensor")]
+        #expect(PageOutcome.noPageRead(pdf))
+        // One page read, even with no text on it, is a result with warnings.
+        #expect(!PageOutcome.noPageRead(pdf + [PageOutcome(pageIndex: 2, state: .emptyUnverified, error: nil)]))
+        #expect(!PageOutcome.noPageRead(pdf + [PageOutcome(pageIndex: 2, state: .partial, error: nil)]))
+        let fallbackRead = (pdf + [PageOutcome(pageIndex: 2, state: .noRegionsDetected, error: nil)])
+            .contains(where: \.wasRead)
+        #expect(fallbackRead)
+        // A page not reached or cancelled is not a failure, and nothing is not all-failed.
+        #expect(!PageOutcome.noPageRead(pdf + [PageOutcome(pageIndex: 2, state: .cancelled, error: nil)]))
+        #expect(!PageOutcome.noPageRead(pdf + [PageOutcome(pageIndex: 2, state: .notAttempted, error: nil)]))
+        #expect(!PageOutcome.noPageRead([]))
+    }
+
     @Test func emptyRecognitionDoesNotCertifyABlankPage() {
         let line = RecognizedLine(text: "", bbox: box, tileCount: 1, looksLikeALine: true)
         let outcome = PageOutcome.recognition(pageIndex: 0, lines: [line])

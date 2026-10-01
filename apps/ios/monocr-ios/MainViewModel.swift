@@ -60,6 +60,8 @@ class MainViewModel: ObservableObject {
     /// modelContext is passed in from ContentView which has @Environment(\\.modelContext) access.
     private func saveHistory(result: MonOcrResult, fileName: String, context: ModelContext?) {
         guard let context else { return }
+        // Until some page has been read there is nothing to keep, only failures.
+        guard result.pages.contains(where: \.wasRead) else { return }
         
         // Keep the source preview, never an arbitrary processed model tile.
         let record: HistoryRecord
@@ -120,7 +122,12 @@ class MainViewModel: ObservableObject {
             ocrResult = cancelled
             saveHistory(result: cancelled, fileName: activeFileName, context: modelContext)
         }
-        if wasProcessing { errorMessage = "Processing cancelled. Completed pages remain in history." }
+        // Only a PDF with at least one page read has a history row by now.
+        if wasProcessing {
+            errorMessage = activeHistoryRecord == nil
+                ? "Processing cancelled. Nothing was saved."
+                : "Processing cancelled. The pages read so far are in history."
+        }
     }
 
     // MARK: - Image Processing
@@ -168,6 +175,13 @@ class MainViewModel: ObservableObject {
             do {
                 let result = try await engine.recognize(image: image, mode: mode)
                 guard canPublish(generation) else { return }
+                // Every line failing is a failed scan, not an empty reading: no
+                // result, no history row and no success haptic.
+                if PageOutcome.noPageRead(result.pages) {
+                    let reason = result.pages.first?.error ?? "No text could be read."
+                    failJob("Recognition failed: \(reason)", generation: generation)
+                    return
+                }
                 ocrResult = result
                 debugImage = result.debugImage
                 isProcessing = false
@@ -280,6 +294,10 @@ class MainViewModel: ObservableObject {
                 for await piece in group { record(piece.0, piece.1, piece.2) }
             }
             guard canPublish(generation) else { return }
+            if PageOutcome.noPageRead(outcomes) {
+                failJob("No page of this PDF could be read.", generation: generation)
+                return
+            }
             isProcessing = false
             status = .ready
             jobTask = nil
