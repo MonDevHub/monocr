@@ -55,8 +55,8 @@ android {
 
             // No default keystore path: a path that exists on one machine makes the
             // release variant unbuildable everywhere else. Left unset, debug builds
-            // and unit tests are unaffected, and release signing fails with the
-            // message below instead of a missing-file error.
+            // and unit tests are unaffected, and a release build is refused with
+            // the message below rather than packaged unsigned.
             val releaseStorePath = localProperties.getProperty("RELEASE_STORE_FILE")
                 ?: System.getenv("RELEASE_STORE_FILE")
             if (releaseStorePath != null) {
@@ -143,18 +143,19 @@ android {
     }
 }
 
-// Release signing needs a keystore, and there is no default one. Fail at the
-// signing check with the property to set, rather than packaging an unsigned
-// release or failing on a path that does not exist.
+// Release signing needs a keystore, and there is no default one. Without a
+// storeFile AGP quietly packages an unsigned release, so refuse any run that
+// would package the release variant, before it starts, naming the property to
+// set. Debug and staging builds and the unit tests never reach this.
 val releaseKeystoreMissing = android.signingConfigs.getByName("release").storeFile == null
-tasks.matching { it.name == "validateSigningRelease" }.configureEach {
-    doFirst {
-        if (releaseKeystoreMissing) {
-            throw GradleException(
-                "Release signing needs a keystore: set RELEASE_STORE_FILE in " +
-                    "local.properties or the environment. Debug builds do not need it."
-            )
-        }
+val releasePackagingTasks = setOf("packageRelease", "packageReleaseBundle", "packageReleaseUniversalApk")
+gradle.taskGraph.whenReady {
+    val packagesRelease = allTasks.any { it.project == project && it.name in releasePackagingTasks }
+    if (releaseKeystoreMissing && packagesRelease) {
+        throw GradleException(
+            "Release signing needs a keystore: set RELEASE_STORE_FILE in " +
+                "local.properties or the environment. Debug builds do not need it."
+        )
     }
 }
 

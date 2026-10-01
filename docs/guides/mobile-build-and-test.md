@@ -391,8 +391,9 @@ Only two things, and neither is a toolchain gap:
   attempted. `local.properties` carries `RELEASE_STORE_PASSWORD`,
   `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` but no `RELEASE_STORE_FILE`.
   `app/build.gradle.kts` reads that key from `local.properties` and then the
-  environment, and has no default: with neither set, release signing fails with
-  a message naming `RELEASE_STORE_FILE`, and debug builds are unaffected. Set it
+  environment, and has no default: with neither set, `assembleRelease` and
+  `bundleRelease` stop before building with a message naming
+  `RELEASE_STORE_FILE`, and debug builds are unaffected. Set it
   and the release build needs no code change. Minification plus
   `ndk.debugSymbolLevel = "FULL"` is unverified, and the SDK has no `ndk/`
   directory.
