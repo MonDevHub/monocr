@@ -1,5 +1,6 @@
 import OcrWorker from './ocr.worker?worker';
 import { CONFIG, resolveRecognitionModel } from './config';
+import type { PageReading } from './reading';
 
 // Types
 type WorkerMessageType = 'INIT' | 'RECOGNIZE';
@@ -211,11 +212,11 @@ export async function initializeEngine(): Promise<void> {
 	return initPromise;
 }
 
-export async function recognize(imageBytes: Uint8Array): Promise<string> {
+export async function recognize(imageBytes: Uint8Array): Promise<PageReading> {
 	try {
 		await initializeEngine();
 		// Senior tip: Use transferables to avoid copying large image buffers
-		return await request<string>('RECOGNIZE', imageBytes, [imageBytes.buffer]);
+		return await request<PageReading>('RECOGNIZE', imageBytes, [imageBytes.buffer]);
 	} catch (e: unknown) {
 		const error =
 			e instanceof OcrError ? e : new OcrError(`Recognition failed: ${e}`, 'RECOGNIZE_FAILED', e);

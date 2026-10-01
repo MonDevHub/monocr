@@ -8,6 +8,7 @@
 	import { feedbackStore } from '$lib/stores/feedback';
 	import { HistorySection, Icon } from '$lib/components';
 	import { saveRecord } from '$lib/storage/db';
+	import { combinePages, pageWarnings, type PageOutcome } from '$lib/reading';
 	import * as m from '$lib/paraglide/messages';
 	import { goto } from '$app/navigation';
 
@@ -23,6 +24,9 @@
 	let file = $state<File | null>(null);
 	let previewUrl = $state<string | null>(null);
 	let resultText = $state<string | null>(null);
+	// What the result is missing, when part of it could not be read. An error
+	// replaces the result; a warning sits beside one.
+	let warnings = $state<string[]>([]);
 	let processingTime = $state(0);
 	let copied = $state(false);
 	let isPdf = $state(false);
@@ -116,6 +120,7 @@
 
 		// Reset
 		resultText = null;
+		warnings = [];
 		error = null;
 		if (previewUrl) {
 			try {
@@ -145,29 +150,47 @@
 			const pdf = await loadPdf(buffer);
 			totalPages = pdf.numPages;
 
-			const allTexts: string[] = [];
+			const pages: PageOutcome[] = [];
 			const startTime = performance.now();
 			let firstPageBlob: Blob | null = null;
 
+			// Every page gets an outcome. One page failing to render or to be read
+			// used to abort the loop and throw away every page already read;
+			// combinePages now keeps those and names the missing ones.
 			for (let i = 1; i <= totalPages; i++) {
 				// 1. Render page using the loaded pdf proxy
-				const { imageBytes } = await renderPdfPage(pdf, i);
+				let imageBytes: Uint8Array;
+				try {
+					({ imageBytes } = await renderPdfPage(pdf, i));
+				} catch (err: unknown) {
+					console.error(`PDF page ${i} could not be rendered:`, err);
+					const msg = err instanceof Error ? err.message : String(err);
+					pages.push({ pageNumber: i, status: 'render_failed', error: msg });
+					continue;
+				}
 
-				// 2. Set preview for first page only
-				if (i === 1) {
+				// 2. Preview the first page that rendered. Normally page 1; a later
+				// one only when page 1 could not be rendered.
+				if (!firstPageBlob) {
 					if (previewUrl) URL.revokeObjectURL(previewUrl);
 					firstPageBlob = new Blob([imageBytes.buffer as ArrayBuffer], { type: 'image/jpeg' });
 					previewUrl = URL.createObjectURL(firstPageBlob);
 				}
 
 				// 3. Run OCR
-				const text = await recognize(imageBytes);
-				if (text.trim()) {
-					allTexts.push(`--- Page ${i} ---\n${text}`);
+				try {
+					pages.push({ pageNumber: i, status: 'read', reading: await recognize(imageBytes) });
+				} catch (err: unknown) {
+					console.error(`PDF page ${i} could not be read:`, err);
+					const msg = err instanceof Error ? err.message : String(err);
+					pages.push({ pageNumber: i, status: 'read_failed', error: msg });
 				}
 			}
 
-			resultText = allTexts.join('\n\n');
+			// Throws when no page could be read: that is a failure, not an empty PDF.
+			const combined = combinePages(pages);
+			resultText = combined.text;
+			warnings = combined.warnings;
 			const endTime = performance.now();
 			processingTime = Math.round(endTime - startTime);
 
@@ -206,9 +229,12 @@
 			const buffer = await file.arrayBuffer();
 			const bytes = new Uint8Array(buffer);
 
-			// Run OCR
-			const text = await recognize(bytes);
+			// Run OCR. Throws when no line could be read; a page that was read and
+			// found no text resolves with empty text, as before.
+			const reading = await recognize(bytes);
+			const text = reading.text;
 			resultText = text;
+			warnings = pageWarnings(reading);
 
 			const end = performance.now();
 			processingTime = Math.round(end - start);
@@ -247,6 +273,7 @@
 		}
 		previewUrl = null;
 		resultText = null;
+		warnings = [];
 		error = null;
 	}
 	function downloadText() {
@@ -454,6 +481,20 @@
 							</div>
 						{/if}
 					</div>
+
+					{#if warnings.length > 0 && !loading}
+						<!-- Part of the input could not be read. Shown with the text rather
+						     than instead of it: what was read is still worth having, but
+						     not as if it were all there was. -->
+						<div
+							role="status"
+							class="border-b border-amber-200/60 bg-amber-50/40 px-5 py-2 text-[var(--text-meta)] text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300"
+						>
+							{#each warnings as warning (warning)}
+								<p>{warning}</p>
+							{/each}
+						</div>
+					{/if}
 
 					<div class="relative max-h-[40vh] flex-1 overflow-y-auto p-5">
 						{#if loading}

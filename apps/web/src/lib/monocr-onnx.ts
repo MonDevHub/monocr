@@ -1,6 +1,7 @@
 import * as ort from 'onnxruntime-web';
 
 import { assessCapture } from './capture-quality';
+import { assemblePage, type LineReading, type PageReading } from './reading';
 import { looksLikeALine, normalizePagePolarity, segmentLines, tileLine } from './segmentation';
 
 /**
@@ -45,6 +46,33 @@ export class ModelOutputError extends Error {
 	constructor(message: string) {
 		super(message);
 		this.name = 'ModelOutputError';
+	}
+}
+
+/**
+ * Read one line, tile by tile, and record a failure against the line instead of
+ * the page.
+ *
+ * Tiles of one line join with no separator: the cut lands at a white column
+ * inside a word, so a space there would be wrong. If any tile fails the whole
+ * line is failed — joining the tiles that did read would put the two sides of
+ * the gap together as if nothing were between them.
+ *
+ * A ModelContractError is rethrown. The model and the charset disagree, which
+ * every other line would hit the same way, so it fails the read as a whole.
+ */
+export async function readLine<T>(
+	tiles: T[],
+	readTile: (tile: T) => Promise<string>
+): Promise<LineReading> {
+	try {
+		const parts: string[] = [];
+		for (const tile of tiles) parts.push(await readTile(tile));
+		return { state: 'read', text: parts.join('') };
+	} catch (error) {
+		if (error instanceof ModelContractError) throw error;
+		console.error('[monocr-onnx] a line could not be read; continuing with the rest', error);
+		return { state: 'failed', error: error instanceof Error ? error.message : String(error) };
 	}
 }
 
@@ -590,9 +618,10 @@ export class MonOcrOnnx {
 	/**
 	 * Perform OCR on an image.
 	 * @param imageBytes Raw image bytes (JPG, PNG, WebP)
-	 * @returns Recognized text
+	 * @returns The recognized text, and how many lines could not be read
+	 * @throws When no line could be read, or the model does not match the charset
 	 */
-	async recognize(imageBytes: Uint8Array): Promise<string> {
+	async recognize(imageBytes: Uint8Array): Promise<PageReading> {
 		if (!this.session) {
 			throw new Error('Model not initialized. Call initialize() first.');
 		}
@@ -651,9 +680,12 @@ export class MonOcrOnnx {
 			segments = [{ ...whole, lineShaped: looksLikeALine(whole, fullBitmap.height) }];
 		}
 
-		const results: string[] = [];
+		const lines: LineReading[] = [];
 
-		// 4. Process each line
+		// 4. Process each line. A line that fails is recorded and the rest are still
+		// read; this used to abort on the first failure and discard every line
+		// already read. Whether the page as a whole failed is decided by
+		// assemblePage, once all lines are in.
 		try {
 			for (const seg of segments) {
 				// A band that is not line-shaped is a fused block of several lines, and
@@ -661,8 +693,8 @@ export class MonOcrOnnx {
 				// upstream measured exactly that at confidence 0.83, so confidence
 				// cannot be the filter. Logged rather than dropped, because the band
 				// still carries text a reader may want. The flag is not yet on the
-				// worker's RESULT payload, which is a plain string; surfacing it in the
-				// UI needs that protocol widened.
+				// worker's RESULT payload; surfacing it in the UI means adding it to
+				// PageReading.
 				if (seg.lineShaped === false) {
 					console.warn(
 						`[monocr-onnx] band ${seg.width}x${seg.height} at (${seg.x},${seg.y}) is not ` +
@@ -679,9 +711,7 @@ export class MonOcrOnnx {
 				// Tiles are read separately and joined with no separator: the cut lands
 				// at a white column inside a word, so a space there would be wrong.
 				const tiles = tileLine(imageData, seg, this.TARGET_HEIGHT, this.TARGET_WIDTH);
-				const parts: string[] = [];
-
-				for (const tile of tiles) {
+				const line = await readLine(tiles, async (tile) => {
 					const inputData = await this.processLine(
 						segCanvas,
 						tile.x,
@@ -702,25 +732,20 @@ export class MonOcrOnnx {
 
 					const inferResults = await this.session!.run(feeds);
 					const output = inferResults[Object.keys(inferResults)[0]];
-					parts.push(this.decodePredictions(output.data as Float32Array, output.dims as number[]));
-				}
-
-				const text = parts.join('');
-				if (text.trim()) {
-					results.push(text);
-				}
+					return this.decodePredictions(output.data as Float32Array, output.dims as number[]);
+				});
+				lines.push(line);
 			}
 		} catch (error) {
-			console.error(
-				'[monocr-onnx] Global Observability: Inference run failed. Possible WebGPU/WASM abort.',
-				error
-			);
+			// Only what readLine does not absorb reaches here: a model/charset
+			// mismatch, which no line could survive, or a failure outside the reads.
+			console.error('[monocr-onnx] recognition stopped before every line was read.', error);
 			throw error;
 		} finally {
 			fullBitmap.close();
 		}
 
-		return results.join('\n');
+		return assemblePage(lines);
 	}
 
 	/**

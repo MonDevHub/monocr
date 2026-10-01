@@ -22,7 +22,9 @@ vi.mock('onnxruntime-web', () => ({
 	}
 }));
 
-const { MonOcrOnnx, ModelContractError, ModelOutputError } = await import('./monocr-onnx');
+const { MonOcrOnnx, ModelContractError, ModelOutputError, readLine } =
+	await import('./monocr-onnx');
+const { assemblePage } = await import('./reading');
 const { CONFIG, resolveRecognitionModel } = await import('./config');
 
 /**
@@ -370,6 +372,63 @@ describe('decoding output that cannot be trusted', () => {
 		logits[V35.classes + 2] = -5;
 
 		expect(engine().decodePredictions(logits, [1, 2, V35.classes])).toBe(CHARSET[0] + CHARSET[1]);
+	});
+});
+
+describe('reading a line', () => {
+	it('joins its tiles with no separator', async () => {
+		const line = await readLine(['ab', 'cd'], async (t) => t);
+
+		expect(line).toEqual({ state: 'read', text: 'abcd' });
+	});
+
+	it('fails the whole line when one tile fails, rather than joining across the gap', async () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		const line = await readLine(['ab', 'bad', 'cd'], async (t) => {
+			if (t === 'bad') throw new ModelOutputError('non-finite');
+			return t;
+		});
+
+		expect(line).toEqual({ state: 'failed', error: 'non-finite' });
+	});
+
+	it('rethrows a model contract failure, which every other line would hit too', async () => {
+		await expect(
+			readLine(['ab'], async () => {
+				throw new ModelContractError('wrong generation');
+			})
+		).rejects.toThrow(ModelContractError);
+	});
+
+	it('lets a page keep its other lines when one line returns NaN', async () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		const engine = engineWith(CHARSET, V35.height, V35.classes);
+		const good = logitsFor([1, 2], V35.classes);
+		const broken = logitsFor([1, 2], V35.classes).fill(NaN);
+		const decode = async (l: Float32Array) => engine.decodePredictions(l, [1, 2, V35.classes]);
+
+		const page = assemblePage([
+			await readLine([good], decode),
+			await readLine([broken], decode),
+			await readLine([good], decode)
+		]);
+
+		expect(page).toEqual({
+			text: `${CHARSET[0]}${CHARSET[1]}\n${CHARSET[0]}${CHARSET[1]}`,
+			lineCount: 3,
+			failedLineCount: 1
+		});
+	});
+
+	it('fails a page on which every line returned NaN, instead of returning it blank', async () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		const engine = engineWith(CHARSET, V35.height, V35.classes);
+		const broken = logitsFor([1, 2], V35.classes).fill(NaN);
+		const decode = async (l: Float32Array) => engine.decodePredictions(l, [1, 2, V35.classes]);
+
+		const lines = [await readLine([broken], decode), await readLine([broken], decode)];
+
+		expect(() => assemblePage(lines)).toThrow(/No line could be read/);
 	});
 });
 
