@@ -25,9 +25,9 @@
 - Android: a damaged cached model is detected and replaced at start.
 - Android: if hardware-accelerated recognition fails, it is retried on the CPU.
 - Android: a page on which some lines could not be read and the rest read no
-  text is kept with a warning that it is incomplete. It used to fail with a
-  message saying every line had failed. Only a page on which every line failed
-  is an error, as on iOS and the web.
+  text is kept with a warning that some of its lines could not be read. It
+  used to fail with a message saying every line had failed. Only a page on
+  which every line failed is an error, as on iOS and the web.
 - iOS: history is kept when its store cannot be opened, instead of being
   deleted. The app uses temporary storage for the session and says so.
 - iOS: a locked, empty or unreadable PDF gets its own error message.
@@ -38,11 +38,11 @@
   PDF in which no page could be read, now shows an error.
 - Web: a line that cannot be read no longer fails the whole image, and a page
   that cannot be rendered or read no longer fails the whole PDF. The rest is
-  kept, and a warning says which lines or pages are missing. A page that times
-  out restarts the engine before the next page is read, and after two timeouts
-  the remaining pages are reported missing rather than waited on. An image
-  that times out also restarts the engine, so the next image does not wait
-  behind it.
+  kept, and a warning says which pages are missing and how many lines could
+  not be read. A page that times out restarts the engine before the next page
+  is read, and after two timeouts the remaining pages are reported missing
+  rather than waited on. An image that times out also restarts the engine, so
+  the next image does not wait behind it.
 
 Lifecycle behaviour on physical Android and iOS devices has not been tested yet.
 
