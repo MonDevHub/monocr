@@ -20,6 +20,13 @@
   deleted. The app uses temporary storage for the session and says so.
 - iOS: a locked, empty or unreadable PDF gets its own error message.
 - iOS: transparent images are read on a white background.
+- Web: recognizer output with NaN or infinite scores, or with the wrong number
+  of values, fails that line instead of being decoded. Output that was entirely
+  NaN used to show as a blank page; a scan in which no line could be read, or a
+  PDF in which no page could be read, now shows an error.
+- Web: a line that cannot be read no longer fails the whole image, and a page
+  that cannot be rendered or read no longer fails the whole PDF. The rest is
+  kept, and a warning says which lines or pages are missing.
 
 ### Changed
 
