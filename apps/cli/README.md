@@ -148,6 +148,12 @@ Manifest records carry real bounding boxes, per-line text, timing, and a `looks_
 a band looks like a block of lines rather than one line. A failure is a **record**, not an
 absence — one bad file does not end a 500-file batch, and the exit code still reflects it.
 
+With `--json`, stdout carries one object per input that was read: `input`, `mode`, `stem`
+and `pages`, the number of pages written. A PDF's object also has `expected_pages`, the
+number of pages in the PDF, and `failed_pages`, the page numbers that could not be read. A
+partly read PDF exits 0, so these two fields are how a pipeline tells it from a whole one. An
+input that could not be read at all has no object; its failure is in `manifest.jsonl`.
+
 ## Behaviour worth knowing
 
 - **stdout is data, stderr is everything else.** `--json | jq` works while you still see
@@ -225,7 +231,7 @@ the point, and it is the only thing keeping the ports of one algorithm in step.
 corrupting the fixture "fails all four", counting this crate among them. `apps/cli` reads no
 tiling fixture and contains no tiling arithmetic — it calls
 `monocr_onnx::MonOcr::predict_page`, and the tiling tests for that live in the `monocr-onnx`
-crate, which `cargo test` here does not compile. This crate has 87 tests of its own: 86 unit
+crate, which `cargo test` here does not compile. This crate has 88 tests of its own: 87 unit
 tests across `config`, `discover`, `extract_tests`, `mode`, `outcome`, `output`, `render` and
 `state`, and one in `tests/unreadable_input.rs` that runs the built binary on files it cannot
 open. They cover config loading and validation, input classification, the exit-code rules, the

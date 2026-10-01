@@ -797,16 +797,21 @@ async fn process_one<R: Reader>(
     out.write_document(stem, &document)?;
 
     if args.json {
-        writeln!(
-            console.out,
-            "{}",
-            serde_json::json!({
-                "input": input.path.display().to_string(),
-                "mode": decision.mode.to_string(),
-                "pages": pages_done,
-                "stem": stem,
-            })
-        )?;
+        let mut record = serde_json::json!({
+            "input": input.path.display().to_string(),
+            "mode": decision.mode.to_string(),
+            "pages": pages_done,
+            "stem": stem,
+        });
+        if input.kind == InputKind::Pdf {
+            // A partly read book exits 0, so a pipeline reading only this line
+            // needs these to tell it from a whole one: `pages` is what was
+            // written, `expected_pages` what the book has, and `failed_pages`
+            // the pages that could not be read.
+            record["expected_pages"] = pages_expected.into();
+            record["failed_pages"] = tally.failed_pages().into();
+        }
+        writeln!(console.out, "{record}")?;
     } else {
         // The result, and only the result, on stdout.
         writeln!(console.out, "{document}")?;

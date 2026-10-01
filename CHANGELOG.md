@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- CLI: `--json` output for a PDF has `expected_pages` and `failed_pages`, so a
+  pipeline can tell a partly read PDF from a whole one.
+
 ### Fixed
 
 - CLI: an input file that cannot be opened is recorded as a failure in

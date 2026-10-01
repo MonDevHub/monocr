@@ -274,6 +274,25 @@ async fn a_pdf_whose_pages_read_as_nothing_is_reported_as_no_text() {
     );
 }
 
+#[tokio::test]
+async fn json_for_a_pdf_names_the_pages_it_expected_and_the_ones_that_failed() {
+    let pages = vec![Page::Fails, Page::Text("two"), Page::Fails];
+    let run = process("book.pdf", pages, Mode::Page, true).await;
+    assert!(run.result.is_ok());
+
+    let record: serde_json::Value = serde_json::from_str(run.stdout.trim_end()).unwrap();
+    assert_eq!(record["pages"], 1);
+    assert_eq!(record["expected_pages"], 3);
+    assert_eq!(record["failed_pages"], serde_json::json!([1, 3]));
+
+    // An image has one page, read or failed as a whole, so its record is unchanged.
+    let run = process("page.png", vec![Page::Text("x")], Mode::Page, true).await;
+    let record: serde_json::Value = serde_json::from_str(run.stdout.trim_end()).unwrap();
+    let mut keys: Vec<_> = record.as_object().unwrap().keys().cloned().collect();
+    keys.sort();
+    assert_eq!(keys, ["input", "mode", "pages", "stem"]);
+}
+
 /// What `read_inputs` made of a whole run.
 struct Batch {
     _dir: tempfile::TempDir,
