@@ -148,10 +148,17 @@ Manifest records carry real bounding boxes, per-line text, timing, and a `looks_
 a band looks like a block of lines rather than one line. A failure is a **record**, not an
 absence — one bad file does not end a 500-file batch, and the exit code still reflects it.
 
+With `--json`, stdout carries one object per input that was read: `input`, `mode`, `stem`
+and `pages`, the number of pages written. A PDF's object also has `expected_pages`, the
+number of pages in the PDF, and `failed_pages`, the page numbers that could not be read. A
+partly read PDF exits 0, so these two fields are how a pipeline tells it from a whole one. An
+input that could not be read at all has no object; its failure is in `manifest.jsonl`.
+
 ## Behaviour worth knowing
 
 - **stdout is data, stderr is everything else.** `--json | jq` works while you still see
-  progress. Exit 0 on success, 1 on failure, 130 on Ctrl-C.
+  progress. Exit 0 on success, 1 on failure, 130 on Ctrl-C; [Exit codes](#exit-codes) says
+  what counts as a failure.
 - **Memory is one page, not one document.** Pages are rasterised on demand and dropped. Measured
   on a release build: a 5-page book peaked at 215 MB and a 20-page book at 221 MB, so 4x the
   pages cost 3% more memory.
@@ -166,6 +173,35 @@ absence — one bad file does not end a 500-file batch, and the exit code still 
 - **Two runs cannot share an output directory.** The second is refused with a message rather
   than interleaving state.
 - **Skipped files are reported.** A batch that passed over 40 files says so.
+
+## Exit codes
+
+| Code | When |
+| ---- | ---- |
+| 0 | Every input was read, including an input with no text on it and a PDF with some unreadable pages |
+| 1 | At least one input could not be read at all, or the run could not start |
+| 130 | Stopped with Ctrl-C |
+
+An input "could not be read at all" when the file cannot be opened or decoded, or when it is
+a PDF and none of its pages could be rendered and recognised. The batch carries on past it; the
+exit code reports it at the end, and the input has a `failure` record in `manifest.jsonl`. "The
+run could not start" covers a bad flag or config file, no supported inputs, a locked output
+directory and a model that cannot be loaded.
+
+A PDF with some pages that could not be read is not a failure. Each failed page is named on
+stderr and has a `failure` record with its page number, the other pages are written, and a
+warning at the end of the run counts the inputs that were only partly read. The input is not
+recorded as finished, so `--resume` reads it again.
+
+An input with no text on it is a result, not an error. When every page of an input was read
+and none of them has text, the CLI says `no text found` on stderr and the input does not count
+as a failure. A page has no text when the model returned no lines, or only lines that are empty
+or whitespace; a blank image read in line mode is one of these, since line mode always returns
+one line. A blank page in a PDF with text on other pages is not reported, and a PDF with some
+pages that could not be read gets the warning above instead.
+
+The CLI can only report what the `monocr` library returns. Version 0.4 fails a whole page when
+any line on it cannot be recognised, so one bad line costs its page rather than only itself.
 
 ## Tests
 
@@ -192,14 +228,17 @@ that live in `monocr-onnx` and a fixture test in the training code — that coup
 the point, and it is the only thing keeping the ports of one algorithm in step.
 
 **This CLI is not one of them.** Corrected 2026-08-26: this paragraph used to claim
-corrupting the fixture "fails all four", counting this crate among them. `apps/cli` has no
-`tests/` directory, reads no fixture, and contains no tiling arithmetic — it calls
+corrupting the fixture "fails all four", counting this crate among them. `apps/cli` reads no
+tiling fixture and contains no tiling arithmetic — it calls
 `monocr_onnx::MonOcr::predict_page`, and the tiling tests for that live in the `monocr-onnx`
-crate, which `cargo test` here does not compile. This crate has 68 tests of its own, across
-`config`, `discover`, `mode`, `output`, `render` and `state`. They cover config loading and
-validation, input classification, output and PDF rendering. None covers tiling, because there
-is none here to cover. Corrected 2026-08-28: that count read 37 until `config`'s 18 tests were
-added to it.
+crate, which `cargo test` here does not compile. This crate has 88 tests of its own: 87 unit
+tests across `config`, `discover`, `extract_tests`, `mode`, `outcome`, `output`, `render` and
+`state`, and one in `tests/unreadable_input.rs` that runs the built binary on files it cannot
+open. They cover config loading and validation, input classification, the exit-code rules, the
+per-page and per-input wiring that feeds those rules, output and PDF rendering. None covers
+tiling, because there is none here to cover, and none loads the model: `extract_tests` runs the
+wiring against a fake reader that succeeds, fails or reads blank per page.
+Corrected 2026-08-28: that count read 37 until `config`'s 18 tests were added to it.
 
 ## Configuration
 
