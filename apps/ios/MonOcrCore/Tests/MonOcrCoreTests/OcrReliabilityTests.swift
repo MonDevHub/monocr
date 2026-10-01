@@ -189,6 +189,16 @@ struct OcrReliabilityTests {
         #expect(outcome.wasRead == ranAndReturned.contains(state))
     }
 
+    @Test func softAndBlockWarningsKeepTheirActionableHints() {
+        let block = RecognizedLine(text: "x", bbox: box, tileCount: 1, looksLikeALine: false)
+        let review = OcrReviewMetadata(modelVersion: "fixture", pages: [], lines: [block],
+            looksSoft: true, cancelled: false)
+        let summary = review.warningSummary ?? ""
+        #expect(summary.contains("try again with steadier focus"))
+        #expect(summary.contains("1 block(s) were too tall to be one line"))
+        #expect(summary.contains("try the Sparse or Line mode"))
+    }
+
     @Test func unfinishedPagesAreNotReportedAsCompleteAfterRestart() {
         let metadata = OcrReviewMetadata(modelVersion: "fixture", pages: [
             PageOutcome(pageIndex: 0, state: .completed, error: nil),

@@ -133,9 +133,9 @@ nonisolated struct OcrReviewMetadata: Codable {
         if failedLines > 0 { warnings.append("\(failedLines) line(s) could not be read completely. Check the source image.") }
         let uncertainSeams = lines.filter { $0.reviewReasons.contains("empty_tile_between_text") }.count
         if uncertainSeams > 0 { warnings.append("\(uncertainSeams) line(s) may have missing text around a gap. Check the source image.") }
-        if looksSoft { warnings.append("The source looks soft; check the transcription against the image.") }
+        if looksSoft { warnings.append("This photo looks soft. The text may be misread — try again with steadier focus.") }
         let blocks = lines.filter { !$0.looksLikeALine }.count
-        if blocks > 0 { warnings.append("\(blocks) region(s) may contain several lines; review their reading.") }
+        if blocks > 0 { warnings.append("\(blocks) block(s) were too tall to be one line. Their text may be invented — try the Sparse or Line mode.") }
         return warnings.isEmpty ? nil : warnings.joined(separator: "\n")
     }
 
