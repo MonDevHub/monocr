@@ -35,14 +35,14 @@
 # against it anyway. That is why the job below asserts a test COUNT rather than
 # trusting the exit code.
 #
-# No `paths:` filters anywhere in this file, on purpose. ci-cd.md:490-538: a
+# No `paths:` filters anywhere in this file, on purpose: a
 # path-filtered required check goes silently dead the moment a directory is
 # renamed, and GitHub leaves it Pending and blocks the merge forever. The repo is
 # small enough to run everything on every push.
 #
-# Actions are pinned to commit SHAs, not tags — tags can be moved
-# (supply-chain-security.md:410). Dependabot's github-actions ecosystem keeps
-# them current, because a pin that is never updated is its own problem (:422).
+# Actions are pinned to commit SHAs, not tags, because a tag can be moved to
+# different code. Dependabot's github-actions ecosystem keeps them current,
+# because a pin that is never updated is its own problem.
 #
 # Every checkout sets `persist-credentials: false`. No job here pushes, so the
 # token actions/checkout would otherwise write into .git/config is exposure
@@ -54,7 +54,6 @@ on:
   pull_request:
 
 # Read-only by default, escalated per job only where needed.
-# supply-chain-security.md:427.
 permissions:
   contents: read
 
@@ -188,7 +187,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      # Fastest first (ci-cd.md:75). `lint` is `prettier --check . && eslint .`.
+      # Fastest first, so a formatting slip fails in seconds. `lint` is `prettier --check . && eslint .`.
       - name: Lint and format
         run: |
           set +e
@@ -207,8 +206,9 @@ jobs:
       # gating on them would have meant landing a gate that was already red on
       # 35 moderate findings in transitive test dependencies.
       #
-      # --audit-level=high, failing rather than warning, per the checklist at
-      # supply-chain-security.md:767. Landing this took fixing what it found:
+      # --audit-level=high, failing rather than warning: a high or critical
+      # advisory in a shipped dependency blocks the merge rather than being
+      # reported and ignored. Landing this took fixing what it found:
       # protobufjs (6 advisories via onnxruntime-web, one critical) and
       # fast-xml-builder, both pinned forward in pnpm.overrides.
       # A FAILED AUDIT AND AN UNREACHABLE AUDIT ARE DIFFERENT ANSWERS, and this

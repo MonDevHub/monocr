@@ -252,7 +252,7 @@ which `cargo test` here does not compile.
   manifest writer, the resume state and the document accumulator.
 - **`ort` is pinned with `=`.** It is a pre-release, and `"2.0.0-rc.11"` range-matches `rc.13`,
   which does not compile against this crate.
-- **Tiling is a safety net, not a general accuracy win.** An A/B over 201 rendered lines
-  (2026-08-22) found squeezing better at 2 tiles per line, level at 3, and tiling better from 4
-  up; by 6 tiles squeezing exceeds 0.83 CER. On a real book page at 150 dpi every line fitted one
+- **Tiling is a safety net, not a general accuracy win.** Measured on 201 rendered lines:
+  squeezing wins at 2 tiles, level at 3, tiling wins from 4; by 6 tiles squeezing exceeds 0.83
+  CER. On a real book page at 150 dpi every line fitted one
   tile, so tiling never engaged.

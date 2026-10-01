@@ -12,7 +12,8 @@ const MESSAGES_DIR = join(__dirname, '..', 'messages');
 const languages = ['en', 'my', 'mnw'];
 
 const extractTranslation = (row, lang) => {
-	// Support both "en" and "value_en" format based on your earlier prompt
+	// The sheet names a language column either `value_<lang>` (`value_en`) or bare
+	// `<lang>` (`en`); `value_<lang>` wins when a row has both.
 	if (row[`value_${lang}`] !== undefined) return String(row[`value_${lang}`]);
 	if (row[lang] !== undefined) return String(row[lang]);
 

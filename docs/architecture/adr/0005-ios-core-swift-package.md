@@ -16,8 +16,8 @@ Two facts, both verified:
   that is not checked in (`xcshareddata/xcschemes` does not exist), against that target with no
   tests. It reported success.
 
-So the repository had a green iOS test command that executed nothing, for months. That is the
-failure shape the testing standard guards against, one level up: not a test that
+So the repository had a green iOS test command that executed nothing, for months. A green
+result has to mean the tests ran, and this is the same failure one level up: not a test that
 cannot fail, but a _suite_ that cannot run.
 
 Two further constraints:

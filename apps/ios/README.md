@@ -41,9 +41,9 @@ Image (UIImage)
   and before the smear. An unbroken run of ink spanning at least half the page is a rule
   (`ruleSpan = 0.5`, 15px floor); if clearing rules would remove more than 80% of the ink
   (`ruleMaxInkShare = 0.8`), it has found text, and the mask is left untouched.
-- **Tiling.** Lines wider than the model window are cut at whitespace rather than squeezed. An A/B
-  over 201 rendered lines (2026-08-22) found squeezing better at 2 tiles, level at 3, and tiling
-  better from 4 up; by 6 tiles squeezing exceeds 0.83 CER. See
+- **Tiling.** Lines wider than the model window are cut at whitespace rather than squeezed.
+  Measured on 201 rendered lines: squeezing wins at 2 tiles, level at 3, tiling wins from 4; by
+  6 tiles squeezing exceeds 0.83 CER. See
   [ADR-0004](../../docs/architecture/adr/0004-cli-desktop-surface.md).
 - **Polarity** is decided at page level, because the projection profile treats dark pixels as ink:
   deciding it per line made a dark-mode screenshot segment on the gaps between lines.

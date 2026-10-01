@@ -6,10 +6,11 @@
 # Grouped: ungrouped, this repo would open a PR per package and the review
 # would stop happening, which is the failure mode that matters.
 #
-# Only ecosystems CI can actually verify are listed. Android (gradle) is neither
-# built nor tested in CI, so a dependency PR for it could not be checked by
-# anything before merge — that is a bot opening unverifiable PRs, not a control.
-# Add the gradle ecosystem in the same change that adds an Android CI job.
+# Only ecosystems CI can actually verify are listed. Android (gradle) is not listed
+# yet. CI's `android` job compiles the debug variant and runs its unit tests, but
+# nothing assembles a release build or runs the instrumented tests, so a gradle
+# update that breaks either would still pass. Adding the gradle ecosystem is a
+# separate change that should say how those gaps are covered.
 #
 # iOS is the narrower case, and the distinction is the whole reason this comment
 # was wrong until 2026-08-28. The app TARGET is not built in CI: that needs Xcode,
@@ -60,8 +61,8 @@ updates:
       go-dependencies:
         patterns: ["*"]
 
-  # Keeps the SHA pins in ci.yml current. supply-chain-security.md:422 —
-  # "Pinning is not a reason to never update." Without this the pins rot.
+  # Keeps the SHA pins in ci.yml current. Pinning is not a reason never to
+  # update; without this the pins rot.
   - package-ecosystem: github-actions
     directory: /
     schedule:

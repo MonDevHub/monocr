@@ -159,7 +159,7 @@
 		@apply px-3 py-1.5;
 	}
 
-	/* Same cascade issue as .btn-compact above, caught by a verifier on ConfirmationModal's
+	/* Same cascade issue as .btn-compact above, seen on ConfirmationModal's
 	   destructive button: `border-red-500 bg-red-500` layered on top of .btn-primary lost to
 	   its own @apply'd background, so the button rendered near-black instead of red --
 	   undercutting the one signal that a confirm action is irreversible. A real modifier,

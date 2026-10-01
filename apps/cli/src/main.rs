@@ -1,17 +1,17 @@
 //! Batch Mon OCR over books, PDFs and images.
 //!
-//! The stream contract, per the CLI design standard: **stdout
-//! carries results and nothing else**; progress, warnings and errors go to
-//! stderr. That is what lets `monocr-cli extract book.pdf --json | jq` work while
-//! the operator still sees progress. Exit 0 on success, 1 on failure, 130 on
-//! Ctrl-C; what counts as a failure is decided in `outcome.rs` and stated in the
+//! The stream contract: **stdout carries results and nothing else**; progress,
+//! warnings and errors go to stderr. That is what lets
+//! `monocr-cli extract book.pdf --json | jq` work while the operator still sees
+//! progress. Exit 0 on success, 1 on failure, 2 on a usage error (from `clap`),
+//! 130 on Ctrl-C; what counts as a failure is decided in `outcome.rs` and stated in the
 //! README's "Exit codes" section. Colour and progress switch off when stdout is
 //! not a TTY, and `NO_COLOR` is honoured.
 //!
 //! This is a delivery surface, not an OCR implementation. Segmentation, tiling,
-//! the model pin and the charset contract live in the `monocr-onnx` library; a
-//! sixth copy of that logic here is exactly what the delivery-surfaces
-//! standard exists to prevent.
+//! the model pin and the charset contract live in the `monocr-onnx` library.
+//! Domain logic stays in the library and each surface only adapts it: a sixth
+//! copy of that logic here would be one more port to keep in step.
 
 mod config;
 mod discover;

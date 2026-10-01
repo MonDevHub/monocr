@@ -47,8 +47,8 @@ Rust is also the path to a Tauri GUI if the desktop surface grows a window.
 
 ### The CLI is a thin adapter
 
-Per the delivery-surfaces standard, domain logic stays in the library and the
-surface only adapts a transport. Concretely, three capabilities the CLI needed were added
+Domain logic stays in the library and the surface only adapts a transport, so the
+ports have one implementation to agree with rather than another to keep in step. Concretely, three capabilities the CLI needed were added
 **upstream in `monocr-onnx/rust`, not here**:
 
 - `tile_line` / `cut_column` — the binding squeezed wide lines into the model window, which
@@ -96,11 +96,6 @@ absences. The tiling fix landed in the library, so the published Rust binding im
 
 **Costs and open items.**
 
-- **The dependency is a path, and must become a pinned git rev.** `Cargo.toml` currently points
-  at `../../../monocr-onnx/rust` so the CLI could build against uncommitted upstream work. A
-  sibling-checkout path dependency is a known failure mode here: a sibling project records that
-  a downstream consumer took an editable path install of it and that is why that consumer's CI
-  cannot run at all. The CI job cannot be green on a fresh clone until this is a git rev.
 - **`ort` must stay pinned exactly.** `ort = "2.0.0-rc.11"` range-matches `rc.13`, which
   changed `Send` bounds and does not compile against this crate. Pre-release dependencies need
   `=`, not a caret.
@@ -113,15 +108,14 @@ absences. The tiling fix landed in the library, so the published Rust binding im
   have to serialise the manifest writer, the resume state and the ordered document accumulator.
   The release baseline below is what any future implementation has to beat. An earlier draft of
   the CLI README claimed the flag was "accepted but not implemented", which was simply false.
-- **Measured 2026-08-22, and it changed the framing.** The roadmap required measuring on
-  the ported pipeline before trusting the direction; that is now done, twice, over the same 201
-  rendered lines — an A/B script in the training code for the Python arms and
-  `monocr-onnx/rust/examples/tiling_ab.rs` for this binding. The result is width-dependent:
-  squeezing wins at 2 tiles, parity at 3, tiling wins from 4 up and by 20-36x at 6 tiles where
-  squeezing exceeds 0.83 CER. **At median 3 tiles there is no tiling advantage**, which
-  contradicts the 0.1434-against-0.0795 figures cited earlier in this ADR; those came from a
-  harness that was never committed and do not reproduce. The report and its limits are kept
-  with the training code (an A/B over 201 rendered lines, 2026-08-22).
+- **Measured 2026-08-22, and it changed the framing.** Measured on 201 rendered lines:
+  squeezing wins at 2 tiles, level at 3, tiling wins from 4. It was measured twice over the same
+  images, once with Python arms and once through this binding with
+  `monocr-onnx/rust/examples/tiling_ab.rs`, and both find the same crossover. By 6 tiles
+  squeezing exceeds 0.83 CER and tiling wins by 24x (Python) and 36x (Rust). **At median 3
+  tiles there is no tiling advantage**, which contradicts the squeezed-0.1434-against-tiled-0.0795
+  figures an earlier version of this ADR cited; those came from a harness that was never
+  committed and do not reproduce.
 
   Two consequences for this CLI. Tiling stays on by default, because its downside is bounded and
   squeezing's is not — but it is a **safety net, not an accuracy feature**, and on a real book

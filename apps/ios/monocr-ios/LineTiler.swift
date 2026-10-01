@@ -15,10 +15,10 @@ import Foundation
  Tiling hurts v2, so a build repinned to `a51be11` must stop calling this.
 
  REMEASURED 2026-08-22, and the figures above did not reproduce.
- An A/B over 201 rendered lines (2026-08-22) scored them through both
- the Python arms and the Rust binding and found the answer is width-dependent:
- squeezing wins at 2 tiles, the two are at parity at 3, and tiling wins from 4
- tiles up, reaching 20x-36x by 6 where squeezing exceeds 0.83 CER. At median 3
+ Measured on 201 rendered lines: squeezing wins at 2 tiles, level at 3, tiling
+ wins from 4. The same images were scored through the Python arms and the Rust
+ binding, and by 6 tiles tiling wins 24x (Python) and 36x (Rust), with squeezing
+ above 0.83 CER. At median 3
  tiles -- the population the numbers above were taken on -- there is no tiling
  advantage. Tiling stays the default because its downside is bounded and
  squeezing's is not, so this is a safety net rather than a general win.

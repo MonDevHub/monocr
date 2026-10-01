@@ -707,7 +707,7 @@ export class MonOcrOnnx {
 				// was quoted here as CER 0.1434 against 0.0795 tiled; retired
 				// 2026-08-22, harness never committed, figures do not reproduce. It is
 				// width-dependent and unbounded — 0.21 CER at 4 model windows against
-				// tiling's 0.06, above 0.83 by 6 (an A/B over 201 rendered lines, 2026-08-22).
+				// tiling's 0.06, above 0.83 by 6 (measured on 201 rendered lines).
 				// Tiles are read separately and joined with no separator: the cut lands
 				// at a white column inside a word, so a space there would be wrong.
 				const tiles = tileLine(imageData, seg, this.TARGET_HEIGHT, this.TARGET_WIDTH);

@@ -349,8 +349,8 @@ Fixed here on 2026-08-29 in web, Android and iOS by adding the parameter, the fi
 and the guard; `monocr-onnx`'s Go port was fixed the same day in its own repository.
 
 **Nine of the ten now agree.** The tenth is `monocr`'s Python, whose divergence is
-declared in its `merge_runs` docstring and left as an owner decision rather than a
-cleanup. That docstring's premise is now false, though: it justifies the divergence
+declared in its `merge_runs` docstring and kept as a deliberate divergence rather than
+treated as a cleanup. That docstring's premise is now false, though: it justifies the divergence
 on the grounds that "`monocr-onnx` and the reference … both take the median over the
 unfiltered list", and three of four `monocr-onnx` bindings no longer do. The stanza
 needs rewriting whichever way the divergence is resolved.
@@ -402,8 +402,8 @@ Five things about it are load-bearing, and each was a rebuild before it was a ru
    decisions 1 and 4 together — the exact state five of the ten implementations were
    in — was caught by a single case, because the unfiltered median collapses `typical`
    far enough that the loosened fragment clause reproduces the right answer anyway.
-   Found by a sibling port reviewing this fixture rather than by the battery, which
-   cannot see it by construction. Generation now also runs that combination and
+   Found while porting this fixture to another implementation rather than by the
+   battery, which cannot see it by construction. Generation now also runs that combination and
    requires two independent killers, so deleting one case cannot un-gate it.
 
 The generator also cross-checks its greedy left-to-right fold against a brute-force
@@ -420,9 +420,9 @@ regenerate rather than merely inspect.
 
 ## Open, found 2026-08-28, not acted on
 
-Three more divergences from a sweep across the three apps and the reference. None is
-fixed here, because each changes what every page reads on at least one platform and
-that is the owner's call, not a sweep's.
+Three more divergences between the three apps and the reference. None is fixed here,
+because each changes what every page reads on at least one platform, so each needs a
+measured A/B before it changes rather than a parity cleanup.
 
 A fourth was listed here and has since been closed on all four surfaces; it is
 recorded above under *What agrees*, and what it cost to close is below under
@@ -460,7 +460,7 @@ highest-priority warning is the one Android cannot report.
 
 The fused-block warning is a separate flag and is in better shape than the above:
 Android surfaces it in `HomeScreen` and iOS in `ResultCardView`. Only web stops at a
-`console.warn` the user never sees. A first pass of this sweep recorded iOS as not
+`console.warn` the user never sees. An earlier version of this table recorded iOS as not
 surfacing it either, which was wrong, and it is noted because the difference between
 "computed" and "reaches a user" is exactly what this table is for.
 
