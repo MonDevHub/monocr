@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      id-token: write # OIDC token for crates.io trusted publishing
     # The `crates-io` environment scopes the trusted publisher: crates.io
     # accepts only a token whose `environment` claim matches the one
     # registered above. It is not an approval gate — it has no required
@@ -45,6 +45,8 @@ jobs:
     environment: crates-io
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # Commit-pinned rather than the `stable` branch. This job holds
       # `id-token: write` and mints a crates.io publish token, so a mutable ref
@@ -101,6 +103,7 @@ jobs:
       - name: Fetch the PDF fixture
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           repository: MonDevHub/monocr-onnx
           ref: 76459a559920e92ce00ee1c1c0d1b72e07f8319a
           path: .fixtures-onnx
