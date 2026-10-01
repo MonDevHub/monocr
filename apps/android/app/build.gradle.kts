@@ -142,6 +142,13 @@ android {
     }
 }
 
+// Room writes the schema of every database version here, so the next migration can
+// be checked against the exact schema it starts from. Version 4 is the first one
+// recorded; versions 1 to 3 were never exported.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 
 dependencies {
     implementation(libs.androidx.core.ktx)
