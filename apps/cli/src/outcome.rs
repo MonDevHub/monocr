@@ -1,8 +1,8 @@
 //! Whether a read succeeded, and what the exit code says about a run.
 //!
-//! Kept apart from `main.rs` so the rules are plain functions of counts. The
-//! code that calls them needs a loaded model and a real PDF, so a mistake in a
-//! rule written inline there would pass every test in this crate.
+//! Kept apart from `main.rs` so the rules are plain functions of counts, tested
+//! here on their own. The wiring that feeds them the counts is tested in
+//! `extract_tests.rs`, against a fake reader in place of the model.
 //!
 //! The rules, which the README's "Exit codes" section states for users:
 //!
