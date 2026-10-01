@@ -76,8 +76,19 @@ internal suspend fun <T : Any> readDocumentPages(
     }
 }
 
+/** Outcomes in which recognition ran and returned, even if it read nothing. */
+private val READ_STATUSES = setOf(PageStatus.COMPLETE, PageStatus.PARTIAL, PageStatus.EMPTY_UNVERIFIED)
+
 internal fun combinePageResults(pages: List<OcrPageOutcome>, durationMs: Long): OcrResult {
     require(pages.isNotEmpty()) { "The PDF has no pages." }
+    // Same rule as a single image, where every line failing throws: a document in
+    // which no page could be read is a failure, not an empty success.
+    if (pages.none { it.status in READ_STATUSES }) {
+        val first = pages.firstNotNullOfOrNull { it.error }
+        throw IllegalStateException(
+            "No page of the PDF could be read." + (first?.let { " First error: $it" } ?: "")
+        )
+    }
     val results = pages.mapNotNull { it.result }
     // The combined text is the one this app has always produced: each page that read
     // text is labelled with its number, and a page with no text adds nothing. What

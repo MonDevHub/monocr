@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import java.io.File
 
 sealed class UiState {
@@ -110,16 +112,20 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
                 val result = repository.performOcr(bitmap, mode)
                 if (!generations.isCurrent(token)) return@launch
                 _uiState.value = UiState.Success(uri, result, uri, "image/jpeg")
-                repository.saveToHistory(
-                    fileName = uri.lastPathSegment ?: "scan",
-                    fileType = "image/jpeg",
-                    text = result.text,
-                    durationMs = result.durationMs,
-                    category = "ocr-scan",
-                    fileUri = uri.toString(),
-                    rawText = result.rawText,
-                    warningSummary = result.warningSummary()
-                )
+                // The result is already on screen. A new import cancels this job, and
+                // that must not also drop the history row for a scan the user saw.
+                withContext(NonCancellable) {
+                    repository.saveToHistory(
+                        fileName = uri.lastPathSegment ?: "scan",
+                        fileType = "image/jpeg",
+                        text = result.text,
+                        durationMs = result.durationMs,
+                        category = "ocr-scan",
+                        fileUri = uri.toString(),
+                        rawText = result.rawText,
+                        warningSummary = result.warningSummary()
+                    )
+                }
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 if (generations.isCurrent(token))
@@ -141,16 +147,19 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
                 val result = repository.performMultiPageOcr(context, uri)
                 if (!generations.isCurrent(token)) return@launch
                 _uiState.value = UiState.Success(previewUri ?: uri, result, uri, "application/pdf")
-                repository.saveToHistory(
-                    fileName = uri.lastPathSegment ?: "document.pdf",
-                    fileType = "application/pdf",
-                    text = result.text,
-                    durationMs = result.durationMs,
-                    category = "ocr-scan",
-                    fileUri = uri.toString(),
-                    rawText = result.rawText,
-                    warningSummary = result.warningSummary()
-                )
+                // As for images: a later import must not cancel this insert.
+                withContext(NonCancellable) {
+                    repository.saveToHistory(
+                        fileName = uri.lastPathSegment ?: "document.pdf",
+                        fileType = "application/pdf",
+                        text = result.text,
+                        durationMs = result.durationMs,
+                        category = "ocr-scan",
+                        fileUri = uri.toString(),
+                        rawText = result.rawText,
+                        warningSummary = result.warningSummary()
+                    )
+                }
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 if (generations.isCurrent(token))

@@ -86,4 +86,33 @@ class ReliabilityTest {
             assertEquals(listOf("model.onnx"), directory.listFiles()!!.map { it.name })
         } finally { directory.deleteRecursively() }
     }
+
+    @Test fun `orphaned partial model copies are deleted and nothing else is`() {
+        val directory = Files.createTempDirectory("model-cache-test").toFile()
+        try {
+            val model = directory.resolve("monocr-v1.onnx").apply { writeText("published") }
+            // The exact shape ensure() creates, as a crash would leave it.
+            val orphan = java.io.File.createTempFile(model.name, ".partial", directory)
+            val olderVersion = directory.resolve("monocr-v0.onnx123.partial").apply { writeText("x") }
+            val unrelated = directory.resolve("preview.partial").apply { writeText("keep") }
+            val deleted = VerifiedArtifactCache.deleteOrphanedPartials(directory, "monocr")
+            assertEquals(setOf(orphan.name, olderVersion.name), deleted.toSet())
+            assertEquals(setOf(model.name, unrelated.name), directory.listFiles()!!.map { it.name }.toSet())
+            assertEquals("published", model.readText())
+        } finally { directory.deleteRecursively() }
+    }
+
+    @Test fun `a PDF in which no page could be read is a failure`() {
+        val pages = listOf(
+            OcrPageOutcome(1, PageStatus.RENDER_FAILED, error = "Page could not be rendered"),
+            OcrPageOutcome(2, PageStatus.INFERENCE_FAILED, error = "driver")
+        )
+        val error = assertThrows(IllegalStateException::class.java) { combinePageResults(pages, 0) }
+        assertTrue(error.message!!.contains("Page could not be rendered"))
+        // One page that ran, even with nothing read, makes it a result with warnings.
+        val withEmpty = pages + OcrPageOutcome(3, PageStatus.EMPTY_UNVERIFIED, result(""))
+        assertEquals("", combinePageResults(withEmpty, 0).text)
+        val withPartial = pages + OcrPageOutcome(3, PageStatus.PARTIAL, result("kept", failed = 1))
+        assertEquals("Page 3\nkept", combinePageResults(withPartial, 0).text)
+    }
 }

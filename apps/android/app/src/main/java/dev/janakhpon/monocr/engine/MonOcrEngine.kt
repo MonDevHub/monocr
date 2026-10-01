@@ -122,6 +122,12 @@ class MonOcrEngine(private val context: Context) {
                 }
             }
 
+            // A copy interrupted by process death is never a `.onnx`, so the sweep
+            // above cannot see it. Safe here: this lock is the only writer.
+            VerifiedArtifactCache.deleteOrphanedPartials(context.cacheDir, "monocr").forEach {
+                MonLogger.i("deleted orphaned partial model: name=$it")
+            }
+
             cachedModel = VerifiedArtifactCache.ensure(modelFile, MODEL_SHA256) {
                 context.assets.open("monocr.onnx")
             }
