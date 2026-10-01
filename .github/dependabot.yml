@@ -73,9 +73,9 @@ updates:
       actions:
         patterns: ["*"]
 
-  # apps/cli. Not in the pnpm workspace and not a Cargo workspace member, so it
-  # needs its own entry. The `cli` job in ci.yml builds, lints and tests it, so
-  # a PR from here has a real gate.
+  # apps/cli is a cargo crate with no Cargo workspace, and the npm entry never
+  # sees its Rust dependencies, so it needs its own entry. The `cli` job in
+  # ci.yml builds, lints and tests it, so a PR from here has a real gate.
   - package-ecosystem: cargo
     directory: /apps/cli
     schedule:
