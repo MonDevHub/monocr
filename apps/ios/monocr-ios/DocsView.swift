@@ -172,13 +172,13 @@ struct DocsView: View {
     private func sdkCode(for sdk: String) -> String {
         switch sdk {
         case "JS": 
-            return "// 1. Install\nnpm install monocr\n\n// 2. Use\nimport { MonOCR } from 'monocr';\nconst ocr = new MonOCR();\nconst text = await ocr.predict('page.jpg');"
+            return "// 1. Install\nnpm install monocr\n\n// 2. Use\nimport { MonOCR } from 'monocr';\nconst ocr = new MonOCR();\nconst lines = await ocr.predictPage('page.jpg');\nconst text = lines.map((l) => l.text).join('\\n');"
         case "Python": 
             return "# 1. Install\npip install monocr\n\n# 2. Use\nfrom monocr import MonOCR\nocr = MonOCR()\ntext = ocr.predict('page.jpg')"
         case "Go": 
-            return "// 1. Install\ngo get github.com/MonDevHub/monocr-onnx/go\n\n// 2. Use\nimport \"ocr\"\nengine, _ := ocr.NewMonOCR(\"\")\ntext, _ := engine.Predict(\"page.jpg\")"
+            return "// 1. Install\ngo get github.com/MonDevHub/monocr-onnx/go\n\n// 2. Use\nimport monocr \"github.com/MonDevHub/monocr-onnx/go\"\n\ntext, _ := monocr.ReadImage(\"page.jpg\")"
         case "Rust": 
-            return "// 1. Install\ncargo add monocr-onnx\n\n// 2. Use\nuse monocr_onnx::MonOCR;\nlet ocr = MonOCR::new(\"monocr.onnx\")?;\nlet text = ocr.predict(\"page.jpg\")?;"
+            return "// 1. Install\ncargo add monocr\n\n// 2. Use\nuse monocr_onnx::MonOcr;\nlet mut ocr = MonOcr::builder().build().await?;\nlet text = ocr.read_image(\"page.jpg\").await?;"
         default: return ""
         }
     }

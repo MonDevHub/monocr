@@ -47,7 +47,7 @@ export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew --stop                 # a warm daemon hides configuration problems — see below
 ./gradlew clean                  # removes app/build (hundreds of MB)
 rm -rf .gradle build .kotlin     # optional; all three are gitignored
-./gradlew test                   # 50 tests, 0 failures
+./gradlew test                   # 106 tests, 0 failures
 ./gradlew assembleDebug          # -> app/build/outputs/apk/debug/app-debug.apk (~137 MB)
 ```
 
