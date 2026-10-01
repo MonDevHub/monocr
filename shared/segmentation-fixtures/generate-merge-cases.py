@@ -34,10 +34,10 @@ Two independent checks run on every generation, neither of them optional:
      nothing: it is green that means nothing.
 
      A per-decision battery is not sufficient on its own, because deviations MASK
-     each other — reverting decisions 1 and 4 together was caught by a single case
-     until a sibling port's review found it, since the unfiltered median collapses
-     `typical` far enough that the loosened fragment clause reproduces the right
-     answer anyway. `COMBINATIONS` therefore also runs the one combined deviation
+     each other — reverting decisions 1 and 4 together was caught by a single case,
+     which porting the fixture to another implementation exposed: the unfiltered
+     median collapses `typical` far enough that the loosened fragment clause
+     reproduces the right answer anyway. `COMBINATIONS` therefore also runs the one combined deviation
      that five ports were actually in, and requires two independent killers.
 
 THE FOUR DECISIONS THIS FILE PINS
@@ -72,8 +72,8 @@ carries full-height companion lines, and the per-case `note` states the arithmet
 The mutation battery is what proves the claim rather than the note.
 
 Carrying companions is not the same as being isolated by them, and this file made
-exactly that mistake for its first seventeen cases. A review found that its flagship
-fragment case had heights 19/42/42/42/42: the companions are there, but the median
+exactly that mistake for its first seventeen cases. Its flagship fragment case had
+heights 19/42/42/42/42: the companions are there, but the median
 they set is ALSO the tested run's own height, so `2*min <= typical` and
 `2*min <= max(ha, hb)` agree on it and the neighbour-relative form — the cascading
 bug the reference explicitly warns about — survived every case in the file. The test
@@ -528,7 +528,7 @@ CASES = [
         MIN_GAP_MERGE,
         MIN_LINE_HEIGHT,
         "The one case that separates `2*min(ha,hb) <= typical` from "
-        "`2*min(ha,hb) <= max(ha,hb)`, and it exists because a review found that "
+        "`2*min(ha,hb) <= max(ha,hb)`, and it exists because "
         "the other cases all coincide on those two: every one of them either has "
         "the tested pair AT the median, or has the fragment clause false both ways, "
         "or is blocked by the min_line guard regardless. A 20-row half and a 30-row "
@@ -604,8 +604,8 @@ CASES = [
          (450, 490), (520, 560), (590, 630)],
         MIN_GAP_MERGE,
         MIN_LINE_HEIGHT,
-        "The case above is not enough, and a sibling port's review is what showed "
-        "it. There fourteen 3-row specks OUTNUMBER the three real lines, so "
+        "The case above is not enough, and porting the fixture to another "
+        "implementation showed it. There fourteen 3-row specks OUTNUMBER the three real lines, so "
         "dropping the median filter collapses `typical` to 3 and the chain cannot "
         "grow past a ceiling of 6 — decisions 1 and 4 mask each other, and that "
         "one case is blind to the pair reverted together. The twelve-speck case two "
@@ -786,8 +786,8 @@ def evaluate():
 
 
 # The battery above varies ONE decision at a time, and that is not sufficient on its
-# own: a sibling port's review showed that reverting decisions 1 and 4 TOGETHER was
-# caught by a single case, because the unfiltered median collapses `typical` far
+# own: porting this fixture to another implementation showed that reverting
+# decisions 1 and 4 TOGETHER was caught by a single case, because the unfiltered median collapses `typical` far
 # enough that the loosened fragment clause happens to reproduce the right answer.
 # Deviations that mask each other are the ones a per-decision battery cannot see.
 #
