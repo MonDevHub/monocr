@@ -1,31 +1,24 @@
 # MonOCR Android
 
-MonOCR Android reads printed Mon text on Android devices, on the device itself.
+The Android app. It reads printed Mon text from camera captures, images and PDFs on the device. It
+builds from source and is not on Google Play.
 
-For mission context, community guidelines, and cross-platform information, please refer to the **[MonOCR Root Documentation](../../README.md)**.
+The model, its accuracy figures and the project's limitations are in the
+[root README](../../README.md).
 
-## Overview
+## How it runs
 
-MonOCR Android runs **ONNX Runtime**, requesting NNAPI and falling back to the CPU where NNAPI is unavailable, so every character is recognised on the device. Which layers NNAPI actually takes has not been checked on a device, and the BiLSTM layers are not expected to run on it. The model ships as `assets/monocr.onnx`. No image and no recognised text leaves the device: there is no network call on the recognition path.
+ONNX Runtime runs the bundled `assets/monocr.onnx` (46.2 MB), requesting NNAPI and falling back to
+the CPU where NNAPI is unavailable. Which layers NNAPI actually takes has not been checked on a
+device, and the BiLSTM layers are not expected to run on it. No image and no recognised text leaves
+the device: there is no network call on the recognition path. Contributing a sample is opt-in.
 
-## Key Features
-
-- **On-Device Inference**: ONNX Runtime, with NNAPI requested and CPU fallback.
-- **Privacy by Design**: Zero data collection unless users want to contribute intentionally; OCR processing is 100% local.
-- **Mon Language Support**: Specialized for the Mon script (276-char charset).
-- **Line Segmentation**: Horizontal projection profiling, with a Page / Sparse / Line mode so dense scans and wide-spaced photos can use different valley thresholds.
-- **Printed-Rule Suppression**: Ruled paper, table borders and underlines are cleared from the binarised mask before the projection profile runs, so a printed line is not read as ink. Ported from web and iOS on 2026-08-28 against the shared fixture.
-- **Line Tiling**: Lines wider than the model window are cut at whitespace instead of squeezed into it.
-- **Format Support**: Handles large PDFs and high-resolution images.
-- **Script Fidelity**: Integration of PyidaungSu fonts for accurate Mon/Myanmar rendering.
-
-> [!TIP]
-> File size is limited to 50MB for import on web and mobile; the mobile contribute and sync path is capped lower, at 20 MiB. Neither cap applies off-device, but the two escape routes are different artifacts and the older wording ran them together:
->
-> - **`cargo install monocr-cli`** — this repository's own CLI, in [`apps/cli`](../cli/README.md), published to crates.io. Same engine as this app, reading local files with no size cap. This is the one that matches what you see here.
-> - **`pip install monocr`** — the sibling Python project [`janakhpon/monocr`](https://github.com/janakhpon/monocr), not part of this repository. It reads the same trained model through its own segmentation implementation, whose density threshold and minimum line height differ from this one's, so page-level output will not match line for line.
-
-## Architecture
+Imports are capped at 50 MB, and the contribute and sync path at 20 MiB
+(`SyncPolicy.MAX_REQUEST_BODY_BYTES`, matching the feedback service). For larger files, use
+[`monocr-cli`](../cli/README.md), which runs the same model with no size cap. The
+`pip install monocr` on the app's docs screen is a different project,
+[`janakhpon/monocr`](https://github.com/janakhpon/monocr): same model, its own segmentation, so
+page-level output will not match this app line for line.
 
 ```
 Image (Bitmap)
@@ -39,115 +32,53 @@ Image (Bitmap)
   CtcDecoder                -> greedy CTC decode -> String
 ```
 
-`suppressPageRules` is a step inside `LineSegmenter.segment`, not a stage of its
-own. It runs after adaptive binarisation and before the morphological smear,
-because the smear widens a rule into something no line kernel matches cleanly.
-An unbroken run of ink spanning at least half the page in either direction is a
-rule (`RULE_SPAN = 0.5`, with a 15px floor). If clearing them would remove more
-than 80% of the page's ink (`RULE_MAX_INK_SHARE = 0.8`) it has found text rather
-than rules, and leaves the mask untouched.
+- **Segmentation modes.** `PAGE` and `SPARSE` differ only in the valley threshold they pass to
+  `LineSegmenter.segment`, so dense scans and wide-spaced photos can each be read. `LINE` skips
+  segmentation and treats the image as one band. Everything else is identical in all three.
+- **Printed rules.** `suppressPageRules` runs inside `LineSegmenter.segment`, after binarisation
+  and before the smear. An unbroken run of ink spanning at least half the page is a rule
+  (`RULE_SPAN = 0.5`, 15px floor); if clearing rules would remove more than 80% of the ink
+  (`RULE_MAX_INK_SHARE = 0.8`), it has found text, and the mask is left untouched.
+- **Polarity** is decided at page level, because the projection profile treats dark pixels as ink:
+  deciding it per line made a dark-mode screenshot segment on the gaps between lines.
+- **Joining.** Tiles of one line join with no separator; distinct lines join with a newline.
 
-`SegmentationMode.LINE` skips `LineSegmenter.segment` altogether and treats the
-image as a single band. `PAGE` and `SPARSE` differ only in the valley threshold
-they pass in. Normalisation, tiling, preprocessing and inference are identical in
-all three.
+The engine is in `app/src/main/java/dev/janakhpon/monocr/engine/`; `ui/` holds the Compose screens
+and view models, `data/` persistence, and `app/src/main/assets/` the model and charset.
 
-Tiles of one line join with no separator; distinct lines join with a newline.
-Polarity is decided at page level because the projection profile treats dark
-pixels as ink: deciding it per line, after segmentation, made a dark-mode
-screenshot segment on the gaps between lines.
+## Build and run
 
-### Model Specification
-
-| Attribute    | Specification                                           |
-| ------------ | ------------------------------------------------------- |
-| Architecture | MobileNetV3-Large + SE + 2×BiLSTM-512 + attention + CTC |
-| Precision    | FP32 (ONNX)                                             |
-| Parameters   | 11.55M                                                  |
-| Input        | 160 × 1024 px (H × W)                                   |
-| Asset Size   | 46.2 MB                                                 |
-
-## Project Structure
-
-```
-apps/android/
-├── app/src/main/
-│   ├── java/dev/janakhpon/monocr/
-│   │   ├── engine/           # OCR Core (ONNX, Preprocessing, Decoding)
-│   │   ├── ui/               # Compose Screens & ViewModels
-│   │   ├── data/             # Persistence & Repository layers
-│   │   └── util/             # Platform utilities
-│   ├── assets/               # Models & Charsets
-│   └── res/font/             # Native Typography
-```
-
-## Ecosystem
-
-MonOCR is a unified cross-platform ecosystem designed for parity and performance:
-
-- **[MonOCR Web](https://ocr.mondevhub.com)**: (In this Monorepo, [`apps/web`](../web)) In-browser OCR.
-- **[MonOCR Android](https://github.com/MonDevHub/monocr)**: (In this Monorepo) Native Jetpack Compose app.
-- **[MonOCR iOS](https://github.com/MonDevHub/monocr)**: (In this Monorepo) Native SwiftUI app with SwiftData persistence.
-
-## Development
-
-### Prerequisites
-
-- **Android Studio** — any release bundling **JetBrains Runtime 21**. Required
-  even if you never open it, and `JAVA_HOME` must point at the JBR inside it:
-  `gradle/gradle-daemon-jvm.properties` pins `toolchainVendor=jetbrains`,
-  `toolchainVersion=21`.
-- **Android SDK 36** (`compileSdk = 36`, `targetSdk = 36`, `minSdk = 24`)
-
-These replace "JDK 17+" and "Android SDK 35 (Min API 26)". A generic JDK 17
-cannot satisfy a version-21 pin, and no Homebrew JDK satisfies the vendor half at
-any version. Full commands: `docs/guides/mobile-build-and-test.md`.
-
-### Tests
+Requires Android Studio with its bundled **JetBrains Runtime 21**, and Android SDK 36
+(`compileSdk = 36`, `targetSdk = 36`, `minSdk = 24`). `JAVA_HOME` must point at that runtime even
+if you never open Android Studio: `gradle/gradle-daemon-jvm.properties` pins
+`toolchainVendor=jetbrains`, `toolchainVersion=21`, which no generic JDK satisfies.
 
 ```bash
+cd apps/android
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+./gradlew assembleDebug          # -> app/build/outputs/apk/debug/app-debug.apk
+```
+
+Or open `apps/android` in Android Studio and run the `app` module. Use a physical device to test
+NNAPI; it is not available on every device or emulator, and the app falls back to the CPU.
+
+## Test
+
+```bash
 ./gradlew testDebugUnitTest
 ```
 
-106 tests across eleven classes, all passing as of 2026-08-29. `JAVA_HOME` is not
-optional: the toolchain pin above rejects any JDK that is not the JetBrains
-Runtime, and Gradle fails at configuration time rather than falling back. The
-failure reads "Unable to download toolchain", which is a *lookup* failure and not
-an absence — the runtime is already on the machine.
+106 tests across eleven classes. Without `JAVA_HOME` set as above, Gradle fails at configuration
+time with "Unable to download toolchain": that is a lookup failure, not a missing runtime.
 
-**CI runs this suite on every push.** The `android` job in
-`.github/workflows/ci.yml` runs `./gradlew testDebugUnitTest` on JetBrains Runtime
-21 and fails unless tests actually executed. It does not build the app and there
-are no instrumented tests. Twelve of the 106 tests check `LineSegmenter`, `LineTiler` and
-`PageNormalizer` against the shared fixtures in `shared/segmentation-fixtures/`,
-which is the only automated check that this port still agrees with web and iOS.
-`MergeFixtureTest` is the newest of the four and pins `mergeRuns`, the step that
-stands between raw-profile boundary detection and a 22x garbage regression.
-Skipping them is how the three ports drift apart quietly.
+CI runs this suite on every push and fails unless at least 106 tests passed. It does not build the
+app, and there are no instrumented tests. Twelve of the tests check `LineSegmenter`, `LineTiler`
+and `PageNormalizer` against the shared fixtures in `shared/segmentation-fixtures/`, the only
+automated check that this port still agrees with web and iOS. Run the suite before touching a
+decoder, the segmenter or the normaliser.
 
-Run it before touching a decoder, a segmenter or the normaliser. Report and
-troubleshooting: `docs/guides/mobile-build-and-test.md`.
+Clean builds and troubleshooting: [`docs/guides/mobile-build-and-test.md`](../../docs/guides/mobile-build-and-test.md).
 
-### Getting Started
+## Licence
 
-1. Open the project in Android Studio.
-2. Build and run the `app` module on a device or emulator.
-3. Grant camera and storage permissions when prompted.
-
-> [!TIP]
-> File size is limited to 50MB for import, and to 20 MiB on the contribute and sync path. For larger documents, `cargo install monocr-cli` gives you this repository's CLI ([`apps/cli`](../cli/README.md)) with no size cap and the same engine as this app. The tip above covers why `pip install monocr` is not the same thing.
-
-4. Deploy to a physical device. NNAPI is not available on every device or emulator, and the app falls back to the CPU where it is missing.
-
-## Resources
-
-- [Hugging Face Models](https://huggingface.co/janakhpon/monocr) (ONNX, Core ML; the TFLite export was removed at revision `a51be11`)
-- [Unified SDKs](https://github.com/janakhpon/monocr-onnx) (ONNX Core)
-- [MonOCR Monorepo](https://github.com/MonDevHub/monocr)
-
-## Contributors
-
-- [Janakh Pon](https://github.com/janakhpon)
-- [Oung Seik Nyan](https://github.com/Oungseik)
-- [Rajel Da Key](https://www.facebook.com/RJOMDK10)
+[MIT](LICENSE)
