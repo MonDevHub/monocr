@@ -106,8 +106,8 @@ jobs:
           pending = d.get("numPendingTests", 0)
           todo = d.get("numTodoTests", 0)
           print(f"{passed} passed, {failed} failed, {pending} skipped, {todo} todo, {total} total")
-          # 204, the exact count on 2026-10-01. See the android floor for why exact.
-          FLOOR = 204
+          # 210, the exact count on 2026-10-01. See the android floor for why exact.
+          FLOOR = 210
           # AGAINST `passed`, NOT `total`. This floor compared `total` until
           # 2026-09-04, and numTotalTests counts skipped and todo tests. So
           # `describe.skip` on the whole suite gave total=172, failed=0, passed=0

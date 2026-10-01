@@ -8,7 +8,7 @@
 	import { feedbackStore } from '$lib/stores/feedback';
 	import { HistorySection, Icon } from '$lib/components';
 	import { saveRecord } from '$lib/storage/db';
-	import { combinePages, pageWarnings, type PageOutcome } from '$lib/reading';
+	import { combinePages, pageWarnings, readPdfPages } from '$lib/reading';
 	import * as m from '$lib/paraglide/messages';
 	import { goto } from '$app/navigation';
 
@@ -150,42 +150,29 @@
 			const pdf = await loadPdf(buffer);
 			totalPages = pdf.numPages;
 
-			const pages: PageOutcome[] = [];
 			const startTime = performance.now();
 			let firstPageBlob: Blob | null = null;
 
-			// Every page gets an outcome. One page failing to render or to be read
-			// used to abort the loop and throw away every page already read;
-			// combinePages now keeps those and names the missing ones.
-			for (let i = 1; i <= totalPages; i++) {
-				// 1. Render page using the loaded pdf proxy
-				let imageBytes: Uint8Array;
-				try {
-					({ imageBytes } = await renderPdfPage(pdf, i));
-				} catch (err: unknown) {
-					console.error(`PDF page ${i} could not be rendered:`, err);
-					const msg = err instanceof Error ? err.message : String(err);
-					pages.push({ pageNumber: i, status: 'render_failed', error: msg });
-					continue;
-				}
-
-				// 2. Preview the first page that rendered. Normally page 1; a later
-				// one only when page 1 could not be rendered.
-				if (!firstPageBlob) {
-					if (previewUrl) URL.revokeObjectURL(previewUrl);
-					firstPageBlob = new Blob([imageBytes.buffer as ArrayBuffer], { type: 'image/jpeg' });
-					previewUrl = URL.createObjectURL(firstPageBlob);
-				}
-
-				// 3. Run OCR
-				try {
-					pages.push({ pageNumber: i, status: 'read', reading: await recognize(imageBytes) });
-				} catch (err: unknown) {
-					console.error(`PDF page ${i} could not be read:`, err);
-					const msg = err instanceof Error ? err.message : String(err);
-					pages.push({ pageNumber: i, status: 'read_failed', error: msg });
-				}
-			}
+			// Every page gets an outcome, and pages already read are kept when a later
+			// one fails. A timed-out page leaves the worker busy with it, so the
+			// worker is stopped (cleanup) before the next page; see readPdfPages.
+			const pages = await readPdfPages(
+				totalPages,
+				async (i) => {
+					const { imageBytes } = await renderPdfPage(pdf, i);
+					// Preview the first page that rendered. Normally page 1; a later one
+					// only when page 1 could not be rendered. Taken before recognition,
+					// which transfers the buffer to the worker.
+					if (!firstPageBlob) {
+						if (previewUrl) URL.revokeObjectURL(previewUrl);
+						firstPageBlob = new Blob([imageBytes.buffer as ArrayBuffer], { type: 'image/jpeg' });
+						previewUrl = URL.createObjectURL(firstPageBlob);
+					}
+					return imageBytes;
+				},
+				recognize,
+				cleanup
+			);
 
 			// Throws when no page could be read: that is a failure, not an empty PDF.
 			const combined = combinePages(pages);

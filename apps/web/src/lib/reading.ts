@@ -113,3 +113,75 @@ export function combinePages(pages: PageOutcome[]): DocumentReading {
 	}
 	return { text, warnings };
 }
+
+/**
+ * How many recognition timeouts one PDF may spend before the rest of it is
+ * given up on. Each costs a full recognition budget plus a worker restart.
+ */
+export const MAX_PDF_TIMEOUTS = 2;
+
+/**
+ * Whether an error is the client's recognition timeout. Matched on the code
+ * rather than on the OcrError class so this module stays free of the worker.
+ */
+function isTimeout(err: unknown): boolean {
+	return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === 'TIMEOUT';
+}
+
+function message(err: unknown): string {
+	return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * Read every page of a PDF, one at a time, giving each an outcome.
+ *
+ * A timeout rejects the request but does not stop the worker: it is still
+ * running that page, and the worker has no queue, so the next page would run
+ * beside it on a busy engine and time out too. `onTimeout` must therefore stop
+ * the worker (the client's cleanup), so the next page starts on a fresh one.
+ *
+ * Pages already read are always kept. After MAX_PDF_TIMEOUTS timeouts the
+ * remaining pages are not attempted and are marked failed, so a PDF that times
+ * out on every page costs at most that many recognition budgets, not one per
+ * page.
+ */
+export async function readPdfPages<T>(
+	pageCount: number,
+	render: (pageNumber: number) => Promise<T>,
+	recognize: (page: T) => Promise<PageReading>,
+	onTimeout: () => void
+): Promise<PageOutcome[]> {
+	const pages: PageOutcome[] = [];
+	let timeouts = 0;
+	for (let i = 1; i <= pageCount; i++) {
+		if (timeouts >= MAX_PDF_TIMEOUTS) {
+			pages.push({
+				pageNumber: i,
+				status: 'read_failed',
+				error: `Not attempted: reading stopped after ${timeouts} pages timed out.`
+			});
+			continue;
+		}
+
+		let page: T;
+		try {
+			page = await render(i);
+		} catch (err: unknown) {
+			console.error(`PDF page ${i} could not be rendered:`, err);
+			pages.push({ pageNumber: i, status: 'render_failed', error: message(err) });
+			continue;
+		}
+
+		try {
+			pages.push({ pageNumber: i, status: 'read', reading: await recognize(page) });
+		} catch (err: unknown) {
+			console.error(`PDF page ${i} could not be read:`, err);
+			pages.push({ pageNumber: i, status: 'read_failed', error: message(err) });
+			if (isTimeout(err)) {
+				timeouts++;
+				onTimeout();
+			}
+		}
+	}
+	return pages;
+}

@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { OcrError } from './monocr';
 import {
 	assemblePage,
 	combinePages,
+	MAX_PDF_TIMEOUTS,
 	pageWarnings,
+	readPdfPages,
 	type LineReading,
 	type PageOutcome,
 	type PageReading
@@ -149,5 +152,150 @@ describe('combining the pages of a PDF', () => {
 
 		expect(result.text).toBe('');
 		expect(result.warnings).toHaveLength(1);
+	});
+});
+
+describe('reading the pages of a PDF', () => {
+	// The client's own error, so a renamed code would fail here rather than
+	// silently stop the worker being reset.
+	const timedOut = () => new OcrError('Request timed out', 'TIMEOUT');
+	const quiet = () => vi.spyOn(console, 'error').mockImplementation(() => {});
+
+	/** A PDF of `count` pages; page n renders as n and reads as `recognize(n)`. */
+	function pdf(count: number, recognize: (n: number) => Promise<PageReading>) {
+		const calls: string[] = [];
+		const render = vi.fn(async (n: number) => {
+			calls.push(`render ${n}`);
+			return n;
+		});
+		const read = vi.fn(async (n: number) => {
+			calls.push(`read ${n}`);
+			return recognize(n);
+		});
+		const onTimeout = vi.fn(() => {
+			calls.push('reset');
+		});
+		return {
+			calls,
+			render,
+			read,
+			onTimeout,
+			run: () => readPdfPages(count, render, read, onTimeout)
+		};
+	}
+
+	it('produces the same pages and the same text as before when every page reads', async () => {
+		const doc = pdf(3, async (n) => ok(n === 2 ? '' : `page ${n}`));
+
+		const pages = await doc.run();
+
+		expect(pages).toEqual([page(1, ok('page 1')), page(2, ok('')), page(3, ok('page 3'))]);
+		expect(combinePages(pages)).toEqual({
+			text: '--- Page 1 ---\npage 1\n\n--- Page 3 ---\npage 3',
+			warnings: []
+		});
+		expect(doc.onTimeout).not.toHaveBeenCalled();
+	});
+
+	it('resets the worker after a timeout, before the next page is read', async () => {
+		quiet();
+		const doc = pdf(3, async (n) => {
+			if (n === 2) throw timedOut();
+			return ok(`page ${n}`);
+		});
+
+		const pages = await doc.run();
+
+		expect(doc.onTimeout).toHaveBeenCalledTimes(1);
+		expect(doc.calls).toEqual([
+			'render 1',
+			'read 1',
+			'render 2',
+			'read 2',
+			'reset',
+			'render 3',
+			'read 3'
+		]);
+		expect(pages).toEqual([
+			page(1, ok('page 1')),
+			{ pageNumber: 2, status: 'read_failed', error: 'Request timed out' },
+			page(3, ok('page 3'))
+		]);
+		expect(combinePages(pages).text).toBe('--- Page 1 ---\npage 1\n\n--- Page 3 ---\npage 3');
+	});
+
+	it('stops after the timeout limit, so a PDF that always times out costs a bounded wait', async () => {
+		quiet();
+		const doc = pdf(5, async () => {
+			throw timedOut();
+		});
+
+		const pages = await doc.run();
+
+		expect(doc.read).toHaveBeenCalledTimes(MAX_PDF_TIMEOUTS);
+		expect(doc.render).toHaveBeenCalledTimes(MAX_PDF_TIMEOUTS);
+		expect(doc.onTimeout).toHaveBeenCalledTimes(MAX_PDF_TIMEOUTS);
+		expect(pages.map((p) => p.status)).toEqual(Array(5).fill('read_failed'));
+		expect(pages[4]).toEqual({
+			pageNumber: 5,
+			status: 'read_failed',
+			error: `Not attempted: reading stopped after ${MAX_PDF_TIMEOUTS} pages timed out.`
+		});
+		expect(() => combinePages(pages)).toThrow(
+			'No page of this PDF could be read. First error: Request timed out'
+		);
+	});
+
+	it('keeps the pages read before the limit was reached', async () => {
+		quiet();
+		const doc = pdf(4, async (n) => {
+			if (n > 1) throw timedOut();
+			return ok('page 1');
+		});
+
+		const pages = await doc.run();
+
+		expect(pages.map((p) => p.status)).toEqual([
+			'read',
+			'read_failed',
+			'read_failed',
+			'read_failed'
+		]);
+		expect(combinePages(pages).text).toBe('--- Page 1 ---\npage 1');
+	});
+
+	it('does not reset the worker for a failure that is not a timeout', async () => {
+		quiet();
+		const doc = pdf(3, async (n) => {
+			if (n !== 3) throw new Error('No line could be read');
+			return ok('page 3');
+		});
+
+		const pages = await doc.run();
+
+		expect(doc.onTimeout).not.toHaveBeenCalled();
+		expect(doc.read).toHaveBeenCalledTimes(3);
+		expect(pages[0]).toEqual({
+			pageNumber: 1,
+			status: 'read_failed',
+			error: 'No line could be read'
+		});
+	});
+
+	it('does not read a page that could not be rendered', async () => {
+		quiet();
+		const read = vi.fn(async () => ok('read'));
+		const render = vi.fn(async (n: number) => {
+			if (n === 1) throw new Error('canvas');
+			return n;
+		});
+
+		const pages = await readPdfPages(2, render, read, vi.fn());
+
+		expect(read).toHaveBeenCalledTimes(1);
+		expect(pages).toEqual([
+			{ pageNumber: 1, status: 'render_failed', error: 'canvas' },
+			page(2, ok('read'))
+		]);
 	});
 });
