@@ -21,7 +21,7 @@ d026e3d9696abe2eddac47d983fa245599512b3e:apps/ios/monocr-ios/SyncService.swift:g
 # for a leak that existed only in the note about the leak.
 #
 # Ignored by fingerprint rather than an inline `// gitleaks:allow` because the
-# scan is `gitleaks detect` over full history: the finding is anchored to commit
+# scan is `gitleaks git` over full history: the finding is anchored to commit
 # f4de7ba and would keep being reported no matter what the working tree says.
 #
 # This is what had the secrets job red since 2026-08-28, on every run, with
@@ -33,5 +33,5 @@ f4de7ba5c5c208ab8e90b7bded85dbaf37fb7cda:services/feedback/internal/middleware/r
 # placeholder verbatim while explaining that it was a placeholder, so this file
 # became its own finding and the secrets job stayed red for a leak that existed
 # only in the note about the leak. The working tree no longer quotes it; the
-# commit still does, and `gitleaks detect` reads full history.
+# commit still does, and `gitleaks git` reads full history.
 e4082c642f40129582cc3783719f9d38c3485160:.gitleaksignore:generic-api-key:13
