@@ -169,3 +169,7 @@ brain/
 # step with the revision config.ts pins.
 static/*.onnx
 static/*.onnx.data
+
+# Wrangler's local dev state: miniflare's cache and R2 databases, recreated by
+# every `wrangler pages dev` run. Machine-local, never source.
+.wrangler/
