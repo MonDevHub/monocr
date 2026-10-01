@@ -91,7 +91,7 @@ No on-device latency has been measured on any platform. The execution providers 
 
 Imports are capped at 50 MiB on web, Android and iOS, and the mobile contribute and sync path at 20 MiB. The CLI refuses PDFs over 500 MiB or 3,000 pages. The `pip install monocr` shown on the apps' docs pages is a separate Python project, [`janakhpon/monocr`](https://github.com/janakhpon/monocr), with its own segmentation, so its page-level output will not match the apps line for line.
 
-CI runs the web unit tests and production build, the Android unit tests, the iOS `MonOcrCore` package tests, the CLI tests and the feedback service tests on every push. It does not build the Android or iOS app, and there are no instrumented or UI tests.
+CI runs the web unit tests and production build, the Android unit tests, the iOS `MonOcrCore` package tests, the CLI tests and the feedback service tests on every push. It does not build the Android or iOS app. The Android instrumented tests in `apps/android/app/src/androidTest/` need a device and run in no CI job, and the iOS app has no test target.
 
 ## Related
 

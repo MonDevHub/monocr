@@ -81,7 +81,8 @@ pnpm run lint         # prettier --check and eslint
 pnpm build            # production build
 ```
 
-CI runs all four on every push, and a separate step fails unless at least 172 tests passed.
+CI runs all four on every push, and a separate step, "A green run must have executed tests", fails
+unless at least 214 tests passed.
 
 ## Deploy
 

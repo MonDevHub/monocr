@@ -47,7 +47,7 @@ export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew --stop                 # a warm daemon hides configuration problems — see below
 ./gradlew clean                  # removes app/build (hundreds of MB)
 rm -rf .gradle build .kotlin     # optional; all three are gitignored
-./gradlew test                   # 106 tests, 0 failures
+./gradlew test                   # 125 tests, 0 failures
 ./gradlew assembleDebug          # -> app/build/outputs/apk/debug/app-debug.apk (~137 MB)
 ```
 
@@ -68,18 +68,21 @@ There is **no root-project `clean` task** — `./gradlew clean --dry-run` report
 
 ### What the tests cover
 
-106 unit tests in eleven classes, all under `app/src/test/`, counted from
-`app/build/test-results/testDebugUnitTest/*.xml` on 2026-08-29:
+125 unit tests in fourteen classes, all under `app/src/test/`, the exact count
+the `android` job's floor asserts:
 
 | class | tests |
 |---|---|
+| `AdaptiveThresholdTest` | 3 |
 | `CaptureQualityTest` | 8 |
 | `CtcDecoderTest` | 5 |
 | `DilateFixtureTest` | 4 |
+| `ImportLifecycleTest` | 4 |
 | `LineSegmenterTest` | 18 |
 | `LineTilerFixtureTest` | 4 |
 | `MergeFixtureTest` | 2 |
 | `PageNormalizerTest` | 14 |
+| `ReliabilityTest` | 12 |
 | `RuleFixtureTest` | 2 |
 | `RuleSuppressionTest` | 8 |
 | `SegmentationModeTest` | 6 |
@@ -177,14 +180,14 @@ of confusion.
 
 | surface | what it is | needs Xcode? | covers |
 |---|---|---|---|
-| `MonOcrCore` | SwiftPM package over the Foundation-only files | no | 15 files, 82 tests |
-| `monocr-ios` | the app target in `monocr-ios.xcodeproj` | yes | 45 files |
+| `MonOcrCore` | SwiftPM package over the Foundation-only files | no | 17 files, 104 tests |
+| `monocr-ios` | the app target in `monocr-ios.xcodeproj` | yes | 47 files |
 
 ### Testing the core package
 
 ```bash
 cd apps/ios
-sh Scripts/swift-test.sh          # Test run with 82 tests in 13 suites passed
+sh Scripts/swift-test.sh          # Test run with 104 tests in 15 suites passed
 ```
 
 **Do not export `DEVELOPER_DIR` for this command** unless you also wipe
@@ -290,10 +293,10 @@ If you hit the same error in new code: annotate the locals. Raising
 `-solver-expression-time-threshold` does **not** help — it is not a solver
 time-limit failure.
 
-### What the 82 tests do not cover
+### What the 104 tests do not cover
 
-`MonOcrCore/Sources/MonOcrCore/` is 15 relative symlinks into
-`../../../monocr-ios/`. `monocr-ios/` holds 45 Swift files, so **30 are
+`MonOcrCore/Sources/MonOcrCore/` is 17 relative symlinks into
+`../../../monocr-ios/`. `monocr-ios/` holds 47 Swift files, so **30 are
 app-target-only and exercised by nothing**, including `ImagePreprocessor.swift`,
 `MonOcrEngine.swift`, `MainViewModel.swift`, `SyncService.swift`, `PdfUtil.swift`,
 and every SwiftUI view.
@@ -391,9 +394,11 @@ Only two things, and neither is a toolchain gap:
   attempted. `local.properties` carries `RELEASE_STORE_PASSWORD`,
   `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` but no `RELEASE_STORE_FILE`.
   `app/build.gradle.kts` reads that key from `local.properties` and then the
-  environment, and has no default: with neither set, `assembleRelease` and
-  `bundleRelease` stop before building with a message naming
-  `RELEASE_STORE_FILE`, and debug builds are unaffected. Set it
+  environment, and has no default: with neither set, any run that would
+  package the release variant stops before building with a message naming
+  `RELEASE_STORE_FILE`. That is `assembleRelease` and `bundleRelease`, and
+  also `./gradlew assemble` and `./gradlew build`, which include the release
+  variant; debug builds and the unit tests are unaffected. Set it
   and the release build needs no code change. Minification plus
   `ndk.debugSymbolLevel = "FULL"` is unverified, and the SDK has no `ndk/`
   directory.

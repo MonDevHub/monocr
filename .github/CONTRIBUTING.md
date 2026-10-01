@@ -49,9 +49,10 @@ traces to no run).
 
 **CI tests the logic of both mobile apps but builds neither.** The `android` job
 runs the unit tests (`./gradlew testDebugUnitTest` on JetBrains Runtime 21) but
-does not build the app, and there are no instrumented tests. The `ios-core` job
-runs `Scripts/swift-test.sh` over `MonOcrCore` only — 15 of the app target's 45
-Swift files. If you touch either app, especially a decoder or a segmenter, run its tests
+does not build the app, and the instrumented tests in `app/src/androidTest/` need
+a device and run in no CI job. The `ios-core` job runs `Scripts/swift-test.sh`
+over `MonOcrCore` only — 17 of the app target's 47 Swift files. If you touch
+either app, especially a decoder or a segmenter, run its tests
 locally and say so in the PR. See
 `docs/guides/mobile-build-and-test.md`.
 

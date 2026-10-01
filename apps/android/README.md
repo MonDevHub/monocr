@@ -69,14 +69,14 @@ NNAPI; it is not available on every device or emulator, and the app falls back t
 ./gradlew testDebugUnitTest
 ```
 
-106 tests across eleven classes. Without `JAVA_HOME` set as above, Gradle fails at configuration
+125 tests across 14 classes. Without `JAVA_HOME` set as above, Gradle fails at configuration
 time with "Unable to download toolchain": that is a lookup failure, not a missing runtime.
 
-CI runs this suite on every push and fails unless at least 106 tests passed. It does not build the
-app, and there are no instrumented tests. Twelve of the tests check `LineSegmenter`, `LineTiler`
-and `PageNormalizer` against the shared fixtures in `shared/segmentation-fixtures/`, the only
-automated check that this port still agrees with web and iOS. Run the suite before touching a
-decoder, the segmenter or the normaliser.
+CI runs this suite on every push and fails unless at least 125 tests passed. It does not build the
+app. The instrumented tests in `app/src/androidTest/` need a device and run in no CI job. Twelve
+of the tests check `LineSegmenter`, `LineTiler` and `PageNormalizer` against the shared fixtures
+in `shared/segmentation-fixtures/`, the only automated check that this port still agrees with web
+and iOS. Run the suite before touching a decoder, the segmenter or the normaliser.
 
 Clean builds and troubleshooting: [`docs/guides/mobile-build-and-test.md`](../../docs/guides/mobile-build-and-test.md).
 
