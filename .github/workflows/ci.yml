@@ -14,8 +14,8 @@
 #
 # Android is no longer excluded. The `android` job below runs the unit tests with
 # a JetBrains Runtime from setup-java, which is what the toolchain pin needs. The
-# app itself is still not built and there are no instrumented tests, so this is
-# the same shape as ios-core: the pure logic runs, the app target does not.
+# app itself is still not built and its instrumented tests need a device, so this
+# is the same shape as ios-core: the pure logic runs, the app target does not.
 #
 # That exclusion got more expensive on 2026-08-28. Android's suite went from 22
 # tests to 50: the printed-rule port added ten, PageNormalizer's newly-testable
@@ -628,8 +628,9 @@ jobs:
     #  3. The Android SDK. compileSdk is 36, newer than the runner image ships, so
     #     the platform is installed explicitly rather than hoped for.
     #
-    # Unit tests only: no emulator, no instrumented tests, no signing. There is no
-    # `app/src/androidTest/` in the tree, so nothing is being skipped silently.
+    # Unit tests only: no emulator, no instrumented tests, no signing. The
+    # instrumented tests in `app/src/androidTest/` need a device or an emulator, so
+    # this job neither runs nor compiles them; they have to be run on a device.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -692,7 +693,10 @@ jobs:
           # should be deliberate. If this fails, either a test was lost or one was merged
           # into another: bump the number in the same commit that removes the test, and
           # the diff then records the removal.
-          FLOOR = 106
+          #
+          # 122 on 2026-10-01: sixteen added with the import, PDF-outcome, model-cache
+          # and adaptive-threshold work.
+          FLOOR = 122
           # Against `passed`. An @Ignore'd test stops counting toward the floor,
           # so parking one trips it and has to be paid for by lowering FLOOR in
           # the same commit. That is the whole skip policy, and it needs no
