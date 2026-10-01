@@ -349,8 +349,8 @@ Fixed here on 2026-08-29 in web, Android and iOS by adding the parameter, the fi
 and the guard; `monocr-onnx`'s Go port was fixed the same day in its own repository.
 
 **Nine of the ten now agree.** The tenth is `monocr`'s Python, whose divergence is
-declared in its `merge_runs` docstring and kept as a deliberate divergence rather than
-treated as a cleanup. That docstring's premise is now false, though: it justifies the divergence
+declared in its `merge_runs` docstring and left open as a decision rather than treated
+as a cleanup. That docstring's premise is now false, though: it justifies the divergence
 on the grounds that "`monocr-onnx` and the reference … both take the median over the
 unfiltered list", and three of four `monocr-onnx` bindings no longer do. The stanza
 needs rewriting whichever way the divergence is resolved.

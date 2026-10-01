@@ -421,7 +421,7 @@ class SyncPolicyTest {
     }
 
 
-    // MARK: - Error body cap (a second unbounded read, found in review)
+    // MARK: - Error body cap (a second unbounded read)
 
     /**
      * Server error bodies were read with an uncapped `readText()` and stored verbatim in
