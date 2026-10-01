@@ -295,6 +295,9 @@ class MainViewModel: ObservableObject {
             }
             guard canPublish(generation) else { return }
             if PageOutcome.noPageRead(outcomes) {
+                // record() published a card per page; none of them holds a reading.
+                ocrResult = nil
+                debugImage = nil
                 failJob("No page of this PDF could be read.", generation: generation)
                 return
             }
