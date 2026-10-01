@@ -1,9 +1,13 @@
 # MonOCR Feedback Service
 
 A Go API that receives feedback and contributions from the Android and iOS apps and stores them in
-Cloudflare R2, so storage credentials stay off client devices. The OpenAPI contract is
-[`docs/api/openapi.yaml`](../../docs/api/openapi.yaml); project overview in the
+Cloudflare R2, so storage credentials stay off client devices. Project overview in the
 [root README](../../README.md).
+
+The contract callers receive is the swaggo-generated Swagger 2.0 document in `docs/docs.go`,
+served at `/v1/swagger/`. [`docs/api/openapi.yaml`](../../docs/api/openapi.yaml) is not generated
+from it and may disagree; [ADR-0003](../../docs/architecture/adr/0003-openapi-and-authenticated-docs.md)
+records the gap.
 
 ## Endpoints
 
@@ -18,8 +22,8 @@ Cloudflare R2, so storage credentials stay off client devices. The OpenAPI contr
 - **Limits.** Request bodies are capped at 20 MiB (`MaxUploadSize`, `20 * 1024 * 1024`), and
   uploads are rate-limited per client IP.
 - **Validation.** File types are checked by magic number, not by the declared MIME type.
-- **Runtime.** Distroless image, non-root user, graceful shutdown, explicit server timeouts,
-  structured JSON logs with a per-request trace ID, and multipart streamed straight to R2.
+- **Runtime.** Distroless image, non-root user, graceful shutdown, explicit server timeouts, and
+  structured JSON logs carrying a per-request `X-Request-ID`.
 
 ## Configuration
 

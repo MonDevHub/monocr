@@ -22,9 +22,10 @@ Technical documentation for this repository. Start with the [root README](../REA
 
 ## API
 
-- [OpenAPI specification](api/openapi.yaml) for the feedback service.
-- [ADR-0003](architecture/adr/0003-openapi-and-authenticated-docs.md): how the authenticated
-  Swagger UI is served.
+- [OpenAPI specification](api/openapi.yaml) for the feedback service. It is not what the service
+  serves: [ADR-0003](architecture/adr/0003-openapi-and-authenticated-docs.md) records that the
+  swaggo document in `services/feedback/docs/docs.go` is authoritative until a generation step
+  exists.
 
 ## Governance
 
