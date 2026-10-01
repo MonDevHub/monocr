@@ -178,6 +178,17 @@ struct OcrReliabilityTests {
         #expect(review.warningSummary?.contains("whole-page reading needs review") == true)
     }
 
+    /// A page counts as read when recognition ran on it and returned, even with no
+    /// text: that is what keeps a scan of blank pages from reading as a failure. The
+    /// expected set is spelled out so a new state has to be classified here too.
+    @Test(arguments: PageOutcome.State.allCases)
+    func wasReadIsTrueExactlyWhenRecognitionRanOnThePage(state: PageOutcome.State) {
+        let ranAndReturned: Set<PageOutcome.State> =
+            [.completed, .partial, .emptyUnverified, .noRegionsDetected]
+        let outcome = PageOutcome(pageIndex: 0, state: state, error: nil)
+        #expect(outcome.wasRead == ranAndReturned.contains(state))
+    }
+
     @Test func unfinishedPagesAreNotReportedAsCompleteAfterRestart() {
         let metadata = OcrReviewMetadata(modelVersion: "fixture", pages: [
             PageOutcome(pageIndex: 0, state: .completed, error: nil),

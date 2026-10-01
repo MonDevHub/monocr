@@ -63,7 +63,7 @@ nonisolated enum TileAssembly {
 }
 
 nonisolated struct PageOutcome: Codable {
-    enum State: String, Codable {
+    enum State: String, Codable, CaseIterable {
         case notAttempted, completed, partial, renderFailed, inferenceFailed, cancelled
         case emptyUnverified, noRegionsDetected
     }
