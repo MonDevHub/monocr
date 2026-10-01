@@ -23,18 +23,18 @@ struct ActionButtonsView: View {
                 .background(Color.accentColor.opacity(0.1))
                 .cornerRadius(12)
             }
-            .onChange(of: selectedItem) { _, newItem in
+            .task(id: selectedItem) {
+                guard let newItem = selectedItem else { return }
                 let generator = UIImpactFeedbackGenerator(style: .medium)
                 generator.impactOccurred()
-                Task {
-                    if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                        if data.count > 50 * 1024 * 1024 {
-                            onFileTooLarge()
-                            return
-                        }
-                        if let image = UIImage(data: data) {
-                            onImageSelected(image)
-                        }
+                if let data = try? await newItem.loadTransferable(type: Data.self) {
+                    guard !Task.isCancelled else { return }
+                    if data.count > 50 * 1024 * 1024 {
+                        onFileTooLarge()
+                        return
+                    }
+                    if let image = UIImage(data: data) {
+                        onImageSelected(image)
                     }
                 }
             }
@@ -43,6 +43,7 @@ struct ActionButtonsView: View {
                 let generator = UIImpactFeedbackGenerator(style: .medium)
                 generator.impactOccurred()
                 showFileImporter = true
+                selectedItem = nil
             } label: {
                 VStack {
                     Image(systemName: "doc.text.fill")
@@ -61,6 +62,7 @@ struct ActionButtonsView: View {
                 let generator = UIImpactFeedbackGenerator(style: .medium)
                 generator.impactOccurred()
                 showCamera = true
+                selectedItem = nil
             } label: {
                 VStack {
                     Image(systemName: "camera")

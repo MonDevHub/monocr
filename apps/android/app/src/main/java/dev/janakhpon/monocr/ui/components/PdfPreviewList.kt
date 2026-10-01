@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.janakhpon.monocr.util.PdfUtil
+import kotlinx.coroutines.CancellationException
 
 @Composable
 fun PdfPreviewList(
@@ -30,8 +31,15 @@ fun PdfPreviewList(
     val context = LocalContext.current
     var pageCount by remember { mutableIntStateOf(0) }
 
+    var error by remember(uri) { mutableStateOf<String?>(null) }
     LaunchedEffect(uri) {
-        pageCount = PdfUtil.getPageCount(context, uri)
+        try { pageCount = PdfUtil.getPageCount(context, uri)
+        } catch (e: CancellationException) { throw e
+        } catch (e: Exception) { error = "PDF preview unavailable" }
+    }
+    if (error != null) {
+        Text(error!!, modifier = modifier, color = MaterialTheme.colorScheme.error)
+        return
     }
 
     if (pageCount <= 0) {

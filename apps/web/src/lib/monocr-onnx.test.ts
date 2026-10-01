@@ -22,8 +22,19 @@ vi.mock('onnxruntime-web', () => ({
 	}
 }));
 
-const { MonOcrOnnx, ModelContractError } = await import('./monocr-onnx');
+// Segmentation is real everywhere except where a test scripts the bands it
+// returns, which is the only way to put a known number of lines on a page
+// without a rendered fixture.
+vi.mock('./segmentation', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('./segmentation')>();
+	return { ...actual, segmentLines: vi.fn(actual.segmentLines) };
+});
+
+const { MonOcrOnnx, ModelContractError, ModelOutputError, readLine } =
+	await import('./monocr-onnx');
+const { assemblePage } = await import('./reading');
 const { CONFIG, resolveRecognitionModel } = await import('./config');
+const { segmentLines } = await import('./segmentation');
 
 /**
  * The two generations, as measured from the real artifacts.
@@ -308,6 +319,219 @@ describe('decoding', () => {
 		expect(engine.decodePredictions(logits, [1, 3, V35.classes])).toBe(
 			CHARSET[0] + CHARSET[1] + CHARSET[275]
 		);
+	});
+});
+
+/**
+ * Scores the decoder cannot trust. Argmax passed over NaN and -Infinity and
+ * picked +Infinity, so each of these used to decode into text — an all-NaN
+ * output decoded as a blank line — with nothing to say the model had failed.
+ */
+describe('decoding output that cannot be trusted', () => {
+	const engine = () => engineWith(CHARSET, V35.height, V35.classes);
+
+	it.each([
+		['NaN', NaN],
+		['+Infinity', Infinity],
+		['-Infinity', -Infinity]
+	])('refuses a %s score instead of decoding past it', (_, bad) => {
+		const logits = logitsFor([1, 2, 3], V35.classes);
+		logits[1 * V35.classes + 5] = bad;
+
+		expect(() => engine().decodePredictions(logits, [1, 3, V35.classes])).toThrow(ModelOutputError);
+	});
+
+	it('refuses a buffer shorter than its shape, which read as blanks', () => {
+		const logits = logitsFor([1, 2, 3], V35.classes).subarray(0, 3 * V35.classes - 1);
+
+		expect(() => engine().decodePredictions(logits, [1, 3, V35.classes])).toThrow(ModelOutputError);
+	});
+
+	it('refuses a buffer longer than its shape', () => {
+		const logits = logitsFor([1, 2, 3, 4], V35.classes);
+
+		expect(() => engine().decodePredictions(logits, [1, 3, V35.classes])).toThrow(ModelOutputError);
+	});
+
+	it('refuses a shape that is not [batch, time, classes]', () => {
+		const logits = logitsFor([1, 2, 3], V35.classes);
+
+		expect(() => engine().decodePredictions(logits, [3 * V35.classes])).toThrow(ModelOutputError);
+		// Sized to match, so only the rank gives it away.
+		expect(() => engine().decodePredictions(logits, [1, 3, V35.classes, 1])).toThrow(
+			ModelOutputError
+		);
+		expect(() => engine().decodePredictions(logits, [1, -3, V35.classes])).toThrow(
+			ModelOutputError
+		);
+	});
+
+	it('is a line failure, not a model contract failure', () => {
+		const logits = logitsFor([1], V35.classes);
+		logits[0] = NaN;
+
+		expect(() => engine().decodePredictions(logits, [1, 1, V35.classes])).not.toThrow(
+			ModelContractError
+		);
+	});
+
+	it('still decodes ordinary negative and large finite scores', () => {
+		const logits = new Float32Array(2 * V35.classes).fill(-1e30);
+		logits[1] = 3.4e38;
+		logits[V35.classes + 2] = -5;
+
+		expect(engine().decodePredictions(logits, [1, 2, V35.classes])).toBe(CHARSET[0] + CHARSET[1]);
+	});
+});
+
+describe('reading a line', () => {
+	it('joins its tiles with no separator', async () => {
+		const line = await readLine(['ab', 'cd'], async (t) => t);
+
+		expect(line).toEqual({ state: 'read', text: 'abcd' });
+	});
+
+	it('fails the whole line when one tile fails, rather than joining across the gap', async () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		const line = await readLine(['ab', 'bad', 'cd'], async (t) => {
+			if (t === 'bad') throw new ModelOutputError('non-finite');
+			return t;
+		});
+
+		expect(line).toEqual({ state: 'failed', error: 'non-finite' });
+	});
+
+	it('rethrows a model contract failure, which every other line would hit too', async () => {
+		await expect(
+			readLine(['ab'], async () => {
+				throw new ModelContractError('wrong generation');
+			})
+		).rejects.toThrow(ModelContractError);
+	});
+
+	it('lets a page keep its other lines when one line returns NaN', async () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		const engine = engineWith(CHARSET, V35.height, V35.classes);
+		const good = logitsFor([1, 2], V35.classes);
+		const broken = logitsFor([1, 2], V35.classes).fill(NaN);
+		const decode = async (l: Float32Array) => engine.decodePredictions(l, [1, 2, V35.classes]);
+
+		const page = assemblePage([
+			await readLine([good], decode),
+			await readLine([broken], decode),
+			await readLine([good], decode)
+		]);
+
+		expect(page).toEqual({
+			text: `${CHARSET[0]}${CHARSET[1]}\n${CHARSET[0]}${CHARSET[1]}`,
+			lineCount: 3,
+			failedLineCount: 1
+		});
+	});
+
+	it('fails a page on which every line returned NaN, instead of returning it blank', async () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		const engine = engineWith(CHARSET, V35.height, V35.classes);
+		const broken = logitsFor([1, 2], V35.classes).fill(NaN);
+		const decode = async (l: Float32Array) => engine.decodePredictions(l, [1, 2, V35.classes]);
+
+		const lines = [await readLine([broken], decode), await readLine([broken], decode)];
+
+		expect(() => assemblePage(lines)).toThrow(/No line could be read/);
+	});
+});
+
+/**
+ * recognize() end to end, with only the browser and the model replaced: the
+ * page is a blank canvas cut into scripted bands, and the session returns one
+ * scripted output per band. Everything between — tiling, preprocessing,
+ * decoding, readLine and assemblePage — is the real code, so these pin that
+ * recognize hands every line to assemblePage, failed ones included.
+ */
+describe('recognizing a page', () => {
+	const W = 400;
+	const H = 200;
+
+	class FakeCanvas {
+		constructor(
+			public width: number,
+			public height: number
+		) {}
+		getContext() {
+			return {
+				fillStyle: '',
+				imageSmoothingEnabled: false,
+				imageSmoothingQuality: 'low',
+				fillRect() {},
+				drawImage() {},
+				putImageData() {},
+				getImageData: (_x: number, _y: number, w: number, h: number) => ({
+					width: w,
+					height: h,
+					data: new Uint8ClampedArray(w * h * 4).fill(255)
+				})
+			};
+		}
+	}
+
+	/** An engine whose page holds one band per output, read in order. */
+	function engineReading(outputs: Float32Array[]) {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		vi.stubGlobal('OffscreenCanvas', FakeCanvas);
+		vi.stubGlobal(
+			'createImageBitmap',
+			vi.fn(async () => ({ width: W, height: H, close: vi.fn() }))
+		);
+		vi.mocked(segmentLines).mockReturnValueOnce(
+			outputs.map((_, i) => ({ x: 0, y: i * 40, width: 100, height: 30, lineShaped: true }))
+		);
+
+		const engine = engineWith(CHARSET, V35.height, V35.classes);
+		const run = vi.fn();
+		for (const data of outputs) {
+			run.mockResolvedValueOnce({
+				logits: { data, dims: [1, data.length / V35.classes, V35.classes] }
+			});
+		}
+		(engine.session as { run: unknown }).run = run;
+		return { engine: engine as unknown as InstanceType<typeof MonOcrOnnx>, run };
+	}
+
+	const text = logitsFor([1, 2], V35.classes);
+	const blank = logitsFor([0, 0], V35.classes);
+	const broken = () => logitsFor([1, 2], V35.classes).fill(NaN);
+	const bytes = () => new Uint8Array([1, 2, 3]);
+
+	it('reads every band and counts the one that failed', async () => {
+		const { engine, run } = engineReading([text, broken(), text]);
+
+		const page = await engine.recognize(bytes());
+
+		expect(run).toHaveBeenCalledTimes(3);
+		expect(page).toEqual({
+			text: `${CHARSET[0]}${CHARSET[1]}\n${CHARSET[0]}${CHARSET[1]}`,
+			lineCount: 3,
+			failedLineCount: 1
+		});
+	});
+
+	it('fails a page on which every band failed, instead of returning it blank', async () => {
+		const { engine } = engineReading([broken(), broken()]);
+
+		await expect(engine.recognize(bytes())).rejects.toThrow(
+			/No line could be read: all 2 line\(s\) failed/
+		);
+	});
+
+	it('returns a partial page, not an error, when some bands failed and the rest read blank', async () => {
+		const { engine } = engineReading([broken(), blank]);
+
+		await expect(engine.recognize(bytes())).resolves.toEqual({
+			text: '',
+			lineCount: 2,
+			failedLineCount: 1
+		});
 	});
 });
 

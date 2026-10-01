@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const constructed = vi.fn();
 let resolveInit: (() => void) | null = null;
 let rejectInit: ((e: Error) => void) | null = null;
+const recognize = vi.fn();
 
 vi.mock('./monocr-onnx', () => ({
 	MonOcrOnnx: class {
@@ -22,8 +23,8 @@ vi.mock('./monocr-onnx', () => ({
 				rejectInit = (e: Error) => rej(e);
 			});
 		}
-		recognize() {
-			return Promise.resolve('');
+		recognize(...args: unknown[]) {
+			return recognize(...args);
 		}
 	}
 }));
@@ -42,6 +43,7 @@ beforeEach(() => {
 	constructed.mockClear();
 	resolveInit = null;
 	rejectInit = null;
+	recognize.mockReset();
 });
 
 describe('the worker init path', () => {
@@ -104,5 +106,39 @@ describe('the worker init path', () => {
 			payload: 'Engine not initialized'
 		});
 		expect(host.posted.some((m) => m.type === 'RESULT')).toBe(false);
+	});
+});
+
+describe('the worker recognize path', () => {
+	async function ready() {
+		const host = hostSpy();
+		const init = handleMessage(host, { id: 'init', type: 'INIT', payload: INIT });
+		resolveInit!();
+		await init;
+		return host;
+	}
+
+	it('posts the whole reading, so the page can see lines that failed', async () => {
+		const host = await ready();
+		const reading = { text: 'a\nb', lineCount: 3, failedLineCount: 1 };
+		recognize.mockResolvedValue(reading);
+
+		await handleMessage(host, { id: 'r', type: 'RECOGNIZE', payload: new Uint8Array() as never });
+
+		expect(host.posted).toContainEqual({ id: 'r', type: 'RESULT', payload: reading });
+	});
+
+	it('posts an error, not an empty result, when no line could be read', async () => {
+		const host = await ready();
+		recognize.mockRejectedValue(new Error('No line could be read: all 2 line(s) failed.'));
+
+		await handleMessage(host, { id: 'r', type: 'RECOGNIZE', payload: new Uint8Array() as never });
+
+		expect(host.posted).toContainEqual({
+			id: 'r',
+			type: 'ERROR',
+			payload: 'No line could be read: all 2 line(s) failed.'
+		});
+		expect(host.posted.some((m) => m.id === 'r' && m.type === 'RESULT')).toBe(false);
 	});
 });

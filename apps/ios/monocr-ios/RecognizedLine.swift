@@ -14,8 +14,12 @@ import Foundation
  needs this type and has to be testable off-device, so this file was split out
  first — relocating it, not renaming or reshaping it.
  */
-struct RecognizedLine {
+nonisolated struct RecognizedLine: Codable {
     let text: String
+    let rawText: String
+    let pageIndex: Int
+    let tiles: [TileReading]
+    let reviewReasons: [String]
 
     /// Page pixel coordinates of the band this text came from.
     let bbox: LineSegment
@@ -26,4 +30,23 @@ struct RecognizedLine {
 
     /// False when the band is shaped like a block of text, not a single line.
     let looksLikeALine: Bool
+
+    init(text: String, bbox: LineSegment, tileCount: Int, looksLikeALine: Bool,
+         rawText: String? = nil, pageIndex: Int = 0, tiles: [TileReading] = [],
+         reviewReasons: [String] = []) {
+        self.rawText = rawText ?? text
+        self.text = text
+        self.bbox = bbox
+        self.tileCount = tileCount
+        self.looksLikeALine = looksLikeALine
+        self.pageIndex = pageIndex
+        self.tiles = tiles
+        self.reviewReasons = reviewReasons
+    }
+
+    func onPage(_ pageIndex: Int) -> RecognizedLine {
+        RecognizedLine(text: text, bbox: bbox, tileCount: tileCount,
+                       looksLikeALine: looksLikeALine, rawText: rawText,
+                       pageIndex: pageIndex, tiles: tiles, reviewReasons: reviewReasons)
+    }
 }
