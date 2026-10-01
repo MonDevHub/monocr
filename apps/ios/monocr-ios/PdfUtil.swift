@@ -11,7 +11,8 @@ nonisolated func PdfUtil_renderPdfPageToImage(at url: URL, pageIndex: Int = 0) -
         return nil
     }
     
-    guard pageIndex < document.pageCount, let page = document.page(at: pageIndex) else {
+    guard !document.isLocked, pageIndex >= 0, pageIndex < document.pageCount,
+          let page = document.page(at: pageIndex) else {
         return nil
     }
     
@@ -48,10 +49,23 @@ nonisolated func PdfUtil_renderPdfPageToImage(at url: URL, pageIndex: Int = 0) -
     }
 }
 
-nonisolated func PdfUtil_getPageCount(at url: URL) -> Int {
-    guard let document = PDFDocument(url: url) else {
-        return 0
+nonisolated enum PdfReadError: LocalizedError {
+    case unreadable, locked, empty
+    var errorDescription: String? {
+        switch self {
+        case .unreadable: return "The PDF could not be opened. It may be invalid or no longer accessible."
+        case .locked: return "This PDF is locked. Unlock it before importing it."
+        case .empty: return "This PDF has no pages to read."
+        }
     }
+}
+
+nonisolated func PdfUtil_getPageCount(at url: URL) throws -> Int {
+    guard let document = PDFDocument(url: url) else {
+        throw PdfReadError.unreadable
+    }
+    guard !document.isLocked else { throw PdfReadError.locked }
+    guard document.pageCount > 0 else { throw PdfReadError.empty }
     return document.pageCount
 }
 
@@ -61,7 +75,7 @@ nonisolated struct PdfUtil {
         return PdfUtil_renderPdfPageToImage(at: url, pageIndex: pageIndex)
     }
     
-    nonisolated static func getPageCount(at url: URL) -> Int {
-        return PdfUtil_getPageCount(at: url)
+    nonisolated static func getPageCount(at url: URL) throws -> Int {
+        return try PdfUtil_getPageCount(at: url)
     }
 }

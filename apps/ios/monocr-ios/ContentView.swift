@@ -3,6 +3,7 @@ import PhotosUI
 import UniformTypeIdentifiers
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = MainViewModel()
 
@@ -70,7 +71,7 @@ struct ContentView: View {
                     // FAB: New Scan — shown when a result is visible, matches Android FAB
                     if viewModel.ocrResult != nil || viewModel.selectedImage != nil {
                         Button {
-                            withAnimation { viewModel.clearResult() }
+                            withAnimation { viewModel.clearResult(modelContext: modelContext); selectedItem = nil }
                         } label: {
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 18, weight: .semibold)) // Smaller icon
@@ -155,7 +156,7 @@ struct ContentView: View {
                     if viewModel.selectedImage != nil {
                         Button("Clear") {
                             withAnimation {
-                                viewModel.clearResult()
+                                viewModel.clearResult(modelContext: modelContext); selectedItem = nil
                             }
                         }
                     }
@@ -223,6 +224,16 @@ struct ContentView: View {
                 if showCopyToast {
                     toastView
                 }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .background {
+                    selectedItem = nil
+                    viewModel.cancelProcessing(modelContext: modelContext)
+                }
+            }
+            .onDisappear {
+                selectedItem = nil
+                viewModel.cancelProcessing(modelContext: modelContext)
             }
             .onChange(of: viewModel.status) { _, status in
                 if case .ready = status, viewModel.ocrResult != nil {
@@ -301,4 +312,3 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
-

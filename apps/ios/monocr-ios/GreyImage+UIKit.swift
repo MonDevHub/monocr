@@ -21,7 +21,7 @@ extension GreyImage {
      bitmap context cannot be made — the caller must report that, not OCR a
      blank page.
      */
-    static func upright(_ image: UIImage) -> GreyImage? {
+    nonisolated static func upright(_ image: UIImage) -> GreyImage? {
         let width = Int((image.size.width * image.scale).rounded())
         let height = Int((image.size.height * image.scale).rounded())
         guard width > 0, height > 0 else {
@@ -35,7 +35,9 @@ extension GreyImage {
         let renderer = UIGraphicsImageRenderer(
             size: CGSize(width: width, height: height), format: format
         )
-        let flattened = renderer.image { _ in
+        let flattened = renderer.image { context in
+            UIColor.white.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: width, height: height))
             image.draw(in: CGRect(x: 0, y: 0, width: width, height: height))
         }
 
@@ -53,7 +55,7 @@ extension GreyImage {
      colorimetrically, which would give the tiler's ink threshold and the
      preprocessor's normalisation two different ideas of the same pixel.
      */
-    init?(cgImage: CGImage) {
+    nonisolated init?(cgImage: CGImage) {
         let width = cgImage.width
         let height = cgImage.height
         guard width > 0, height > 0 else { return nil }
@@ -93,7 +95,7 @@ extension GreyImage {
 
     /// Render back to a `UIImage`, so the preprocessor can crop and scale tiles
     /// out of the normalised page with the same drawing path as before.
-    func makeUIImage() -> UIImage? {
+    nonisolated func makeUIImage() -> UIImage? {
         guard width > 0, height > 0 else { return nil }
         guard let provider = CGDataProvider(data: Data(pixels) as CFData) else { return nil }
         guard let cgImage = CGImage(

@@ -150,6 +150,9 @@ actor MonOcrEngine {
         }
 
         self.initTask = newTask
+        // Only the task creator clears the shared attempt. Waiters must not
+        // clear a newer attempt when an earlier failure resumes them later.
+        defer { self.initTask = nil }
         return try await newTask.value
     }
 
@@ -246,6 +249,7 @@ actor MonOcrEngine {
      both "".
      */
     func recognize(image: UIImage, mode: SegmentationMode) async throws -> MonOcrResult {
+        try Task.checkCancellation()
         let startTime = Date()
         MonLog_i("starting recognition: \(Int(image.size.width))x\(Int(image.size.height)) mode=\(mode.rawValue)")
 
@@ -280,6 +284,7 @@ actor MonOcrEngine {
 
         let wholePage = LineSegment(x: 0, y: 0, width: page.width, height: page.height)
         var bands: [LineSegment]
+        var noRegionsDetected = false
         // A mode with no ratio never runs the profile, so the absence of one IS the
         // branch. This compared against `.line` while the ratio was non-optional,
         // which meant the two could drift: a new mode that should skip segmenting
@@ -288,6 +293,7 @@ actor MonOcrEngine {
         if let ratio = mode.densityThresholdRatio {
             bands = LineSegmenter.segment(page: page, densityThresholdRatio: ratio)
             if bands.isEmpty {
+                noRegionsDetected = true
                 MonLog_i("no lines found; reading the whole page as one line")
                 bands = [wholePage]
             }
@@ -310,7 +316,7 @@ actor MonOcrEngine {
             MonLog_i("tiled \(bands.count) bands into \(tileCount) model windows")
         }
 
-        var pieces = [(band: Int, tile: Int, text: String)]()
+        var pieces = [(band: Int, reading: TileReading)]()
         pieces.reserveCapacity(tileCount)
 
         // Preprocessing runs INSIDE the task, and only a few tasks exist at once.
@@ -324,54 +330,65 @@ actor MonOcrEngine {
         // in-flight tiles buy no throughput and only cost the buffers.
         let inFlight = max(2, min(4, ProcessInfo.processInfo.activeProcessorCount))
 
-        try await withThrowingTaskGroup(of: (Int, Int, String).self) { group in
+        try await withThrowingTaskGroup(of: (Int, TileReading).self) { group in
             var submitted = 0
             for (bandIndex, tiles) in tiledBands.enumerated() {
                 for (tileIndex, tile) in tiles.enumerated() {
+                    try Task.checkCancellation()
                     // Wait for a slot before adding, so the group never holds more
-                    // than `inFlight` buffers. next() rethrows, which keeps the
-                    // old failure behaviour: the first error cancels the group.
+                    // than `inFlight` buffers. Cancellation still propagates;
+                    // individual failures remain typed tile evidence.
                     if submitted >= inFlight, let piece = try await group.next() {
-                        pieces.append((band: piece.0, tile: piece.1, text: piece.2))
+                        pieces.append((band: piece.0, reading: piece.1))
                     }
                     group.addTask {
-                        guard let tileData = ImagePreprocessor.processLine(source: pageImage, segment: tile) else {
-                            throw OcrError.processingError(
-                                "could not prepare band \(bandIndex + 1) tile \(tileIndex + 1) for the model"
-                            )
+                        do {
+                            try Task.checkCancellation()
+                            guard let tileData = ImagePreprocessor.processLine(source: pageImage, segment: tile) else {
+                                throw OcrError.processingError("could not prepare tile \(tileIndex + 1)")
+                            }
+                            let rawText = try await self.runInference(lineData: tileData)
+                            try Task.checkCancellation()
+                            return (bandIndex, TileReading.decoded(index: tileIndex, bbox: tile, rawText: rawText))
+                        } catch is CancellationError {
+                            throw CancellationError()
+                        } catch {
+                            return (bandIndex, TileReading.failed(index: tileIndex, bbox: tile,
+                                                                  error: error.localizedDescription))
                         }
-                        let text = try await self.runInference(lineData: tileData)
-                        return (bandIndex, tileIndex, text)
                     }
                     submitted += 1
                 }
             }
 
             for try await piece in group {
-                pieces.append((band: piece.0, tile: piece.1, text: piece.2))
+                pieces.append((band: piece.0, reading: piece.1))
             }
         }
 
-        // Tiles of one band join with NO separator: the cut falls inside a word,
-        // so a space there would be wrong. Distinct bands join with a newline.
+        // Keep the existing no-separator seam policy. Failed regions do not
+        // emit an invented join, and uncertain empty seams carry review reasons.
         var lines = [RecognizedLine]()
         for (bandIndex, band) in bands.enumerated() {
-            let text = pieces
+            let tiles = pieces
                 .filter { $0.band == bandIndex }
-                .sorted { $0.tile < $1.tile }
-                .map { $0.text }
-                .joined()
+                .map { $0.reading }
+                .sorted { $0.index < $1.index }
+            let assembly = TileAssembly.assemble(tiles)
             lines.append(
                 RecognizedLine(
-                    text: text,
+                    text: assembly.text,
                     bbox: band,
                     tileCount: tiledBands[bandIndex].count,
-                    looksLikeALine: LineSegmenter.looksLikeALine(bbox: band, pageHeight: page.height)
+                    looksLikeALine: LineSegmenter.looksLikeALine(bbox: band, pageHeight: page.height),
+                    rawText: assembly.rawText, tiles: tiles,
+                    reviewReasons: assembly.reviewReasons + (noRegionsDetected ? ["no_regions_detected"] : [])
                 )
             )
         }
 
         let combinedText = lines.map { $0.text }.filter { !$0.isEmpty }.joined(separator: "\n")
+        let rawText = lines.map { $0.rawText }.filter { !$0.isEmpty }.joined(separator: "\n")
         let totalDuration = Int(Date().timeIntervalSince(startTime) * 1000)
         let words = combinedText.trimmingCharacters(in: .whitespacesAndNewlines)
             .components(separatedBy: .whitespacesAndNewlines)
@@ -398,12 +415,14 @@ actor MonOcrEngine {
             debugImage: debugImg,
             lines: lines,
             mode: mode,
-            looksSoft: looksSoft
+            looksSoft: looksSoft,
+            rawText: rawText
         )
     }
 
     /// Run inference on a single line of float data using Core ML
     private func runInference(lineData: [Float]) async throws -> String {
+        try Task.checkCancellation()
         guard let model = model else { throw OcrError.notInitialized }
 
         // A failure below used to return "" per line, which made a broken model
@@ -422,7 +441,9 @@ actor MonOcrEngine {
 
             let inputProvider = try MLDictionaryFeatureProvider(dictionary: ["input": inputArray])
             outputFeatures = try await model.prediction(from: inputProvider)
+            try Task.checkCancellation()
         } catch {
+            if Task.isCancelled { throw CancellationError() }
             MonLog_e("core ml inference error", error: error)
             throw OcrError.inferenceFailed(error.localizedDescription)
         }

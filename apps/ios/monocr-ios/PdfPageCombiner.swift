@@ -9,12 +9,23 @@ import Foundation
  `MainViewModel`; everything a page-combining decision actually depends on is
  here, Foundation-only, so the combiner can be tested off-device.
  */
-struct PageReading {
+nonisolated struct PageReading {
     let text: String
     let wordCount: Int
     let charCount: Int
     let lines: [RecognizedLine]
     let looksSoft: Bool
+    let rawText: String
+
+    init(text: String, wordCount: Int, charCount: Int, lines: [RecognizedLine],
+         looksSoft: Bool, rawText: String? = nil) {
+        self.text = text
+        self.wordCount = wordCount
+        self.charCount = charCount
+        self.lines = lines
+        self.looksSoft = looksSoft
+        self.rawText = rawText ?? text
+    }
 }
 
 /**
@@ -29,9 +40,10 @@ struct PageReading {
  point — this used to live inside a `withTaskGroup` closure in a `@MainActor`
  class, where none of it could be tested directly.
  */
-enum PdfPageCombiner {
+nonisolated enum PdfPageCombiner {
     struct Combined {
         let text: String
+        let rawText: String
         let wordCount: Int
         let charCount: Int
         let lines: [RecognizedLine]
@@ -52,14 +64,22 @@ enum PdfPageCombiner {
             .joined()
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
+        let rawText = (0..<totalPages).compactMap { i -> String? in
+            guard let reading = readings[i] else { return nil }
+            return "--- Page \(i + 1) ---\n\(reading.rawText)\n\n"
+        }.joined().trimmingCharacters(in: .whitespacesAndNewlines)
+
         let wordCount = readings.values.reduce(0) { $0 + $1.wordCount }
         let charCount = readings.values.reduce(0) { $0 + $1.charCount }
-        let lines = (0..<totalPages).flatMap { readings[$0]?.lines ?? [] }
+        let lines = (0..<totalPages).flatMap { index in
+            (readings[index]?.lines ?? []).map { $0.onPage(index) }
+        }
         // Any soft page makes the combined reading suspect, so this is an OR
         // across every page read so far, not the last page's verdict alone.
         let looksSoft = readings.values.contains { $0.looksSoft }
 
-        return Combined(text: text, wordCount: wordCount, charCount: charCount, lines: lines, looksSoft: looksSoft)
+        return Combined(text: text, rawText: rawText, wordCount: wordCount,
+                        charCount: charCount, lines: lines, looksSoft: looksSoft)
     }
 
     /// The lowest-index failure, deterministically. Failures arrive in whatever

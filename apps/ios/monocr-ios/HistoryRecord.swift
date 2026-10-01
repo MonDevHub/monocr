@@ -8,6 +8,10 @@ final class HistoryRecord {
     var fileName: String
     var fileType: String
     var text: String
+    // Optional additive attributes allow existing history rows to remain intact.
+    var rawText: String? = nil
+    var warningSummary: String? = nil
+    var ocrMetadata: String? = nil
     var processingTimeMs: Int
     var category: String // "ocr-scan", "contribution", "feedback"
     @Attribute(.externalStorage) var imageData: Data?
@@ -41,4 +45,3 @@ final class HistoryRecord {
         self.syncError = syncError
     }
 }
-

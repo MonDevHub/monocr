@@ -12,9 +12,12 @@ import SwiftData
 @main
 struct monocr_iosApp: App {
     let container: ModelContainer
+    let persistentHistoryAvailable: Bool
 
     init() {
-        self.container = Self.createModelContainer()
+        let storage = Self.createModelContainer()
+        self.container = storage.container
+        self.persistentHistoryAvailable = storage.persistent
         registerFonts()
         
         let container = self.container
@@ -24,37 +27,35 @@ struct monocr_iosApp: App {
         }
     }
     
-    /// Self-Healing ModelContainer setup (Wipes database on failure)
-    private static func createModelContainer() -> ModelContainer {
+    /// Keep existing history intact if opening or migrating its store fails.
+    private static func createModelContainer() -> (container: ModelContainer, persistent: Bool) {
         let schema = Schema([HistoryRecord.self])
         let config = ModelConfiguration("MonHistory", schema: schema)
         
         do {
-            return try ModelContainer(for: schema, configurations: [config])
+            return (try ModelContainer(for: schema, configurations: [config]), true)
         } catch {
-            MonLog_e("Initial SwiftData setup failed. Attempting self-healing (Reset Store)...", error: error)
-            
-            // Critical Recovery Path: Attempt to wipe the local store on failure
-            let url = config.url
-            MonLog_w("Deleting corrupted store at: \(url.path)")
-            try? FileManager.default.removeItem(at: url)
-            
-            // Retry once
-            do {
-                return try ModelContainer(for: schema, configurations: [config])
-            } catch {
-                MonLog_e("Permanent store failure. Falling back to in-memory mode.", error: error)
-            }
-            
+            // An incompatible migration is not permission to erase user scans.
+            // Preserve the persistent store so a later build can recover it.
+            MonLog_e("Persistent history could not be opened; preserving its files and using temporary storage.", error: error)
+
             // Last-resort fallback to prevent app from being unlaunchable
             let fallbackConfig = ModelConfiguration(isStoredInMemoryOnly: true)
-            return try! ModelContainer(for: schema, configurations: [fallbackConfig])
+            return (try! ModelContainer(for: schema, configurations: [fallbackConfig]), false)
         }
     }
     
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .safeAreaInset(edge: .top) {
+                    if !persistentHistoryAvailable {
+                        Text("History is temporarily unavailable. New scans will not be kept after closing the app.")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                            .padding(8)
+                    }
+                }
         }
         .modelContainer(container)
     }
