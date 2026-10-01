@@ -12,6 +12,10 @@
   upright, and transparent images are read on a white background.
 - Android: a damaged cached model is detected and replaced at start.
 - Android: if hardware-accelerated recognition fails, it is retried on the CPU.
+- Android: a page on which some lines could not be read and the rest read no
+  text is kept with a warning that it is incomplete. It used to fail with a
+  message saying every line had failed. Only a page on which every line failed
+  is an error, as on iOS and the web.
 - iOS: history is kept when its store cannot be opened, instead of being
   deleted. The app uses temporary storage for the session and says so.
 - iOS: a locked, empty or unreadable PDF gets its own error message.

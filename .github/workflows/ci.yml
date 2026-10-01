@@ -695,8 +695,9 @@ jobs:
           # the diff then records the removal.
           #
           # 122 on 2026-10-01: sixteen added with the import, PDF-outcome, model-cache
-          # and adaptive-threshold work.
-          FLOOR = 122
+          # and adaptive-threshold work. 125 the same day: three for the rule that a
+          # page fails only when every line failed.
+          FLOOR = 125
           # Against `passed`. An @Ignore'd test stops counting toward the floor,
           # so parking one trips it and has to be paid for by lowering FLOOR in
           # the same commit. That is the whole skip policy, and it needs no

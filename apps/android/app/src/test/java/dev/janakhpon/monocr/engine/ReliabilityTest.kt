@@ -34,6 +34,31 @@ class ReliabilityTest {
         assertEquals(listOf(0, 1, 2), released)
     }
 
+    @Test fun `a page fails only when every line failed`() {
+        val error = assertThrows(LineInferenceException::class.java) { assembleLines(listOf(null, null)) }
+        assertTrue(error.message!!.contains("all 2 line(s) failed"))
+        assertThrows(LineInferenceException::class.java) { assembleLines(listOf(null)) }
+        // No lines at all is an empty reading, not a failure.
+        assertEquals(AssembledLines(emptyList(), 0), assembleLines(emptyList()))
+    }
+
+    @Test fun `lines read as before, blank ones dropped and failed ones counted`() {
+        assertEquals(AssembledLines(listOf("a", "b"), 1), assembleLines(listOf("a", " ", null, "", "b")))
+        assertEquals(AssembledLines(emptyList(), 0), assembleLines(listOf("", " ")))
+    }
+
+    @Test fun `some lines failed and the rest read blank is partial, not an error`() = runBlocking {
+        // The message used to say "all 1 line(s) failed" here, of a page with two lines.
+        val (texts, failed) = assembleLines(listOf(null, ""))
+        assertEquals(emptyList<String>(), texts)
+        assertEquals(1, failed)
+        val pages = readDocumentPages(1, { it }, { result("", failed = failed) }, {})
+        assertEquals(PageStatus.PARTIAL, pages.single().status)
+        val summary = combinePageResults(pages, 0).warningSummary()!!
+        assertTrue(summary.contains("1 line(s) could not be read. Text is incomplete."))
+        assertTrue(summary.contains("Page 1: some lines failed; review this page."))
+    }
+
     @Test fun `cancelled recognition releases current page and stops document`() {
         val rendered = mutableListOf<Int>(); val released = mutableListOf<Int>()
         assertThrows(CancellationException::class.java) {

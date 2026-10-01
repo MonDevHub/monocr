@@ -43,6 +43,29 @@ data class OcrPageOutcome(
     val error: String? = null
 )
 
+/** The lines of one page that read text, and how many lines failed. */
+internal data class AssembledLines(val texts: List<String>, val failedLines: Int)
+
+/**
+ * Keep the lines that read text, count the ones that failed (null), or throw if
+ * every line failed.
+ *
+ * Every line failing is not a blank page, it is a broken engine, so it is an
+ * error. Some lines failing and the rest reading nothing is not: those lines
+ * ran and returned, so the page is partial, warned about through
+ * [OcrResult.failedLineCount]. The same rule as iOS (`PageOutcome.recognition`)
+ * and the web app (`assemblePage`).
+ */
+internal fun assembleLines(lines: List<String?>): AssembledLines {
+    val failed = lines.count { it == null }
+    if (lines.isNotEmpty() && failed == lines.size) {
+        throw LineInferenceException(
+            "all $failed line(s) failed in the ONNX runtime; no text could be read"
+        )
+    }
+    return AssembledLines(lines.filterNotNull().filter { it.isNotBlank() }, failed)
+}
+
 /** Every requested page gets an outcome. A cancellation propagates, never becomes failure/blank. */
 internal suspend fun <T : Any> readDocumentPages(
     pageCount: Int,

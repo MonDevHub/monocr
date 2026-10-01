@@ -121,8 +121,7 @@ class OcrRepository(
             //    they are pieces of a single reading, and a separator here is what turns
             //    one line into "Mon E-boo" and "k library".
             val normalizedBitmap = ImagePreprocessor.toBitmapConsuming(page)
-            var failedLines = 0
-            val lineTexts = mutableListOf<String>()
+            val lineReadings = mutableListOf<String?>()
             try {
                 for (tiles in tiledLines) {
                     currentCoroutineContext().ensureActive()
@@ -132,13 +131,13 @@ class OcrRepository(
                             currentCoroutineContext().ensureActive()
                             line.append(engine.runInference(ImagePreprocessor.processLine(normalizedBitmap, tile)))
                         }
-                        if (line.isNotBlank()) lineTexts.add(line.toString())
+                        lineReadings.add(line.toString())
                     } catch (e: LineInferenceException) {
                         // Counted, logged and reported, not swallowed. Aborting the page on
                         // the first bad line would lose a 300-page PDF to one driver hiccup;
                         // returning "" silently was the bug that made a broken device look
                         // like a blank document.
-                        failedLines++
+                        lineReadings.add(null)
                         MonLogger.e("line inference failed: line=${tiles.firstOrNull()}", e)
                     }
                 }
@@ -146,12 +145,8 @@ class OcrRepository(
                 normalizedBitmap.recycle()
             }
 
-            // Every line failing is not a blank page, it is a broken engine. Say so.
-            if (failedLines > 0 && lineTexts.isEmpty()) {
-                throw LineInferenceException(
-                    "all $failedLines line(s) failed in the ONNX runtime; no text could be read"
-                )
-            }
+            // Throws when every line failed; see assembleLines.
+            val (lineTexts, failedLines) = assembleLines(lineReadings)
 
             val duration = System.currentTimeMillis() - startMs
             OcrResult(
