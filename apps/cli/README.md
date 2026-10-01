@@ -187,8 +187,12 @@ stderr and has a `failure` record with its page number, the other pages are writ
 warning at the end of the run counts the inputs that were only partly read. The input is not
 recorded as finished, so `--resume` reads it again.
 
-A page with no text on it is a result, not an error. The CLI says `no text found` on stderr and
-exits 0.
+An input with no text on it is a result, not an error. When every page of an input was read
+and none of them has text, the CLI says `no text found` on stderr and the input does not count
+as a failure. A page has no text when the model returned no lines, or only lines that are empty
+or whitespace; a blank image read in line mode is one of these, since line mode always returns
+one line. A blank page in a PDF with text on other pages is not reported, and a PDF with some
+pages that could not be read gets the warning above instead.
 
 The CLI can only report what the `monocr` library returns. Version 0.4 fails a whole page when
 any line on it cannot be recognised, so one bad line costs its page rather than only itself.

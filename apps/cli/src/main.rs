@@ -572,7 +572,7 @@ async fn process_one(
                 vec![line]
             };
 
-            tally.read(!lines.is_empty());
+            tally.read(has_text(&lines));
             let (text, records) = collect(&lines, page_height_of(&input.path));
 
             out.write_page(stem, 1, &text)?;
@@ -616,7 +616,7 @@ async fn process_one(
                         continue;
                     }
                 };
-                tally.read(!lines.is_empty());
+                tally.read(has_text(&lines));
 
                 let (text, records) = collect(&lines, height);
                 out.write_page(stem, page, &text)?;
@@ -695,6 +695,15 @@ async fn read_pdf_page(
         .await
         .with_context(|| format!("cannot read page {page}"))?;
     Ok((lines, height))
+}
+
+/// Whether recognised lines carry any text.
+///
+/// Not `!lines.is_empty()`: line mode always returns one line, blank image or
+/// not, and a segmented page can return lines that read as nothing, so counting
+/// lines never reported `no text found` for either.
+fn has_text(lines: &[monocr_onnx::LineResult]) -> bool {
+    lines.iter().any(|l| !l.text.trim().is_empty())
 }
 
 /// Turn recognised lines into page text plus manifest records.

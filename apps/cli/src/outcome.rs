@@ -26,7 +26,7 @@ pub struct PageTally {
 
 impl PageTally {
     /// A page that was recognised. `has_text` is false when the model found no
-    /// lines, which still counts as read.
+    /// lines, or only blank ones, which still counts as read.
     pub fn read(&mut self, has_text: bool) {
         self.read += 1;
         if has_text {
