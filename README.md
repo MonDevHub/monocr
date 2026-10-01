@@ -17,7 +17,7 @@ Mon is spoken by roughly one million people across Myanmar and Thailand. [UNESCO
 | [`apps/ios`](apps/ios) | SwiftUI app | Build from source; not on the App Store |
 | [`apps/cli`](apps/cli) | Rust CLI for batches of books, PDFs and images | Published on crates.io as `monocr-cli` |
 | [`services/feedback`](services/feedback) | Go API that stores opt-in contributions | Used by the Android and iOS apps |
-| [`shared`](shared) | Locales, the API contract, and the segmentation fixtures every port is tested against | |
+| [`shared`](shared) | The locale sync tool, the API contract, and the segmentation fixtures every port is tested against | |
 | [`samples`](samples) | Three real documents and the CLI's unedited output | |
 | [`docs`](docs) | ADRs, the OpenAPI spec, build guides | |
 
@@ -96,7 +96,7 @@ CI runs the web unit tests and production build, the Android unit tests, the iOS
 ## Related
 
 - [Model card and exports](https://huggingface.co/janakhpon/monocr) on Hugging Face (ONNX and Core ML)
-- [`monocr-onnx`](https://github.com/janakhpon/monocr-onnx): the Python, JavaScript, Go and Rust SDKs; the CLI is built on its Rust library
+- [`monocr-onnx`](https://github.com/MonDevHub/monocr-onnx): the Python, JavaScript, Go and Rust SDKs; the CLI is built on its Rust library
 - [`monocr` on npm](https://www.npmjs.com/package/monocr): the JavaScript SDK
 - [Mon Corpus Collection](https://github.com/MonDevHub/MonCorpusCollection): training dataset
 - [Architecture decisions](docs/architecture/adr) and [API specs](docs/api)

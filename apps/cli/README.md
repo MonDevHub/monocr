@@ -110,7 +110,7 @@ bad file does not end a 500-file batch, and the exit code still reflects it.
 ## Behaviour worth knowing
 
 - **stdout is data, stderr is everything else**, so `--json | jq` works while you still see
-  progress. The exception is the first model download, which prints its progress to stdout: run
+  progress. The exception is the first model download, which prints two status lines to stdout: run
   `monocr-cli download` first when piping. Exit 0 on success, 1 on failure, 2 on a usage error,
   130 on Ctrl-C.
 - **Memory is one page, not one document.** Pages are rasterised on demand and dropped. On a

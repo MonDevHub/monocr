@@ -52,12 +52,10 @@ Model ဝွံ ဒှ်ကမၠောန် ပ္ဍဲ Web, Android ကေ�
 | Web | ONNX | WebGPU where the browser offers it, otherwise WASM |
 | Android | ONNX | NNAPI, with CPU fallback |
 | iOS | CoreML `.mlpackage` | Core ML, all compute units |
-| CLI | ONNX | ONNX Runtime default (CPU) |
 
 - **[Web App](apps/web)** — SvelteKit PWA
 - **[Android App](apps/android)** — Jetpack Compose
 - **[iOS App](apps/ios)** — SwiftUI
-- **[CLI](apps/cli)** — Rust batch CLI
 - **[Feedback Service](services/feedback)** — Go ingestion API
 - **[Shared Assets](shared)** — locales, API contract, segmentation fixtures
 
