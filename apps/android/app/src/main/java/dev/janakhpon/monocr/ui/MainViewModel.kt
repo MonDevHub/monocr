@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import java.io.File
 
 sealed class UiState {
     data object Initializing : UiState()
@@ -52,11 +55,43 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
     private val _rerunnableImage = MutableStateFlow<Uri?>(null)
     val rerunnableImage: StateFlow<Uri?> = _rerunnableImage.asStateFlow()
 
+    private val generations = ScanGeneration()
+    private var scanJob: Job? = null
+    private var currentPreviewFile: File? = null
+
+    private fun releasePreview() {
+        currentPreviewFile?.delete()
+        currentPreviewFile = null
+    }
+
+    fun beginImport(uri: Uri): Long {
+        val token = generations.next()
+        scanJob?.cancel()
+        releasePreview()
+        _uiState.value = UiState.Processing(uri)
+        _rerunnableImage.value = null
+        return token
+    }
+
+    fun isCurrentImport(token: Long): Boolean = generations.isCurrent(token)
+
+    /**
+     * Releases a selection that was cancelled before it handed ownership to a scan job.
+     * Invalidating the token also prevents delayed decode/preview work from publishing.
+     */
+    fun cancelImport(token: Long) {
+        if (!generations.cancelIfCurrent(token)) return
+        releasePreview()
+        _rerunnableImage.value = null
+        _uiState.value = UiState.Ready
+    }
+
     init {
         viewModelScope.launch {
             try {
                 repository.initialize()
                 _uiState.value = UiState.Ready
+            } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 _uiState.value = UiState.InitError(
                     e.message ?: "Failed to initialize OCR engine"
@@ -65,13 +100,15 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
         }
     }
 
-    fun onImageSelected(uri: Uri, bitmap: android.graphics.Bitmap, mode: SegmentationMode) {
-        viewModelScope.launch {
+    fun onImageSelected(uri: Uri, bitmap: android.graphics.Bitmap, mode: SegmentationMode, token: Long = beginImport(uri)) {
+        if (!generations.isCurrent(token)) { bitmap.recycle(); return }
+        scanJob = viewModelScope.launch {
             _uiState.value = UiState.Processing(uri)
             _segmentationMode.value = mode
             _rerunnableImage.value = uri
             try {
                 val result = repository.performOcr(bitmap, mode)
+                if (!generations.isCurrent(token)) return@launch
                 _uiState.value = UiState.Success(uri, result, uri, "image/jpeg")
                 repository.saveToHistory(
                     fileName = uri.lastPathSegment ?: "scan",
@@ -79,18 +116,22 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
                     text = result.text,
                     durationMs = result.durationMs,
                     category = "ocr-scan",
-                    fileUri = uri.toString()
+                    fileUri = uri.toString(),
+                    rawText = result.rawText,
+                    warningSummary = result.warningSummary()
                 )
+            } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
-                _uiState.value = UiState.OcrError(uri, e.message ?: "OCR processing failed")
-            } finally {
-                bitmap.recycle()
+                if (generations.isCurrent(token))
+                    _uiState.value = UiState.OcrError(uri, e.message ?: "OCR processing failed")
             }
-        }
+        }.also { job -> job.invokeOnCompletion { bitmap.recycle() } }
     }
 
-    fun onPdfSelected(context: android.content.Context, uri: Uri, previewUri: Uri?) {
-        viewModelScope.launch {
+    fun onPdfSelected(context: android.content.Context, uri: Uri, previewUri: Uri?, token: Long = beginImport(uri), previewFile: File? = null) {
+        if (!generations.isCurrent(token)) { previewFile?.delete(); return }
+        currentPreviewFile = previewFile
+        scanJob = viewModelScope.launch {
             _uiState.value = UiState.Processing(previewUri ?: uri)
             // A PDF render is dense text by construction, and the pages are not
             // re-readable from a single bitmap, so no mode choice is offered.
@@ -98,6 +139,7 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
             _rerunnableImage.value = null
             try {
                 val result = repository.performMultiPageOcr(context, uri)
+                if (!generations.isCurrent(token)) return@launch
                 _uiState.value = UiState.Success(previewUri ?: uri, result, uri, "application/pdf")
                 repository.saveToHistory(
                     fileName = uri.lastPathSegment ?: "document.pdf",
@@ -105,15 +147,20 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
                     text = result.text,
                     durationMs = result.durationMs,
                     category = "ocr-scan",
-                    fileUri = uri.toString()
+                    fileUri = uri.toString(),
+                    rawText = result.rawText,
+                    warningSummary = result.warningSummary()
                 )
+            } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
-                _uiState.value = UiState.OcrError(previewUri ?: uri, e.message ?: "PDF processing failed")
+                if (generations.isCurrent(token))
+                    _uiState.value = UiState.OcrError(previewUri ?: uri, e.message ?: "PDF processing failed")
             }
         }
     }
 
-    fun onError(uri: Uri, message: String) {
+    fun onError(uri: Uri, message: String, token: Long = beginImport(uri)) {
+        if (!generations.isCurrent(token)) return
         _uiState.value = UiState.OcrError(uri, message)
     }
 
@@ -126,6 +173,9 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
     }
 
     fun reset() {
+        generations.next()
+        scanJob?.cancel()
+        releasePreview()
         if (repository.isEngineReady) {
             _uiState.value = UiState.Ready
             _rerunnableImage.value = null
@@ -133,8 +183,10 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
     }
 
     override fun onCleared() {
+        generations.next()
+        scanJob?.cancel()
+        releasePreview()
         super.onCleared()
         repository.dispose()
     }
 }
-

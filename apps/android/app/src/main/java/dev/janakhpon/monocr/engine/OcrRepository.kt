@@ -8,33 +8,12 @@ import dev.janakhpon.monocr.data.HistoryRecord
 import android.content.Context
 import android.graphics.Bitmap
 import dev.janakhpon.monocr.util.PdfUtil
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-data class OcrResult(
-    val text: String,
-    val lineCount: Int,
-    val pageCount: Int = 1,
-    val durationMs: Long,
-    /** Which segmentation mode produced this. Shown so the user can try another. */
-    val mode: SegmentationMode = SegmentationMode.PAGE,
-    /**
-     * Bands that came back shaped like a block rather than a line
-     * ([LineSegmenter.looksLikeALine]). The model answers fluently on these and is
-     * wrong, so the count is surfaced rather than the reading being dropped.
-     */
-    val blockShapedLineCount: Int = 0,
-    /** Lines the model runtime failed on. Not the same as lines with no text. */
-    val failedLineCount: Int = 0,
-    /**
-     * The page was too soft to read confidently ([CaptureQuality.isSoft]).
-     *
-     * Surfaced for the same reason [blockShapedLineCount] is: a blurred photograph
-     * does not fail, it returns confident nonsense, and the user holding the camera
-     * is the only person who can do anything about it.
-     */
-    val captureLooksSoft: Boolean = false
-)
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Orchestrates the full OCR pipeline:
@@ -53,6 +32,7 @@ class OcrRepository(
     }
 
     private val engine = MonOcrEngine(context)
+    private val pageMutex = Mutex()
 
     val isEngineReady: Boolean get() = engine.isInitialized
 
@@ -73,110 +53,118 @@ class OcrRepository(
         bitmap: Bitmap,
         mode: SegmentationMode = SegmentationMode.PAGE
     ): OcrResult = withContext(Dispatchers.Default) {
-        val startMs = System.currentTimeMillis()
+        pageMutex.withLock {
+            currentCoroutineContext().ensureActive()
+            val startMs = System.currentTimeMillis()
 
-        MonLogger.i("starting ocr: size=${bitmap.width}x${bitmap.height} mode=$mode")
+            MonLogger.i("starting ocr: size=${bitmap.width}x${bitmap.height} mode=$mode")
 
-        // 1. Normalise polarity and background for the whole page, once, before
-        //    anything measures ink. Doing this per line after segmentation meant the
-        //    projection profile read the background of an inverted page as text.
-        val argb = IntArray(bitmap.width * bitmap.height)
-        bitmap.getPixels(argb, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-        val page = PageNormalizer.normalize(
-            GreyImage.fromArgbInPlace(argb, bitmap.width, bitmap.height)
-        )
-
-        // 2. Segment lines
-        val ratio = mode.densityThresholdRatio
-        // The shape verdict applies to the whole-image case too, and it matters most
-        // there: a full page read as one line is the case that comes back as fluent
-        // Mon that appears nowhere on the page.
-        val fullPage = LineSegment(0, 0, page.width, page.height).let {
-            it.copy(looksLikeALine = LineSegmenter.looksLikeALine(it, page.height))
-        }
-        val segments = if (ratio == null) {
-            // LINE mode: the image is already one line, so there is nothing to find
-            // and a projection profile would only chop it up.
-            listOf(fullPage)
-        } else {
-            LineSegmenter.segment(page, ratio).ifEmpty {
-                MonLogger.d("no lines detected, using full image as fallback")
-                listOf(fullPage)
-            }
-        }
-        // Measured on the normalised page, which is what the segmenter and the model
-        // actually see, and BEFORE the empty-segments fallback below replaces an empty
-        // result with the whole page. Assessing after it would hide the very case
-        // worth reporting, which is the ordering the web port documents at its own
-        // call site.
-        val captureLooksSoft = CaptureQuality.isSoft(page)
-        if (captureLooksSoft) {
-            MonLogger.w("capture looks soft; the reading may be unreliable")
-        }
-
-        val blockShaped = segments.count { !it.looksLikeALine }
-        MonLogger.d("segmented: lines=${segments.size} block_shaped=$blockShaped mode=$mode")
-
-        // 3. Tile every line wide enough to overflow the model window. This has to
-        //    happen while the grey buffer is still grey, because the next step
-        //    consumes it.
-        val tiledLines = segments.map { segment ->
-            LineTiler.tileSegment(
-                page,
-                segment,
-                ImagePreprocessor.TARGET_HEIGHT,
-                ImagePreprocessor.TARGET_WIDTH
+            // 1. Normalise polarity and background for the whole page, once, before
+            //    anything measures ink. Doing this per line after segmentation meant the
+            //    projection profile read the background of an inverted page as text.
+            val argb = IntArray(bitmap.width * bitmap.height)
+            bitmap.getPixels(argb, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+            val page = PageNormalizer.normalize(
+                GreyImage.fromArgbInPlace(argb, bitmap.width, bitmap.height)
             )
-        }
-        val tileCount = tiledLines.sumOf { it.size }
-        if (tileCount != segments.size) {
-            MonLogger.d("tiled wide lines: lines=${segments.size} tiles=$tileCount")
-        }
 
-        // 4. Preprocess + infer each tile. Tiles of one line join with no separator;
-        //    they are pieces of a single reading, and a separator here is what turns
-        //    one line into "Mon E-boo" and "k library".
-        val normalizedBitmap = ImagePreprocessor.toBitmapConsuming(page)
-        var failedLines = 0
-        val lineTexts = mutableListOf<String>()
-        try {
-            for (tiles in tiledLines) {
-                try {
-                    val line = StringBuilder()
-                    for (tile in tiles) {
-                        line.append(engine.runInference(ImagePreprocessor.processLine(normalizedBitmap, tile)))
-                    }
-                    if (line.isNotBlank()) lineTexts.add(line.toString())
-                } catch (e: LineInferenceException) {
-                    // Counted, logged and reported, not swallowed. Aborting the page on
-                    // the first bad line would lose a 300-page PDF to one driver hiccup;
-                    // returning "" silently was the bug that made a broken device look
-                    // like a blank document.
-                    failedLines++
-                    MonLogger.e("line inference failed: line=${tiles.firstOrNull()}", e)
+            // 2. Segment lines
+            val ratio = mode.densityThresholdRatio
+            // The shape verdict applies to the whole-image case too, and it matters most
+            // there: a full page read as one line is the case that comes back as fluent
+            // Mon that appears nowhere on the page.
+            val fullPage = LineSegment(0, 0, page.width, page.height).let {
+                it.copy(looksLikeALine = LineSegmenter.looksLikeALine(it, page.height))
+            }
+            var noRegionsDetected = false
+            val segments = if (ratio == null) {
+                // LINE mode: the image is already one line, so there is nothing to find
+                // and a projection profile would only chop it up.
+                listOf(fullPage)
+            } else {
+                LineSegmenter.segment(page, ratio).ifEmpty {
+                    noRegionsDetected = true
+                    MonLogger.d("no lines detected, using full image as fallback")
+                    listOf(fullPage)
                 }
             }
-        } finally {
-            normalizedBitmap.recycle()
-        }
+            // Measured on the normalised page, which is what the segmenter and the model
+            // actually see, and BEFORE the empty-segments fallback below replaces an empty
+            // result with the whole page. Assessing after it would hide the very case
+            // worth reporting, which is the ordering the web port documents at its own
+            // call site.
+            val captureLooksSoft = CaptureQuality.isSoft(page)
+            if (captureLooksSoft) {
+                MonLogger.w("capture looks soft; the reading may be unreliable")
+            }
 
-        // Every line failing is not a blank page, it is a broken engine. Say so.
-        if (failedLines > 0 && lineTexts.isEmpty()) {
-            throw LineInferenceException(
-                "all $failedLines line(s) failed in the ONNX runtime; no text could be read"
+            val blockShaped = segments.count { !it.looksLikeALine }
+            MonLogger.d("segmented: lines=${segments.size} block_shaped=$blockShaped mode=$mode")
+
+            // 3. Tile every line wide enough to overflow the model window. This has to
+            //    happen while the grey buffer is still grey, because the next step
+            //    consumes it.
+            val tiledLines = segments.map { segment ->
+                LineTiler.tileSegment(
+                    page,
+                    segment,
+                    ImagePreprocessor.TARGET_HEIGHT,
+                    ImagePreprocessor.TARGET_WIDTH
+                )
+            }
+            val tileCount = tiledLines.sumOf { it.size }
+            if (tileCount != segments.size) {
+                MonLogger.d("tiled wide lines: lines=${segments.size} tiles=$tileCount")
+            }
+
+            // 4. Preprocess + infer each tile. Tiles of one line join with no separator;
+            //    they are pieces of a single reading, and a separator here is what turns
+            //    one line into "Mon E-boo" and "k library".
+            val normalizedBitmap = ImagePreprocessor.toBitmapConsuming(page)
+            var failedLines = 0
+            val lineTexts = mutableListOf<String>()
+            try {
+                for (tiles in tiledLines) {
+                    currentCoroutineContext().ensureActive()
+                    try {
+                        val line = StringBuilder()
+                        for (tile in tiles) {
+                            currentCoroutineContext().ensureActive()
+                            line.append(engine.runInference(ImagePreprocessor.processLine(normalizedBitmap, tile)))
+                        }
+                        if (line.isNotBlank()) lineTexts.add(line.toString())
+                    } catch (e: LineInferenceException) {
+                        // Counted, logged and reported, not swallowed. Aborting the page on
+                        // the first bad line would lose a 300-page PDF to one driver hiccup;
+                        // returning "" silently was the bug that made a broken device look
+                        // like a blank document.
+                        failedLines++
+                        MonLogger.e("line inference failed: line=${tiles.firstOrNull()}", e)
+                    }
+                }
+            } finally {
+                normalizedBitmap.recycle()
+            }
+
+            // Every line failing is not a blank page, it is a broken engine. Say so.
+            if (failedLines > 0 && lineTexts.isEmpty()) {
+                throw LineInferenceException(
+                    "all $failedLines line(s) failed in the ONNX runtime; no text could be read"
+                )
+            }
+
+            val duration = System.currentTimeMillis() - startMs
+            OcrResult(
+                text = lineTexts.joinToString("\n"),
+                noRegionsDetected = noRegionsDetected,
+                lineCount = lineTexts.size,
+                durationMs = duration,
+                mode = mode,
+                blockShapedLineCount = blockShaped,
+                failedLineCount = failedLines,
+                captureLooksSoft = captureLooksSoft
             )
         }
-
-        val duration = System.currentTimeMillis() - startMs
-        OcrResult(
-            text = lineTexts.joinToString("\n"),
-            lineCount = lineTexts.size,
-            durationMs = duration,
-            mode = mode,
-            blockShapedLineCount = blockShaped,
-            failedLineCount = failedLines,
-            captureLooksSoft = captureLooksSoft
-        )
     }
 
     /**
@@ -188,7 +176,9 @@ class OcrRepository(
         text: String,
         durationMs: Long,
         category: String = "ocr-scan",
-        fileUri: String? = null
+        fileUri: String? = null,
+        rawText: String? = null,
+        warningSummary: String? = null
     ) = withContext(Dispatchers.IO) {
         historyDao.insert(
             HistoryRecord(
@@ -197,7 +187,9 @@ class OcrRepository(
                 text = text,
                 processingTime = durationMs.toInt(),
                 category = category,
-                fileUri = fileUri
+                fileUri = fileUri,
+                rawText = rawText,
+                warningSummary = warningSummary
             )
         )
     }
@@ -211,50 +203,13 @@ class OcrRepository(
     suspend fun performMultiPageOcr(context: Context, uri: android.net.Uri): OcrResult = withContext(Dispatchers.Default) {
         val startMs = System.currentTimeMillis()
         val pageCount = PdfUtil.getPageCount(context, uri)
-        val allTexts = mutableListOf<String>()
-        var totalLines = 0
-        var totalBlockShaped = 0
-        var totalFailed = 0
-        var anyPageSoft = false
-
-        MonLogger.i("starting multi-page ocr: uri=$uri pages=$pageCount")
-
-        for (i in 0 until pageCount) {
-            MonLogger.d("processing pdf page: index=${i + 1} of=$pageCount")
-            val bitmap = PdfUtil.renderPdfPageToBitmap(context, uri, i)
-            if (bitmap != null) {
-                val pageResult = performOcr(bitmap, SegmentationMode.PAGE)
-                if (pageResult.text.isNotBlank()) {
-                    allTexts.add("Page ${i + 1}\n${pageResult.text}")
-                    totalLines += pageResult.lineCount
-                }
-                totalBlockShaped += pageResult.blockShapedLineCount
-                totalFailed += pageResult.failedLineCount
-                // Any soft page makes the combined reading suspect, so this is an OR
-                // rather than the last page's verdict.
-                anyPageSoft = anyPageSoft || pageResult.captureLooksSoft
-                bitmap.recycle()
-            }
-        }
-
-        val combinedText = allTexts.joinToString("\n\n")
-        val totalDuration = System.currentTimeMillis() - startMs
-
-        MonLogger.i(
-            "multi-page ocr done: duration_ms=$totalDuration lines=$totalLines " +
-                "block_shaped=$totalBlockShaped failed_lines=$totalFailed"
+        val pages = readDocumentPages(
+            pageCount,
+            render = { index -> PdfUtil.renderPdfPageToBitmap(context, uri, index) },
+            recognize = { bitmap -> performOcr(bitmap, SegmentationMode.PAGE) },
+            release = { bitmap -> bitmap.recycle() }
         )
-
-        OcrResult(
-            text = combinedText,
-            lineCount = totalLines,
-            pageCount = pageCount,
-            durationMs = totalDuration,
-            mode = SegmentationMode.PAGE,
-            blockShapedLineCount = totalBlockShaped,
-            failedLineCount = totalFailed,
-            captureLooksSoft = anyPageSoft
-        )
+        combinePageResults(pages, System.currentTimeMillis() - startMs)
     }
 
     fun getScanHistory() = historyDao.getRecordsByCategory("ocr-scan")

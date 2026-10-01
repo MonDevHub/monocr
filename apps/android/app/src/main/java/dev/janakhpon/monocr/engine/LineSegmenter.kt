@@ -346,6 +346,44 @@ object LineSegmenter {
         return merged
     }
 
+    /** Same clipped box mean as the integral-image path, with O(width) scratch space. */
+    internal fun adaptiveThreshold(activeGray: IntArray, width: Int, height: Int): BooleanArray {
+        require(width > 0 && height > 0 && width.toLong() * height == activeGray.size.toLong())
+        val halfWin = WINDOW_SIZE / 2
+        // A 25x25 window sums at most 159375, so Int arithmetic is exact here.
+        val columns = IntArray(width)
+        for (y in 0..minOf(halfWin, height - 1)) {
+            for (x in 0 until width) columns[x] += activeGray[y * width + x]
+        }
+        val binary = BooleanArray(activeGray.size)
+        for (y in 0 until height) {
+            if (y > 0) {
+                val removeY = y - halfWin - 1
+                val addY = y + halfWin
+                for (x in 0 until width) {
+                    if (removeY >= 0) columns[x] -= activeGray[removeY * width + x]
+                    if (addY < height) columns[x] += activeGray[addY * width + x]
+                }
+            }
+            val y1 = maxOf(0, y - halfWin)
+            val y2 = minOf(height - 1, y + halfWin)
+            var sum = 0
+            for (x in 0..minOf(halfWin, width - 1)) sum += columns[x]
+            for (x in 0 until width) {
+                if (x > 0) {
+                    if (x - halfWin - 1 >= 0) sum -= columns[x - halfWin - 1]
+                    if (x + halfWin < width) sum += columns[x + halfWin]
+                }
+                val x1 = maxOf(0, x - halfWin)
+                val x2 = minOf(width - 1, x + halfWin)
+                val count = (x2 - x1 + 1) * (y2 - y1 + 1)
+                val mean = sum.toFloat() / count
+                binary[y * width + x] = activeGray[y * width + x] < (mean - C_THRESHOLD)
+            }
+        }
+        return binary
+    }
+
     /**
      * @param densityThresholdRatio valley threshold as a fraction of mean row
      *   density. See [SegmentationMode] for why this is a parameter and not a
@@ -397,34 +435,8 @@ object LineSegmenter {
         }
         val activeGray = smoothedGray
 
-        // 2. Adaptive binarization using integral image (using smoothed buffer)
-        val integral = LongArray(width * height)
-        for (y in 0 until height) {
-            var rowSum = 0L
-            for (x in 0 until width) {
-                rowSum += activeGray[y * width + x]
-                integral[y * width + x] = rowSum + (if (y > 0) integral[(y - 1) * width + x] else 0L)
-            }
-        }
-
-        fun rectSum(x1: Int, y1: Int, x2: Int, y2: Int): Long {
-            val a = if (x1 > 0 && y1 > 0) integral[(y1 - 1) * width + (x1 - 1)] else 0L
-            val b = if (y1 > 0) integral[(y1 - 1) * width + x2] else 0L
-            val c = if (x1 > 0) integral[y2 * width + (x1 - 1)] else 0L
-            return integral[y2 * width + x2] - b - c + a
-        }
-
-        val binary = BooleanArray(width * height)
-        val halfWin = WINDOW_SIZE / 2
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                val x1 = maxOf(0, x - halfWin); val x2 = minOf(width - 1, x + halfWin)
-                val y1 = maxOf(0, y - halfWin); val y2 = minOf(height - 1, y + halfWin)
-                val count = (x2 - x1 + 1) * (y2 - y1 + 1)
-                val mean = rectSum(x1, y1, x2, y2).toFloat() / count
-                binary[y * width + x] = activeGray[y * width + x] < (mean - C_THRESHOLD)
-            }
-        }
+        // 2. Same adaptive box threshold without a full-page LongArray.
+        val binary = adaptiveThreshold(activeGray, width, height)
 
         // 2.5 Printed-rule suppression. Before the smear, because the smear widens a
         // rule into something no line kernel matches cleanly, and because the crop's

@@ -6,7 +6,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Matrix
+import android.graphics.Canvas
+import android.graphics.Color
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -80,6 +81,8 @@ import dev.janakhpon.monocr.ui.components.PickerView
 import dev.janakhpon.monocr.ui.components.ProcessingView
 import dev.janakhpon.monocr.ui.components.SkeletonResultCard
 import dev.janakhpon.monocr.util.PdfUtil
+import dev.janakhpon.monocr.util.orientBitmap
+import kotlinx.coroutines.CancellationException
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -113,7 +116,7 @@ fun HomeScreen(
             context.contentResolver.takePersistableUriPermission(
                 it, Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
-            scope.launch { loadAndProcess(context, it, viewModel, ::galleryModeFor) }
+            scope.launch { loadAndProcess(context, it, viewModel, chooseMode = ::galleryModeFor) }
         }
     }
 
@@ -248,13 +251,29 @@ fun HomeScreen(
                     ) {
                         SegmentationModeControl(
                             selected = segmentationMode,
-                            blockShapedLines = (uiState as? UiState.Success)?.result?.blockShapedLineCount ?: 0,
-                            captureLooksSoft = (uiState as? UiState.Success)?.result?.captureLooksSoft == true,
-                            failedLines = (uiState as? UiState.Success)?.result?.failedLineCount ?: 0,
                             onSelect = { mode ->
                                 scope.launch { loadAndProcess(context, imageUri, viewModel) { mode } }
                             }
                         )
+                    }
+                }
+
+                // Warnings also belong to PDF results, which have no rerun control.
+                (uiState as? UiState.Success)?.result?.let { result ->
+                    if (result.captureLooksSoft) {
+                        Text(stringResource(R.string.capture_soft_warning), color = MaterialTheme.colorScheme.error)
+                    }
+                    if (result.blockShapedLineCount > 0) {
+                        Text(stringResource(R.string.segmentation_block_warning, result.blockShapedLineCount),
+                            color = MaterialTheme.colorScheme.error)
+                    }
+                    if (result.failedLineCount > 0) {
+                        Text(stringResource(R.string.segmentation_failed_lines, result.failedLineCount),
+                            color = MaterialTheme.colorScheme.error)
+                    }
+                    result.warningSummary(includeCaptureWarnings = false)?.let { warning ->
+                        Text(warning, color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
@@ -322,9 +341,6 @@ fun HomeScreen(
 @Composable
 private fun SegmentationModeControl(
     selected: SegmentationMode,
-    blockShapedLines: Int,
-    captureLooksSoft: Boolean,
-    failedLines: Int,
     onSelect: (SegmentationMode) -> Unit
 ) {
     Surface(
@@ -362,29 +378,7 @@ private fun SegmentationModeControl(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            // Said before the band warning because it explains the whole reading
-            // rather than particular bands.
-            if (captureLooksSoft) {
-                Text(
-                    text = stringResource(R.string.capture_soft_warning),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            if (blockShapedLines > 0) {
-                Text(
-                    text = stringResource(R.string.segmentation_block_warning, blockShapedLines),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            if (failedLines > 0) {
-                Text(
-                    text = stringResource(R.string.segmentation_failed_lines, failedLines),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
+
         }
     }
 }
@@ -403,85 +397,126 @@ private fun galleryModeFor(bitmap: Bitmap): SegmentationMode =
  *   lives at the call site, which is the only place that knows whether this came from
  *   the camera, the gallery, or the user re-running with a mode they chose.
  */
-private suspend fun loadAndProcess(
-    context: Context,
-    uri: Uri,
-    viewModel: MainViewModel,
-    chooseMode: (Bitmap) -> SegmentationMode
-) {
-    val fileSize = try {
-        context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: 0L
-    } catch (_: Exception) {
-        0L
-    }
+internal class ImportPreparationResources {
+    var bitmap: Bitmap? = null
+    var previewFile: File? = null
+}
 
-    if (fileSize > 50 * 1024 * 1024L) {
-        viewModel.onError(uri, context.getString(R.string.error_file_large, 50))
-        return
-    }
+internal data class PreparedPdfPreview(val uri: Uri?)
 
-    if (PdfUtil.isPdf(context, uri)) {
+internal data class ImportPreparationOps(
+    val fileSize: suspend (Context, Uri) -> Long,
+    val isPdf: suspend (Context, Uri) -> Boolean,
+    val preparePdfPreview: suspend (Context, Uri, ImportPreparationResources) -> PreparedPdfPreview,
+    val decodeImage: suspend (Context, Uri, ImportPreparationResources) -> Bitmap?
+)
+
+private val defaultImportPreparationOps = ImportPreparationOps(
+    fileSize = { context, uri ->
+        try {
+            context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: 0L
+        } catch (_: Exception) {
+            0L
+        }
+    },
+    isPdf = PdfUtil::isPdf,
+    preparePdfPreview = { context, uri, resources ->
         val previewBitmap = PdfUtil.renderPdfPageToBitmap(context, uri, 0)
         var previewUri: Uri? = null
         if (previewBitmap != null) {
-            val (previewFile, fUri) = saveBitmapToCache(context, previewBitmap)
-            previewUri = fUri
-            previewBitmap.recycle()
-            // Delete the temp preview file — it was only needed to pass to the ViewModel as a URI
-            previewFile?.delete()
+            try {
+                val (file, fileUri) = saveBitmapToCache(context, previewBitmap)
+                resources.previewFile = file
+                previewUri = fileUri
+            } finally { previewBitmap.recycle() }
         }
-        viewModel.onPdfSelected(context, uri, previewUri)
-        return
-    }
+        PreparedPdfPreview(previewUri)
+    },
+    decodeImage = { context, uri, resources ->
+        withContext(Dispatchers.IO) {
+            val options = BitmapFactory.Options()
+            options.inJustDecodeBounds = true
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, options)
+            }
 
-    val bitmap = withContext(Dispatchers.IO) {
-        val options = BitmapFactory.Options()
-        options.inJustDecodeBounds = true
-        context.contentResolver.openInputStream(uri)?.use { stream ->
-            BitmapFactory.decodeStream(stream, null, options)
-        }
+            val reqSize = 2048
+            var inSampleSize = 1
+            val height = options.outHeight
+            val width = options.outWidth
+            if (height > reqSize || width > reqSize) {
+                val halfHeight: Int = height / 2
+                val halfWidth: Int = width / 2
+                while (halfHeight / inSampleSize >= reqSize && halfWidth / inSampleSize >= reqSize) {
+                    inSampleSize *= 2
+                }
+            }
 
-        val reqSize = 2048
-        var inSampleSize = 1
-        val height = options.outHeight
-        val width = options.outWidth
-        if (height > reqSize || width > reqSize) {
-            val halfHeight: Int = height / 2
-            val halfWidth: Int = width / 2
-            while (halfHeight / inSampleSize >= reqSize && halfWidth / inSampleSize >= reqSize) {
-                inSampleSize *= 2
+            options.inJustDecodeBounds = false
+            options.inSampleSize = inSampleSize
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                val decoded = BitmapFactory.decodeStream(stream, null, options)
+                resources.bitmap = decoded
+                if (decoded != null) {
+                    val upright = rotateImageIfRequired(context, decoded, uri)
+                    resources.bitmap = upright
+                    if (upright.hasAlpha()) {
+                        val opaque = Bitmap.createBitmap(upright.width, upright.height, Bitmap.Config.ARGB_8888)
+                        resources.bitmap = opaque
+                        try { Canvas(opaque).apply { drawColor(Color.WHITE); drawBitmap(upright, 0f, 0f, null) } }
+                        finally { upright.recycle() }
+                    }
+                    resources.bitmap
+                } else null
             }
         }
+    }
+)
 
-        options.inJustDecodeBounds = false
-        options.inSampleSize = inSampleSize
-        context.contentResolver.openInputStream(uri)?.use { stream ->
-            val decoded = BitmapFactory.decodeStream(stream, null, options)
-            if (decoded != null) rotateImageIfRequired(context, decoded, uri) else null
+internal suspend fun loadAndProcess(
+    context: Context,
+    uri: Uri,
+    viewModel: MainViewModel,
+    preparation: ImportPreparationOps = defaultImportPreparationOps,
+    chooseMode: (Bitmap) -> SegmentationMode
+) {
+    val token = viewModel.beginImport(uri)
+    val resources = ImportPreparationResources()
+    try {
+        val fileSize = preparation.fileSize(context, uri)
+
+        if (fileSize > 50 * 1024 * 1024L) {
+            viewModel.onError(uri, context.getString(R.string.error_file_large, 50), token)
+            return
         }
-    } ?: return
-    viewModel.onImageSelected(uri, bitmap, chooseMode(bitmap))
+
+        if (preparation.isPdf(context, uri)) {
+            val preview = preparation.preparePdfPreview(context, uri, resources)
+            viewModel.onPdfSelected(context, uri, preview.uri, token, resources.previewFile)
+            resources.previewFile = null
+            return
+        }
+
+        val bitmap = preparation.decodeImage(context, uri, resources)
+            ?: throw IllegalArgumentException("This image could not be decoded.")
+        viewModel.onImageSelected(uri, bitmap, chooseMode(bitmap), token)
+        resources.bitmap = null // The job (or stale-import rejection) now owns recycling.
+    } catch (e: CancellationException) {
+        viewModel.cancelImport(token)
+        throw e
+    } catch (e: Exception) {
+        viewModel.onError(uri, e.message ?: "The selected file could not be opened.", token)
+    } finally {
+        resources.bitmap?.let { if (!it.isRecycled) it.recycle() }
+        resources.previewFile?.delete()
+    }
 }
 
 private fun rotateImageIfRequired(context: Context, img: Bitmap, selectedImage: Uri): Bitmap {
-    val input = context.contentResolver.openInputStream(selectedImage) ?: return img
-    val ei = ExifInterface(input)
-    val orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-
-    return when (orientation) {
-        ExifInterface.ORIENTATION_ROTATE_90 -> rotateImage(img, 90f)
-        ExifInterface.ORIENTATION_ROTATE_180 -> rotateImage(img, 180f)
-        ExifInterface.ORIENTATION_ROTATE_270 -> rotateImage(img, 270f)
-        else -> img
-    }
-}
-
-private fun rotateImage(img: Bitmap, degree: Float): Bitmap {
-    val matrix = Matrix()
-    matrix.postRotate(degree)
-    val rotatedImg = Bitmap.createBitmap(img, 0, 0, img.width, img.height, matrix, true)
-    img.recycle()
-    return rotatedImg
+    val orientation = context.contentResolver.openInputStream(selectedImage)?.use { input ->
+        ExifInterface(input).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+    } ?: ExifInterface.ORIENTATION_NORMAL
+    return orientBitmap(img, orientation)
 }
 
 private fun saveBitmapToCache(context: Context, bitmap: Bitmap): Pair<File?, Uri?> {

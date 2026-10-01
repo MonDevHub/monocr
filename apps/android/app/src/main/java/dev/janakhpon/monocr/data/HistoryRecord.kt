@@ -18,5 +18,7 @@ data class HistoryRecord(
     val syncId: String = UUID.randomUUID().toString(),
     val isSynced: Boolean = false,
     val syncAttempts: Int = 0,
-    val syncError: String? = null
+    val syncError: String? = null,
+    val rawText: String? = null,
+    val warningSummary: String? = null
 )
