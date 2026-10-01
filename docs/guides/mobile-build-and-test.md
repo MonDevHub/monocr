@@ -196,11 +196,9 @@ switching toolchains against a warm one fails at the link step:
 `clang: error: linker command failed`, and the script's own guard reports "the
 run reported no test count, so it ran no tests."
 
-This guide has now had it wrong in both directions. It first said "do not export
-it", an audit called that false because the script passes under either toolchain
-from clean, and the correction was published without re-testing on a checkout
-that had already been built. The condition is `.build`'s state, not the
-script's capability.
+The condition is `.build`'s state, not the script's capability: from a clean
+`.build` either toolchain passes, and against one the other toolchain built,
+neither does.
 
 Do not substitute a bare `swift test` — it fails with `error: no such module
 'Testing'`. The wrapper exists for two reasons documented in its own header: the
@@ -392,9 +390,9 @@ Only two things, and neither is a toolchain gap:
 - **Android release artifacts** — `assembleRelease`/`bundleRelease` were not
   attempted. `local.properties` carries `RELEASE_STORE_PASSWORD`,
   `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` but no `RELEASE_STORE_FILE`.
-  `app/build.gradle.kts` already reads that key from `local.properties` and then
-  the environment, falling back to a hardcoded absolute path only third — so the
-  mechanism exists and only the value is unset. Set `RELEASE_STORE_FILE` and the
-  build stops being machine-specific; no code change is owed. Minification plus
+  `app/build.gradle.kts` reads that key from `local.properties` and then the
+  environment, and has no default: with neither set, release signing fails with
+  a message naming `RELEASE_STORE_FILE`, and debug builds are unaffected. Set it
+  and the release build needs no code change. Minification plus
   `ndk.debugSymbolLevel = "FULL"` is unverified, and the SDK has no `ndk/`
   directory.

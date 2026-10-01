@@ -53,14 +53,15 @@ android {
                 FileInputStream(localPropertiesFile).use { localProperties.load(it) }
             }
 
-            // Absolute path to one laptop until 2026-08-16, which made the
-            // release variant unbuildable by anyone else. Configurable now, with
-            // the old location as the default so existing setups keep working.
-            storeFile = file(
-                localProperties.getProperty("RELEASE_STORE_FILE")
-                    ?: System.getenv("RELEASE_STORE_FILE")
-                    ?: "/Users/zinmin/Documents/ocrandroid.jks"
-            )
+            // No default keystore path: a path that exists on one machine makes the
+            // release variant unbuildable everywhere else. Left unset, debug builds
+            // and unit tests are unaffected, and release signing fails with the
+            // message below instead of a missing-file error.
+            val releaseStorePath = localProperties.getProperty("RELEASE_STORE_FILE")
+                ?: System.getenv("RELEASE_STORE_FILE")
+            if (releaseStorePath != null) {
+                storeFile = file(releaseStorePath)
+            }
             storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD") ?: System.getenv("RELEASE_STORE_PASSWORD")
             keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS") ?: System.getenv("RELEASE_KEY_ALIAS")
             keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD") ?: System.getenv("RELEASE_KEY_PASSWORD")
@@ -138,6 +139,21 @@ android {
             // location rather than copied here, because a copy is a copy that goes
             // stale and then agrees with the wrong answer.
             resources.srcDir(rootProject.file("../../shared/segmentation-fixtures"))
+        }
+    }
+}
+
+// Release signing needs a keystore, and there is no default one. Fail at the
+// signing check with the property to set, rather than packaging an unsigned
+// release or failing on a path that does not exist.
+val releaseKeystoreMissing = android.signingConfigs.getByName("release").storeFile == null
+tasks.matching { it.name == "validateSigningRelease" }.configureEach {
+    doFirst {
+        if (releaseKeystoreMissing) {
+            throw GradleException(
+                "Release signing needs a keystore: set RELEASE_STORE_FILE in " +
+                    "local.properties or the environment. Debug builds do not need it."
+            )
         }
     }
 }
