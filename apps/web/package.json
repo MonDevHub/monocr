@@ -24,7 +24,7 @@
 		"test": "vitest run",
 		"test:unit": "vitest",
 		"test:watch": "vitest --watch",
-		"scan:secrets": "gitleaks detect --source . --verbose",
+		"scan:secrets": "gitleaks git --redact --verbose ../..",
 		"scan:deps": "pnpm audit",
 		"size": "pnpm run build && du -sh build/* | sort -hr",
 		"ci": "pnpm run format:check && pnpm run lint && pnpm run type-check && pnpm run scan:secrets && pnpm run scan:deps",
