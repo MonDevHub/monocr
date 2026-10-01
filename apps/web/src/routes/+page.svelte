@@ -8,7 +8,7 @@
 	import { feedbackStore } from '$lib/stores/feedback';
 	import { HistorySection, Icon } from '$lib/components';
 	import { saveRecord } from '$lib/storage/db';
-	import { combinePages, pageWarnings, readPdfPages } from '$lib/reading';
+	import { combinePages, isTimeout, pageWarnings, readPdfPages } from '$lib/reading';
 	import * as m from '$lib/paraglide/messages';
 	import { goto } from '$app/navigation';
 
@@ -242,6 +242,9 @@
 			await loadHistory();
 		} catch (e: unknown) {
 			console.error(e);
+			// A timed-out read keeps running in the worker; stop it so the next
+			// image does not queue behind it. The next recognize() starts afresh.
+			if (isTimeout(e)) cleanup();
 			const msg = e instanceof Error ? e.message : String(e);
 			error = `OCR Failed: ${msg}`;
 		} finally {

@@ -124,7 +124,7 @@ export const MAX_PDF_TIMEOUTS = 2;
  * Whether an error is the client's recognition timeout. Matched on the code
  * rather than on the OcrError class so this module stays free of the worker.
  */
-function isTimeout(err: unknown): boolean {
+export function isTimeout(err: unknown): boolean {
 	return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === 'TIMEOUT';
 }
 

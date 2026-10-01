@@ -28,7 +28,9 @@
   that cannot be rendered or read no longer fails the whole PDF. The rest is
   kept, and a warning says which lines or pages are missing. A page that times
   out restarts the engine before the next page is read, and after two timeouts
-  the remaining pages are reported missing rather than waited on.
+  the remaining pages are reported missing rather than waited on. An image
+  that times out also restarts the engine, so the next image does not wait
+  behind it.
 
 ### Changed
 

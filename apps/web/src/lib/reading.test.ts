@@ -4,6 +4,7 @@ import { OcrError } from './monocr';
 import {
 	assemblePage,
 	combinePages,
+	isTimeout,
 	MAX_PDF_TIMEOUTS,
 	pageWarnings,
 	readPdfPages,
@@ -297,5 +298,15 @@ describe('reading the pages of a PDF', () => {
 			{ pageNumber: 1, status: 'render_failed', error: 'canvas' },
 			page(2, ok('read'))
 		]);
+	});
+});
+
+describe('recognising a timeout', () => {
+	it('matches the client timeout and nothing else', () => {
+		expect(isTimeout(new OcrError('Request timed out', 'TIMEOUT'))).toBe(true);
+		expect(isTimeout(new OcrError('Recognition failed', 'RECOGNITION_FAILED'))).toBe(false);
+		expect(isTimeout(new Error('Request timed out'))).toBe(false);
+		expect(isTimeout('TIMEOUT')).toBe(false);
+		expect(isTimeout(null)).toBe(false);
 	});
 });
