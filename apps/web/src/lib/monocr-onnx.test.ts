@@ -22,7 +22,7 @@ vi.mock('onnxruntime-web', () => ({
 	}
 }));
 
-const { MonOcrOnnx, ModelContractError } = await import('./monocr-onnx');
+const { MonOcrOnnx, ModelContractError, ModelOutputError } = await import('./monocr-onnx');
 const { CONFIG, resolveRecognitionModel } = await import('./config');
 
 /**
@@ -308,6 +308,68 @@ describe('decoding', () => {
 		expect(engine.decodePredictions(logits, [1, 3, V35.classes])).toBe(
 			CHARSET[0] + CHARSET[1] + CHARSET[275]
 		);
+	});
+});
+
+/**
+ * Scores the decoder cannot trust. Argmax passed over NaN and -Infinity and
+ * picked +Infinity, so each of these used to decode into text — an all-NaN
+ * output decoded as a blank line — with nothing to say the model had failed.
+ */
+describe('decoding output that cannot be trusted', () => {
+	const engine = () => engineWith(CHARSET, V35.height, V35.classes);
+
+	it.each([
+		['NaN', NaN],
+		['+Infinity', Infinity],
+		['-Infinity', -Infinity]
+	])('refuses a %s score instead of decoding past it', (_, bad) => {
+		const logits = logitsFor([1, 2, 3], V35.classes);
+		logits[1 * V35.classes + 5] = bad;
+
+		expect(() => engine().decodePredictions(logits, [1, 3, V35.classes])).toThrow(ModelOutputError);
+	});
+
+	it('refuses a buffer shorter than its shape, which read as blanks', () => {
+		const logits = logitsFor([1, 2, 3], V35.classes).subarray(0, 3 * V35.classes - 1);
+
+		expect(() => engine().decodePredictions(logits, [1, 3, V35.classes])).toThrow(ModelOutputError);
+	});
+
+	it('refuses a buffer longer than its shape', () => {
+		const logits = logitsFor([1, 2, 3, 4], V35.classes);
+
+		expect(() => engine().decodePredictions(logits, [1, 3, V35.classes])).toThrow(ModelOutputError);
+	});
+
+	it('refuses a shape that is not [batch, time, classes]', () => {
+		const logits = logitsFor([1, 2, 3], V35.classes);
+
+		expect(() => engine().decodePredictions(logits, [3 * V35.classes])).toThrow(ModelOutputError);
+		// Sized to match, so only the rank gives it away.
+		expect(() => engine().decodePredictions(logits, [1, 3, V35.classes, 1])).toThrow(
+			ModelOutputError
+		);
+		expect(() => engine().decodePredictions(logits, [1, -3, V35.classes])).toThrow(
+			ModelOutputError
+		);
+	});
+
+	it('is a line failure, not a model contract failure', () => {
+		const logits = logitsFor([1], V35.classes);
+		logits[0] = NaN;
+
+		expect(() => engine().decodePredictions(logits, [1, 1, V35.classes])).not.toThrow(
+			ModelContractError
+		);
+	});
+
+	it('still decodes ordinary negative and large finite scores', () => {
+		const logits = new Float32Array(2 * V35.classes).fill(-1e30);
+		logits[1] = 3.4e38;
+		logits[V35.classes + 2] = -5;
+
+		expect(engine().decodePredictions(logits, [1, 2, V35.classes])).toBe(CHARSET[0] + CHARSET[1]);
 	});
 });
 

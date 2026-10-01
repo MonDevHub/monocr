@@ -31,6 +31,23 @@ export class ModelContractError extends Error {
 	}
 }
 
+/**
+ * The model returned a tensor that cannot be decoded: a score that is NaN or
+ * infinite, or fewer or more values than its shape declares.
+ *
+ * Distinct from ModelContractError because it belongs to one line, not to the
+ * model: an output can be broken for one input and not the next, so the line
+ * is marked failed and the rest of the page is still read. Before this was
+ * checked, argmax passed over NaN and -Infinity and picked +Infinity, so a broken
+ * output decoded into text — often an empty line — with nothing to show it.
+ */
+export class ModelOutputError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'ModelOutputError';
+	}
+}
+
 export class MonOcrOnnx {
 	private session: ort.InferenceSession | null = null;
 	private charset: string = '';
@@ -497,12 +514,25 @@ export class MonOcrOnnx {
 	 * Decode CTC predictions using greedy decoding.
 	 */
 	private decodePredictions(logits: Float32Array, shape: number[]): string {
+		// [batch, time, classes]. Any other rank would be misread as one of these.
+		if (shape.length !== 3) {
+			throw new ModelOutputError(`Model returned a tensor of shape [${shape.join(', ')}].`);
+		}
 		const [, timeSteps, numClasses] = shape;
 
 		// Re-checked here as well as at load. assertModelContract reads the graph's
 		// declared output shape, which may be symbolic; this is the shape that
 		// actually came back.
 		this.assertClassCount(numClasses);
+
+		// Every index below is read, so a short buffer would read `undefined`, which
+		// compares false against everything and decodes as a blank. This also
+		// refuses a negative or non-numeric time axis.
+		if (logits.length !== timeSteps * numClasses) {
+			throw new ModelOutputError(
+				`Model returned ${logits.length} scores for a ${timeSteps} x ${numClasses} tensor.`
+			);
+		}
 
 		// Greedy decoding: argmax along class dimension
 		const predictions: number[] = [];
@@ -512,6 +542,14 @@ export class MonOcrOnnx {
 
 			for (let c = 0; c < numClasses; c++) {
 				const val = logits[t * numClasses + c];
+				// NaN and -Infinity lose every comparison and +Infinity wins every one,
+				// so without this a broken output still decodes, into text nobody can
+				// question.
+				if (!Number.isFinite(val)) {
+					throw new ModelOutputError(
+						`Model returned a non-finite score (${val}) at step ${t}, class ${c}.`
+					);
+				}
 				if (val > maxVal) {
 					maxVal = val;
 					maxIdx = c;
