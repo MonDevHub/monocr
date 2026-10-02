@@ -1325,9 +1325,9 @@ dependencies = [
 
 [[package]]
 name = "monocr"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17c3b85c4850873edd34665de5520b1af5d011547132e9ff7590072e47027de5"
+checksum = "c1b6817b39aa6f97cde1e25f2fd467798507b4518bb4a199c984c3217d79554c"
 dependencies = [
  "anyhow",
  "clap",

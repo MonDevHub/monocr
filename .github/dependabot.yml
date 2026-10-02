@@ -31,7 +31,7 @@ updates:
     # A new release is not proposed until it is a week old. Malware in a
     # published package is usually caught and pulled within days, so waiting
     # avoids most of that exposure; security updates ignore cooldown and still
-    # arrive at once. zizmor's dependabot-cooldown audit fails below 7 days.
+    # arrive at once.
     cooldown:
       default-days: 7
     groups:

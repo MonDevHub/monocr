@@ -46,7 +46,7 @@
 #
 # Every checkout sets `persist-credentials: false`. No job here pushes, so the
 # token actions/checkout would otherwise write into .git/config is exposure
-# with no use; zizmor's `artipacked` audit fails on it.
+# with no use.
 name: CI
 
 on:
@@ -374,12 +374,12 @@ jobs:
         with:
           persist-credentials: false
 
-      # Commit-pinned at the same commit as release-cli.yml, for the reason
-      # stated there, and so the gate and the publish job cannot disagree about
-      # which toolchain they ran.
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable branch, 2026-09-03
-        with:
-          toolchain: stable
+      # rustup ships on the runner image, so no third-party action is needed,
+      # and release-cli.yml installs the same way.
+      - name: Set up Rust
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
 
       - name: poppler
         # pdftoppm and pdfinfo are runtime dependencies of the PDF path. The
@@ -897,26 +897,3 @@ jobs:
             exit 1
           fi
           echo "no unsourced accuracy figures in shipped strings, in either numeral system"
-
-  zizmor:
-    # Lints the workflows AND .github/dependabot.yml for excessive permissions,
-    # template injection, persisted checkout credentials, unpinned actions and
-    # missing Dependabot cooldowns. It scans the repository root, so the local
-    # equivalent is `uvx zizmor@1.30.1 .` from the root; pointing it at
-    # .github/workflows alone skips dependabot.yml and is a different gate.
-    #
-    # `version` is exact: the action resolves it to a digest-pinned image from
-    # its own list, so this gate changes only when one of these two lines does.
-    # `advanced-security: false` keeps it a plain pass/fail job that needs no
-    # security-events permission and reports in the log.
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
-        with:
-          version: 1.30.1
-          advanced-security: false

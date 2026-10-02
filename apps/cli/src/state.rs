@@ -199,7 +199,14 @@ pub fn work_digest(path: &Path, mode: &str, dpi: u32) -> Result<String> {
     // Bump when the pipeline itself changes in a way that invalidates outputs.
     hasher.update(b"v1");
 
-    Ok(format!("{:x}", hasher.finalize()))
+    Ok(hex(&hasher.finalize()))
+}
+
+/// Lowercase hex, two digits per byte: the string sha2 0.10 printed for a
+/// digest with `{:x}`. sha2 0.11's output type has no `LowerHex`, and run
+/// identities and file tags recorded before the upgrade must still match.
+pub(crate) fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 /// Exclusive claim on an output directory for the life of a run.
@@ -249,6 +256,17 @@ impl Drop for DirLock {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn hex_matches_the_digest_encoding_recorded_before_sha2_0_11() {
+        // SHA-256("abc"), FIPS 180-2 appendix B.1.
+        let digest = Sha256::digest(b"abc");
+        assert_eq!(
+            super::hex(&digest),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+        assert_eq!(super::hex(&[0x00, 0x0f, 0xff]), "000fff");
+    }
+
     use super::*;
     use std::io::Write;
 
