@@ -211,8 +211,9 @@ pub fn assign_stems(paths: &[PathBuf]) -> Vec<String> {
 fn path_tag(path: &Path) -> String {
     let mut hasher = Sha256::new();
     hasher.update(path.to_string_lossy().as_bytes());
-    // Hex, so slicing bytes and slicing characters are the same thing here.
-    format!("{:x}", hasher.finalize())[..8].to_string()
+    // The first four bytes as eight hex digits: the same tag as the first eight
+    // characters of the full digest, so a `--resume` writes to the same stems.
+    crate::state::hex(&hasher.finalize()[..4])
 }
 
 /// Last-resort suffix for any stem still repeated after tagging.
