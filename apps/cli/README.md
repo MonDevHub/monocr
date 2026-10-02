@@ -165,7 +165,7 @@ or whitespace; a blank image read in line mode is one of these, since line mode 
 one line. A blank page in a PDF with text on other pages is not reported, and a PDF with some
 pages that could not be read gets the warning above instead.
 
-The CLI can only report what the `monocr` library returns. Version 0.4 fails a whole page when
+The CLI can only report what the `monocr` library returns. The library fails a whole page when
 any line on it cannot be recognised, so one bad line costs its page rather than only itself.
 
 ## Configuration
