@@ -34,10 +34,10 @@ anyhow = "1.0"
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sha2 = "0.10"
+sha2 = "0.11"
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "process", "fs"] }
-image = "0.24"
+image = "0.25"
 walkdir = "2"
 # YAML for the config file, matching pdf2audio's `config.yaml` so the two tools
 # read the same way. 0.9.34 is published as "+deprecated": the author archived it
