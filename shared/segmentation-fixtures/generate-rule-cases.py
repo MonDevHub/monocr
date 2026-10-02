@@ -38,7 +38,7 @@ Run:
 
 Add --check to compare against the committed file instead of writing it, and exit 1
 on any difference. Add --cross-check to additionally run cv2 and classify the
-divergences; that mode needs numpy, cv2 and REFERENCE_SRC (or MON_OCR_SRC) at the
+divergences; that mode needs numpy, cv2 and REFERENCE_SRC set to the
 `src` directory of a training-code checkout; plain generation needs none of them.
 """
 
@@ -268,7 +268,7 @@ def cross_check(quiet=False):
 
         # FIRST, check the spec against an independent oracle.
         #
-        # The classification below cannot do this job, and an audit proved it: an
+        # The classification below cannot do this job, and a mutation proved it: an
         # off-by-one injected into the run-length scan is absorbed by whichever
         # explanation happens to fit, because a mis-marked pixel at a run's END is
         # geometrically indistinguishable from the even-kernel shift, and a run
@@ -353,7 +353,7 @@ def cross_check(quiet=False):
 # span of at most `height / 2`, so no case could place a vertical run at its
 # boundary — and a mutation flipping the vertical `>=` to `>` survived the entire
 # fixture. It was caught only by a hand-written unit test. Six of the mutants that
-# survived a 2026-08-28 audit of this file traced to that one line.
+# survived a 2026-08-28 mutation run over this file traced to that one line.
 # col_length -1 means full height.
 CASES = [
     ("two full-width rules over sparse noise", 100, 100, 5, [10, 50], [], -1, 1, -1, 0),

@@ -37,9 +37,7 @@ Android ကေုာံ iOS ဂှ် bundle လဝ်ရ (46.2 MB ကေုာ�
 
 **v3.5 ဂှ် ဟွံဒှ် v2 မတၟိမွဲဓဝ်၊ ဒှ်ကဵု contract တၞဟ်ခြာမွဲရ။** input အမြင့်ဂှ် နူ 128 စဵုကဵု 160၊ output class ဂှ် နူ 316 စဵုကဵု 277၊ အက္ခရ်ဂှ် နူ 315 စဵုကဵု 276၊ graph ဂှ် width axis နူ dynamic စဵုကဵု static 1024 ပြံင်အာရ။ v2 artifact ပ္ဍဲ cache နွံဒၟံင်ဏီဂှ် ဟွံတုပ်ရေင်သကအ်ဗီုဂှ် လိခ်မန်ဗီုပြင်ဒးဒး ဆဂး အဓိပ္ပါယ်ဒးဟွံမွဲဂှ် ကလေင်ကဵုမာန်ဂှ်ရ၊ decode ဟွံကၠောန် ကလေင်ငြင်ဆိုရ။ **v2** ဂှ် မၞိဟ်မပင်လဝ်ကဵုဍေံဂှ် revision `a51be11` ပ္ဍဲဂှ် ဆက်ပတိတ်ဒၟံင်ဖိုဟ်ရ။
 
-Model **v4** server ဂှ် ပ္ဍဲ 2026-08-05 archive လဝ်ရ။ convergence စဵုကဵု train ဟွံလဝ်ဂှ်ရ archive ဂှ် ဒှ်ဆုံးဖြတ်ချက် ဗွဲမဆက်မင်မွဲ လမ်းကြောင်းၜါဟာဟွံသေင်ဂှ်ရ၊ ဟွံဒှ်ဆုံးဖြတ်ချက် ဗွဲအရည်အသွေးမတိုင်းလဝ်ရ။ ဟွံမင်မွဲရ။
-
-Platform မွဲမွဲအတိုင် device latency ဂၞန် ဟွံမွဲရ။ ဂၞန်ဗီုဂှ် နွံဒၟံင်ပ္ဍဲဏံ စဵုကဵု 2026-08-15၊ ဂှ်ဒှ် architecture ခန့်မှန်းချက်ဓဝ်၊ ပ္ဍဲ hardware ဟွံဒှ်ချူလဝ်ရ။
+Platform မွဲမွဲအတိုင် device latency ဂၞန် ဟွံမွဲရ။
 
 ဟိုတ်နူ dataset အရေဝ်မန် ရှားပါးဒၟံင်ဂှ်ရ validated sample တအ် နူကဵု feedback flow တုဲ ကဵုဗဒှ် training round မဂတဝ်ရ။
 
@@ -59,7 +57,7 @@ Model ဝွံ ဒှ်ကမၠောန် ပ္ဍဲ Web, Android ကေ�
 - **[Android App](apps/android)** — Jetpack Compose
 - **[iOS App](apps/ios)** — SwiftUI
 - **[Feedback Service](services/feedback)** — Go ingestion API
-- **[Shared Assets](shared)** — model weights, locales, sync scripts
+- **[Shared Assets](shared)** — locales, API contract, segmentation fixtures
 
 ---
 
@@ -81,3 +79,7 @@ Model ဝွံ ဒှ်ကမၠောန် ပ္ဍဲ Web, Android ကေ�
 - **နဲကဲ ပါလုပ်ညိ**: ဗှ်ညိ [Contributing Guide](.github/CONTRIBUTING.md) ကေုာံ [Security Policy](.github/SECURITY.md)
 
 [Janakh Pon](https://github.com/janakhpon) · [Oung Seik Nyan](https://github.com/Oungseik) · [Rajel Da Key](https://www.facebook.com/RJOMDK10) · [MonDevHub](https://github.com/MonDevHub)
+
+## Licence
+
+[MIT](LICENSE)

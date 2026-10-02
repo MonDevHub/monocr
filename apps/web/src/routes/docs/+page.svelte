@@ -341,9 +341,9 @@ text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
 <span class="zen-code-keyword">const</span> ocr = <span
 													class="zen-code-keyword">new</span
 												> MonOCR();
-<span class="zen-code-keyword">const</span> text = <span
+<span class="zen-code-keyword">const</span> lines = <span
 													class="zen-code-keyword">await</span
-												> ocr.predict(<span class="zen-code-string">'page.jpg'</span>);
+												> ocr.predictPage(<span class="zen-code-string">'page.jpg'</span>);
 											{:else if selectedSdk === 'python'}
 												<span class="zen-code-comment"># Python</span>
 <span class="zen-code-keyword"

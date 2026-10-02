@@ -22,6 +22,15 @@ nonisolated struct ModelContractError: Error, CustomStringConvertible {
 }
 
 nonisolated enum CtcDecoder {
+    enum InvalidOutput: LocalizedError {
+        case dimensions, nonfinite
+        var errorDescription: String? {
+            switch self {
+            case .dimensions: return "The recognizer returned an invalid tensor shape."
+            case .nonfinite: return "The recognizer returned nonfinite scores."
+            }
+        }
+    }
     
     /**
      * Decode raw logits from the OCR model into a string.
@@ -32,6 +41,10 @@ nonisolated enum CtcDecoder {
      * @param charset    The character set string
      */
     static func decode(logits: [Float], timeSteps: Int, numClasses: Int, charset: String) throws -> String {
+        guard timeSteps >= 0, numClasses > 0,
+              timeSteps <= Int.max / numClasses,
+              logits.count == timeSteps * numClasses else { throw InvalidOutput.dimensions }
+        guard logits.allSatisfy(\.isFinite) else { throw InvalidOutput.nonfinite }
         // Port logic: Android's String[idx] uses UTF-16 code units.
         // We must map charset using UTF-16 to ensure 1:1 parity with the model's indexing.
         let utf16Chars = Array(charset.utf16)

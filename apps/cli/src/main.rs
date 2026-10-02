@@ -1,26 +1,32 @@
 //! Batch Mon OCR over books, PDFs and images.
 //!
-//! The stream contract, per the CLI design standard: **stdout
-//! carries results and nothing else**; progress, warnings and errors go to
-//! stderr. That is what lets `monocr-cli extract book.pdf --json | jq` work while
-//! the operator still sees progress. Exit 0 on success, 1 on failure, 130 on
-//! Ctrl-C. Colour and progress switch off when stdout is not a TTY, and
-//! `NO_COLOR` is honoured.
+//! The stream contract: **stdout carries results and nothing else**; progress,
+//! warnings and errors go to stderr. That is what lets
+//! `monocr-cli extract book.pdf --json | jq` work while the operator still sees
+//! progress. Exit 0 on success, 1 on failure, 2 on a usage error (from `clap`),
+//! 130 on Ctrl-C (1 if an input had already failed); what counts as a failure
+//! is decided in `outcome.rs` and stated in the README's "Exit codes" section.
+//! Colour and progress switch off when stdout is not a TTY, and `NO_COLOR` is
+//! honoured.
 //!
 //! This is a delivery surface, not an OCR implementation. Segmentation, tiling,
-//! the model pin and the charset contract live in the `monocr-onnx` library; a
-//! sixth copy of that logic here is exactly what the delivery-surfaces
-//! standard exists to prevent.
+//! the model pin and the charset contract live in the `monocr-onnx` library.
+//! Domain logic stays in the library and each surface only adapts it: a sixth
+//! copy of that logic here would be one more port to keep in step.
 
 mod config;
 mod discover;
 mod mode;
+mod outcome;
 mod output;
 mod render;
 mod state;
 
+#[cfg(test)]
+mod extract_tests;
+
 use std::io::{IsTerminal, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::Instant;
 
@@ -30,6 +36,15 @@ use clap::{Parser, Subcommand, ValueEnum};
 use discover::{Discovery, Input, InputKind};
 use mode::Mode;
 use output::{FailureRecord, LineRecord, ManifestEntry, OutputDir, PageRecord};
+
+/// `eprintln!` to a `Console`'s stderr, which is the process's stderr in a real
+/// run and a buffer in the tests. A failed write is ignored rather than ending
+/// the run: a progress line nobody can read is no reason to stop reading books.
+macro_rules! note {
+    ($console:expr, $($arg:tt)*) => {{
+        let _ = writeln!($console.err, $($arg)*);
+    }};
+}
 
 /// Exit code for an interrupted run. 128 + SIGINT, the shell convention.
 const EXIT_INTERRUPTED: u8 = 130;
@@ -367,17 +382,181 @@ async fn extract(args: ExtractArgs) -> Result<()> {
         })?;
     }
 
-    // One session per distinct mode, built on first use and reused after.
-    //
-    // Three of the five existing CLIs rebuild the ORT session per file while a
-    // session-reusing call sits unused beside them; that is the cost this
-    // avoids. A session is keyed by mode because the density ratio is fixed at
-    // build time, and a mixed run must not silently apply one mode's ratio to
-    // another mode's input.
+    // One session per distinct mode, built on first use and reused after; see
+    // the `Sessions` impl below.
     let mut sessions: Vec<(Mode, monocr_onnx::MonOcr)> = Vec::new();
+    let (mut stdout, mut stderr) = (std::io::stdout(), std::io::stderr());
+    let mut console = Console {
+        out: &mut stdout,
+        err: &mut stderr,
+    };
 
+    let end = read_inputs(
+        &found.inputs,
+        &args,
+        &mut sessions,
+        &mut st,
+        &out_root,
+        &mut out,
+        &mut console,
+    )
+    .await?;
+
+    match end {
+        outcome::RunEnd::Failure(msg) => anyhow::bail!(msg),
+        outcome::RunEnd::Success { warning } => {
+            if let Some(w) = warning {
+                eprintln!("{w}");
+            }
+            Ok(())
+        }
+    }
+}
+
+/// Where a run's results and its progress go: stdout and stderr in a real run,
+/// buffers in the tests, so what each stream carries is checked, not assumed.
+struct Console<'a> {
+    out: &'a mut dyn Write,
+    err: &'a mut dyn Write,
+}
+
+/// The calls one input makes into the OCR crate and poppler.
+///
+/// The seam the tests put a fake in. What happens around each call — what is
+/// tallied, recorded, written and counted towards the exit code — is where a
+/// run's outcome is decided, and with the crate called inline none of it could
+/// run without a loaded model, so a mistake in it passed every test. The real
+/// implementation, on `MonOcr` below, only calls through.
+trait Reader {
+    /// A PDF opened for reading one page at a time.
+    type Pdf;
+
+    /// Recognise an image input, returning its lines and its pixel height.
+    /// `segments` is false in line mode, which reads the image as one line.
+    async fn read_image(
+        &mut self,
+        path: &Path,
+        segments: bool,
+    ) -> Result<(Vec<monocr_onnx::LineResult>, u32)>;
+
+    async fn open_pdf(&mut self, path: &Path, dpi: u32) -> Result<Self::Pdf>;
+
+    fn pages(pdf: &Self::Pdf) -> usize;
+
+    /// Render one PDF page and recognise it, returning its lines and its height.
+    async fn read_pdf_page(
+        &mut self,
+        pdf: &Self::Pdf,
+        page: usize,
+    ) -> Result<(Vec<monocr_onnx::LineResult>, u32)>;
+}
+
+impl Reader for monocr_onnx::MonOcr {
+    type Pdf = render::PdfDocument;
+
+    async fn read_image(
+        &mut self,
+        path: &Path,
+        segments: bool,
+    ) -> Result<(Vec<monocr_onnx::LineResult>, u32)> {
+        // Line mode must not go through the page segmenter. A projection
+        // profile over something that is already one line finds no gap to
+        // cut at and fragments it instead of reading it, so the library has
+        // a separate entry point that tiles without segmenting.
+        let lines = if segments {
+            self.predict_page(path).await?
+        } else {
+            vec![self.predict_single_line(path).await?]
+        };
+        Ok((lines, page_height_of(path)))
+    }
+
+    async fn open_pdf(&mut self, path: &Path, dpi: u32) -> Result<render::PdfDocument> {
+        render::PdfDocument::open(path, dpi).await
+    }
+
+    fn pages(pdf: &render::PdfDocument) -> usize {
+        pdf.pages()
+    }
+
+    /// Rendered, read, then dropped before the next page is touched: peak memory
+    /// is one page, not one book.
+    async fn read_pdf_page(
+        &mut self,
+        pdf: &render::PdfDocument,
+        page: usize,
+    ) -> Result<(Vec<monocr_onnx::LineResult>, u32)> {
+        let rendered = pdf.render_page(page).await?;
+        let height = page_height_of(rendered.path());
+        let lines = self
+            .predict_page(rendered.path())
+            .await
+            .with_context(|| format!("cannot read page {page}"))?;
+        Ok((lines, height))
+    }
+}
+
+/// A reader for each mode, built on first use.
+trait Sessions {
+    type Reader: Reader;
+
+    async fn session(&mut self, mode: Mode) -> Result<&mut Self::Reader>;
+}
+
+/// One session per distinct mode, built on first use and reused after.
+///
+/// Three of the five existing CLIs rebuild the ORT session per file while a
+/// session-reusing call sits unused beside them; that is the cost this avoids.
+/// A session is keyed by mode because the density ratio is fixed at build time,
+/// and a mixed run must not silently apply one mode's ratio to another mode's
+/// input.
+///
+/// Held in a Vec rather than a map: there are three modes at most, and a linear
+/// scan over three entries is not worth a hash.
+impl Sessions for Vec<(Mode, monocr_onnx::MonOcr)> {
+    type Reader = monocr_onnx::MonOcr;
+
+    async fn session(&mut self, mode: Mode) -> Result<&mut monocr_onnx::MonOcr> {
+        if let Some(i) = self.iter().position(|(m, _)| *m == mode) {
+            return Ok(&mut self[i].1);
+        }
+
+        eprintln!("loading the model for {mode} mode");
+        let mut builder = monocr_onnx::MonOcr::builder();
+        if let Some(ratio) = mode.density_ratio() {
+            builder = builder.density_threshold_ratio(ratio);
+        }
+        let ocr = builder
+            .build()
+            .await
+            .with_context(|| format!("cannot load the pinned model for {mode} mode"))?;
+
+        self.push((mode, ocr));
+        let last = self.len() - 1;
+        Ok(&mut self[last].1)
+    }
+}
+
+/// Read every input in turn, and judge the run without acting on the judgement.
+///
+/// Apart from `extract` so it runs in the tests against a fake reader: this is
+/// where an input is counted as failed or as partly read, which decides the
+/// exit code and the closing warning.
+async fn read_inputs<S: Sessions>(
+    inputs: &[Input],
+    args: &ExtractArgs,
+    sessions: &mut S,
+    st: &mut state::State,
+    out_root: &Path,
+    out: &mut OutputDir,
+    console: &mut Console<'_>,
+) -> Result<outcome::RunEnd> {
     let mut failures = 0usize;
-    let total = found.inputs.len();
+    // Inputs with some pages read and some failed. They do not change the exit
+    // code, so they are counted to be named again at the end of a long batch,
+    // where the per-input warning has long scrolled away.
+    let mut partial = 0usize;
+    let total = inputs.len();
 
     // Resolved for the run as a whole, not per input, because a name collision
     // is a property of the list. Two books called `book.pdf` in different
@@ -385,26 +564,44 @@ async fn extract(args: ExtractArgs) -> Result<()> {
     // first one read was overwritten by the second in silence; `output.rs:139`
     // describes that hazard and takes a `disambiguator` for it, and this caller
     // is the half that was missing.
-    let paths: Vec<PathBuf> = found.inputs.iter().map(|i| i.path.clone()).collect();
+    let paths: Vec<PathBuf> = inputs.iter().map(|i| i.path.clone()).collect();
     let stems = output::assign_stems(&paths);
 
-    for (n, input) in found.inputs.iter().enumerate() {
+    for (n, input) in inputs.iter().enumerate() {
         if args.interrupted.load(std::sync::atomic::Ordering::SeqCst) {
-            eprintln!("interrupted after {n} of {total}");
+            note!(console, "interrupted after {n} of {total}");
             break;
         }
 
         let decision = args
             .mode
             .resolve(input.kind, &input.path, image_dimensions(input));
-        let digest = state::work_digest(&input.path, &decision.mode.to_string(), args.dpi)?;
+        // Per input, not with `?`: the digest opens the file, so `?` here let one
+        // file without read permission end the whole batch, with no manifest
+        // record and every later input left unread.
+        let digest = match state::work_digest(&input.path, &decision.mode.to_string(), args.dpi) {
+            Ok(d) => d,
+            Err(e) => {
+                note!(console, "[{}/{}] {}", n + 1, total, input.path.display());
+                failures += 1;
+                record_failure(out, console, input, &e)?;
+                continue;
+            }
+        };
 
         if args.resume && st.is_done(&digest, &stems[n]) {
-            eprintln!("[{}/{}] skip (done) {}", n + 1, total, input.path.display());
+            note!(
+                console,
+                "[{}/{}] skip (done) {}",
+                n + 1,
+                total,
+                input.path.display()
+            );
             continue;
         }
 
-        eprintln!(
+        note!(
+            console,
             "[{}/{}] {} ({})",
             n + 1,
             total,
@@ -412,9 +609,9 @@ async fn extract(args: ExtractArgs) -> Result<()> {
             decision.mode
         );
 
-        let ocr = session_for(&mut sessions, decision.mode).await?;
+        let reader = sessions.session(decision.mode).await?;
 
-        match process_one(ocr, input, &stems[n], &decision, &args, &mut out).await {
+        match process_one(reader, input, &stems[n], &decision, args, out, console).await {
             Ok(progress) => {
                 st.record_progress(
                     &input.path,
@@ -425,15 +622,19 @@ async fn extract(args: ExtractArgs) -> Result<()> {
                 );
                 // Saved per input so an interrupt loses at most the input in
                 // flight, not the whole run's record.
-                st.save(&out_root)?;
+                st.save(out_root)?;
 
-                if progress.done < progress.expected {
+                if progress.failed > 0 {
+                    partial += 1;
+                }
+                if progress.done + progress.failed < progress.expected {
                     // Said out loud because the state file's `is_done` is now
                     // the only thing standing between an interrupted book and a
                     // permanent skip, and an operator who does not know the book
                     // is unfinished will not re-run it. Ctrl-C at page 3 of 500
                     // used to print nothing here and record the book as final.
-                    eprintln!(
+                    note!(
+                        console,
                         // `--resume` restarts this book at page 1 rather than continuing from
                         // where it stopped, so the wording says "again" instead of
                         // "finish it". Pages already on disk are rewritten; nothing is
@@ -441,7 +642,8 @@ async fn extract(args: ExtractArgs) -> Result<()> {
                         // per page file, or a --dpi 150 run's pages get adopted by a
                         // --dpi 300 --resume.
                         "  wrote {} of {} page(s); re-run with --resume to read it again",
-                        progress.done, progress.expected
+                        progress.done,
+                        progress.expected
                     );
                 }
             }
@@ -449,47 +651,27 @@ async fn extract(args: ExtractArgs) -> Result<()> {
                 // One bad file must not end a 500-file batch. It is recorded,
                 // reported, and the exit code reflects it at the end.
                 failures += 1;
-                eprintln!("  failed: {e:#}");
-                out.record(&ManifestEntry::Failure(FailureRecord {
-                    input: input.path.display().to_string(),
-                    page: None,
-                    error: format!("{e:#}"),
-                }))?;
+                record_failure(out, console, input, &e)?;
             }
         }
     }
 
-    if failures > 0 {
-        anyhow::bail!("{failures} of {total} input(s) failed; see manifest.jsonl");
-    }
-    Ok(())
+    Ok(outcome::run_end(failures, partial, total))
 }
 
-/// Get the session for a mode, building it on first use.
-///
-/// Held in a Vec rather than a map: there are three modes at most, and a linear
-/// scan over three entries is not worth a hash.
-async fn session_for(
-    sessions: &mut Vec<(Mode, monocr_onnx::MonOcr)>,
-    mode: Mode,
-) -> Result<&mut monocr_onnx::MonOcr> {
-    if let Some(i) = sessions.iter().position(|(m, _)| *m == mode) {
-        return Ok(&mut sessions[i].1);
-    }
-
-    eprintln!("loading the model for {mode} mode");
-    let mut builder = monocr_onnx::MonOcr::builder();
-    if let Some(ratio) = mode.density_ratio() {
-        builder = builder.density_threshold_ratio(ratio);
-    }
-    let ocr = builder
-        .build()
-        .await
-        .with_context(|| format!("cannot load the pinned model for {mode} mode"))?;
-
-    sessions.push((mode, ocr));
-    let last = sessions.len() - 1;
-    Ok(&mut sessions[last].1)
+/// Report an input that could not be read, on stderr and in the manifest.
+fn record_failure(
+    out: &mut OutputDir,
+    console: &mut Console<'_>,
+    input: &Input,
+    e: &anyhow::Error,
+) -> Result<()> {
+    note!(console, "  failed: {e:#}");
+    out.record(&ManifestEntry::Failure(FailureRecord {
+        input: input.path.display().to_string(),
+        page: None,
+        error: format!("{e:#}"),
+    }))
 }
 
 /// How far one input got.
@@ -499,19 +681,25 @@ async fn session_for(
 /// complete, and the digest in `state.rs` carries no page count to catch it.
 struct Progress {
     done: usize,
+    /// Pages that were tried and could not be read. Not counted in `done`, so a
+    /// book with a failed page is not recorded as finished and `--resume` tries
+    /// it again.
+    failed: usize,
     expected: usize,
 }
 
-async fn process_one(
-    ocr: &mut monocr_onnx::MonOcr,
+async fn process_one<R: Reader>(
+    reader: &mut R,
     input: &Input,
     stem: &str,
     decision: &mode::Decision,
     args: &ExtractArgs,
     out: &mut OutputDir,
+    console: &mut Console<'_>,
 ) -> Result<Progress> {
     let mut document = String::new();
     let mut pages_done = 0usize;
+    let mut tally = outcome::PageTally::default();
     // Deferred rather than zeroed: every branch below knows its own total, and a
     // default of 0 would make `done >= expected` true for an input that never
     // ran, which is the comparison this whole change turns on.
@@ -521,23 +709,13 @@ async fn process_one(
         InputKind::Image => {
             let started = Instant::now();
 
-            // Line mode must not go through the page segmenter. A projection
-            // profile over something that is already one line finds no gap to
-            // cut at and fragments it instead of reading it, so the library has
-            // a separate entry point that tiles without segmenting.
-            let lines = if decision.mode.segments() {
-                ocr.predict_page(&input.path)
-                    .await
-                    .with_context(|| format!("cannot read {}", input.path.display()))?
-            } else {
-                let line = ocr
-                    .predict_single_line(&input.path)
-                    .await
-                    .with_context(|| format!("cannot read {}", input.path.display()))?;
-                vec![line]
-            };
+            let (lines, height) = reader
+                .read_image(&input.path, decision.mode.segments())
+                .await
+                .with_context(|| format!("cannot read {}", input.path.display()))?;
 
-            let (text, records) = collect(&lines, page_height_of(&input.path));
+            tally.read(has_text(&lines));
+            let (text, records) = collect(&lines, height);
 
             out.write_page(stem, 1, &text)?;
             document.push_str(&text);
@@ -553,25 +731,35 @@ async fn process_one(
         }
 
         InputKind::Pdf => {
-            let doc = render::PdfDocument::open(&input.path, args.dpi).await?;
-            eprintln!("  {} page(s)", doc.pages());
-            pages_expected = doc.pages();
+            let doc = reader.open_pdf(&input.path, args.dpi).await?;
+            let pages = R::pages(&doc);
+            note!(console, "  {pages} page(s)");
+            pages_expected = pages;
 
-            for page in 1..=doc.pages() {
+            for page in 1..=pages {
                 if args.interrupted.load(std::sync::atomic::Ordering::SeqCst) {
                     break;
                 }
                 let started = Instant::now();
 
-                // Rendered, read, then dropped before the next page is touched:
-                // peak memory is one page, not one book.
-                let rendered = doc.render_page(page).await?;
-                let height = page_height_of(rendered.path());
-                let lines = ocr
-                    .predict_page(rendered.path())
-                    .await
-                    .with_context(|| format!("cannot read page {page}"))?;
-                drop(rendered);
+                // A page that cannot be rendered or read is recorded and passed
+                // over rather than ending the book. With `?` here, one bad page
+                // in a 500-page book discarded every page after it, and the book
+                // was reported as failed even though most of it was readable.
+                let (lines, height) = match reader.read_pdf_page(&doc, page).await {
+                    Ok(read) => read,
+                    Err(e) => {
+                        note!(console, "  page {page} could not be read: {e:#}");
+                        out.record(&ManifestEntry::Failure(FailureRecord {
+                            input: input.path.display().to_string(),
+                            page: Some(page),
+                            error: format!("{e:#}"),
+                        }))?;
+                        tally.failed(page, format!("page {page}: {e:#}"));
+                        continue;
+                    }
+                };
+                tally.read(has_text(&lines));
 
                 let (text, records) = collect(&lines, height);
                 out.write_page(stem, page, &text)?;
@@ -592,6 +780,16 @@ async fn process_one(
         }
     }
 
+    let verdict = tally.verdict();
+    if verdict.is_failure() {
+        // Nothing was read, so no document is written: an empty `<book>.txt`
+        // would look like a book with no text in it.
+        anyhow::bail!(verdict.message().unwrap_or_default());
+    }
+    if let Some(msg) = verdict.message() {
+        note!(console, "  {msg}");
+    }
+
     // Written even when the run stopped early: it is atomic, so what lands is a
     // truthful prefix rather than a torn file, and a resumed run rewrites it in
     // full. Pages are re-read from page 1 on resume rather than reused off disk
@@ -600,27 +798,40 @@ async fn process_one(
     out.write_document(stem, &document)?;
 
     if args.json {
-        let mut stdout = std::io::stdout().lock();
-        writeln!(
-            stdout,
-            "{}",
-            serde_json::json!({
-                "input": input.path.display().to_string(),
-                "mode": decision.mode.to_string(),
-                "pages": pages_done,
-                "stem": stem,
-            })
-        )?;
+        let mut record = serde_json::json!({
+            "input": input.path.display().to_string(),
+            "mode": decision.mode.to_string(),
+            "pages": pages_done,
+            "stem": stem,
+        });
+        if input.kind == InputKind::Pdf {
+            // A partly read book exits 0, so a pipeline reading only this line
+            // needs these to tell it from a whole one: `pages` is what was
+            // written, `expected_pages` what the book has, and `failed_pages`
+            // the pages that could not be read.
+            record["expected_pages"] = pages_expected.into();
+            record["failed_pages"] = tally.failed_pages().into();
+        }
+        writeln!(console.out, "{record}")?;
     } else {
         // The result, and only the result, on stdout.
-        let mut stdout = std::io::stdout().lock();
-        writeln!(stdout, "{document}")?;
+        writeln!(console.out, "{document}")?;
     }
 
     Ok(Progress {
         done: pages_done,
+        failed: tally.failed_pages().len(),
         expected: pages_expected,
     })
+}
+
+/// Whether recognised lines carry any text.
+///
+/// Not `!lines.is_empty()`: line mode always returns one line, blank image or
+/// not, and a segmented page can return lines that read as nothing, so counting
+/// lines never reported `no text found` for either.
+fn has_text(lines: &[monocr_onnx::LineResult]) -> bool {
+    lines.iter().any(|l| !l.text.trim().is_empty())
 }
 
 /// Turn recognised lines into page text plus manifest records.

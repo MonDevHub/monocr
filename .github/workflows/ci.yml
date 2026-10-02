@@ -14,8 +14,8 @@
 #
 # Android is no longer excluded. The `android` job below runs the unit tests with
 # a JetBrains Runtime from setup-java, which is what the toolchain pin needs. The
-# app itself is still not built and there are no instrumented tests, so this is
-# the same shape as ios-core: the pure logic runs, the app target does not.
+# app itself is still not built and its instrumented tests need a device, so this
+# is the same shape as ios-core: the pure logic runs, the app target does not.
 #
 # That exclusion got more expensive on 2026-08-28. Android's suite went from 22
 # tests to 50: the printed-rule port added ten, PageNormalizer's newly-testable
@@ -35,14 +35,18 @@
 # against it anyway. That is why the job below asserts a test COUNT rather than
 # trusting the exit code.
 #
-# No `paths:` filters anywhere in this file, on purpose. ci-cd.md:490-538: a
+# No `paths:` filters anywhere in this file, on purpose: a
 # path-filtered required check goes silently dead the moment a directory is
 # renamed, and GitHub leaves it Pending and blocks the merge forever. The repo is
 # small enough to run everything on every push.
 #
-# Actions are pinned to commit SHAs, not tags — tags can be moved
-# (supply-chain-security.md:410). Dependabot's github-actions ecosystem keeps
-# them current, because a pin that is never updated is its own problem (:422).
+# Actions are pinned to commit SHAs, not tags, because a tag can be moved to
+# different code. Dependabot's github-actions ecosystem keeps them current,
+# because a pin that is never updated is its own problem.
+#
+# Every checkout sets `persist-credentials: false`. No job here pushes, so the
+# token actions/checkout would otherwise write into .git/config is exposure
+# with no use; zizmor's `artipacked` audit fails on it.
 name: CI
 
 on:
@@ -50,7 +54,6 @@ on:
   pull_request:
 
 # Read-only by default, escalated per job only where needed.
-# supply-chain-security.md:427.
 permissions:
   contents: read
 
@@ -63,6 +66,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       # The gitleaks binary, not gitleaks-action: the action requires a paid
       # licence for organisation repositories and fails without one, which is
@@ -70,15 +74,27 @@ jobs:
       #
       # Known findings are pinned in .gitleaksignore, so this goes red on a new
       # secret rather than on the one already disclosed there.
+      #
+      # The image is pinned by digest as well as tag: a tag can be re-pushed, a
+      # digest cannot. This is the multi-arch index digest for v8.30.1, the same
+      # on Docker Hub and ghcr.io/gitleaks/gitleaks. Change the tag and the
+      # digest together.
+      #
+      # `gitleaks git` rather than `detect`, which v8.19.0 deprecated and --help
+      # no longer lists. It scans the same full history and produces the same
+      # fingerprints, so .gitleaksignore still matches.
       - name: Scan for committed secrets
         run: |
           docker run --rm -v "$PWD:/repo" -w /repo \
-            zricethezav/gitleaks:v8.30.1 detect --source /repo --redact --verbose
+            zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+            git --redact --verbose /repo
 
   web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -106,8 +122,8 @@ jobs:
           pending = d.get("numPendingTests", 0)
           todo = d.get("numTodoTests", 0)
           print(f"{passed} passed, {failed} failed, {pending} skipped, {todo} todo, {total} total")
-          # 172, the exact count on 2026-09-03. See the android floor for why exact.
-          FLOOR = 172
+          # 214, the exact count on 2026-10-01. See the android floor for why exact.
+          FLOOR = 214
           # AGAINST `passed`, NOT `total`. This floor compared `total` until
           # 2026-09-04, and numTotalTests counts skipped and todo tests. So
           # `describe.skip` on the whole suite gave total=172, failed=0, passed=0
@@ -162,6 +178,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -169,7 +187,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      # Fastest first (ci-cd.md:75). `lint` is `prettier --check . && eslint .`.
+      # Fastest first, so a formatting slip fails in seconds. `lint` is `prettier --check . && eslint .`.
       - name: Lint and format
         run: |
           set +e
@@ -188,8 +206,9 @@ jobs:
       # gating on them would have meant landing a gate that was already red on
       # 35 moderate findings in transitive test dependencies.
       #
-      # --audit-level=high, failing rather than warning, per the checklist at
-      # supply-chain-security.md:767. Landing this took fixing what it found:
+      # --audit-level=high, failing rather than warning: a high or critical
+      # advisory in a shipped dependency blocks the merge rather than being
+      # reported and ignored. Landing this took fixing what it found:
       # protobufjs (6 advisories via onnxruntime-web, one critical) and
       # fast-xml-builder, both pinned forward in pnpm.overrides.
       # A FAILED AUDIT AND AN UNREACHABLE AUDIT ARE DIFFERENT ANSWERS, and this
@@ -255,6 +274,8 @@ jobs:
         working-directory: services/feedback
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: services/feedback/go.mod
@@ -321,9 +342,11 @@ jobs:
               sys.exit(f"only {len(ran)} Go tests ran; expected at least {FLOOR}")
           PY_EOF
 
+      # A version, not @latest, so the gate changes only when this line does.
+      # Dependabot does not see a `go install` in a workflow: bump it by hand.
       - name: govulncheck
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
           "$(go env GOPATH)/bin/govulncheck" ./...
 
   cli:
@@ -348,6 +371,8 @@ jobs:
       MONOCR_PDF_FIXTURE: ${{ github.workspace }}/.fixtures-onnx/data/pdfs/Mon_E_library.pdf
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # Commit-pinned at the same commit as release-cli.yml, for the reason
       # stated there, and so the gate and the publish job cannot disagree about
@@ -378,6 +403,7 @@ jobs:
       - name: Fetch the PDF fixture
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           repository: MonDevHub/monocr-onnx
           ref: 76459a559920e92ce00ee1c1c0d1b72e07f8319a
           path: .fixtures-onnx
@@ -425,10 +451,12 @@ jobs:
               sys.exit("no 'test result:' line in cargo's output: the suite did not run")
           passed = sum(runs)
           print(f"{passed} Rust tests passed across {len(runs)} binaries")
-          # 68, the exact count on 2026-09-03. Exact rather than a margin, for the
+          # 88, the exact count on 2026-10-01: the 68 before, eleven exit-code rule
+          # tests in outcome.rs, the unreadable-input test, and eight wiring tests in
+          # extract_tests.rs. Exact rather than a margin, for the
           # reason the android floor states: adding tests never trips a floor, so the
           # only thing a floor catches is a removal, and a removal should be deliberate.
-          FLOOR = 68
+          FLOOR = 88
           if passed < FLOOR:
               sys.exit(f"only {passed} Rust tests ran; expected at least {FLOOR}")
           PY_EOF
@@ -593,6 +621,8 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: swift version
         run: swift --version
@@ -628,11 +658,14 @@ jobs:
     #  3. The Android SDK. compileSdk is 36, newer than the runner image ships, so
     #     the platform is installed explicitly rather than hoped for.
     #
-    # Unit tests only: no emulator, no instrumented tests, no signing. There is no
-    # `app/src/androidTest/` in the tree, so nothing is being skipped silently.
+    # Unit tests only: no emulator, no instrumented tests, no signing. The
+    # instrumented tests in `app/src/androidTest/` need a device or an emulator, so
+    # this job neither runs nor compiles them; they have to be run on a device.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: JetBrains Runtime 21
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
@@ -692,7 +725,11 @@ jobs:
           # should be deliberate. If this fails, either a test was lost or one was merged
           # into another: bump the number in the same commit that removes the test, and
           # the diff then records the removal.
-          FLOOR = 106
+          #
+          # 122 on 2026-10-01: sixteen added with the import, PDF-outcome, model-cache
+          # and adaptive-threshold work. 125 the same day: three for the rule that a
+          # page fails only when every line failed.
+          FLOOR = 125
           # Against `passed`. An @Ignore'd test stops counting toward the floor,
           # so parking one trips it and has to be paid for by lowering FLOOR in
           # the same commit. That is the whole skip policy, and it needs no
@@ -717,6 +754,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: The three bundled charsets are byte-identical
         run: |
@@ -858,3 +897,26 @@ jobs:
             exit 1
           fi
           echo "no unsourced accuracy figures in shipped strings, in either numeral system"
+
+  zizmor:
+    # Lints the workflows AND .github/dependabot.yml for excessive permissions,
+    # template injection, persisted checkout credentials, unpinned actions and
+    # missing Dependabot cooldowns. It scans the repository root, so the local
+    # equivalent is `uvx zizmor@1.30.1 .` from the root; pointing it at
+    # .github/workflows alone skips dependabot.yml and is a different gate.
+    #
+    # `version` is exact: the action resolves it to a digest-pinned image from
+    # its own list, so this gate changes only when one of these two lines does.
+    # `advanced-security: false` keeps it a plain pass/fail job that needs no
+    # security-events permission and reports in the log.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: 1.30.1
+          advanced-security: false

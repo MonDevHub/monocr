@@ -31,6 +31,17 @@ for CANDIDATE in \
     break
 done
 
+# Swift 6.4's swiftbuild driver does not consistently forward the implicit
+# swift-testing macro search path when a new test file is discovered. Pass the
+# installed plugin directory explicitly as well as Testing.framework above.
+for PLUGINS in \
+    "$DEVELOPER/usr/lib/swift/host/plugins/testing" \
+    "$DEVELOPER/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing"; do
+    [ -f "$PLUGINS/libTestingMacros.dylib" ] || continue
+    FLAGS="$FLAGS -Xswiftc -plugin-path -Xswiftc $PLUGINS"
+    break
+done
+
 LOG="MonOcrCore/.build/swift-test.log"
 mkdir -p "$(dirname "$LOG")"
 
@@ -55,13 +66,12 @@ fi
 # Format verified 2026-09-03 by running this script against MonOcrCore.
 COUNT="$(sed -n 's/.*Test run with \([0-9][0-9]*\) tests.*/\1/p' "$LOG" | tail -1)"
 
-# 82, the exact count as of the PdfPageCombiner extraction and its 8 tests plus
-# documentScanSharesThePhotoLibraryShapeTest (2026-09-09; was 73 on 2026-09-03).
-# Exact rather than a margin for the reason the Android floor gives: adding tests
-# never trips a floor, so the only thing this can catch is a removal, and a
-# removal should be deliberate. If this fails, bump FLOOR in the same commit that
-# removes the test so the diff records it.
-FLOOR=82
+# 104, the exact count as of 2026-10-01: the 82 before, three adaptive-threshold
+# tests, seventeen reliability tests, the page-state `wasRead` test and the warning-hint test. Exact rather than a margin for the reason the
+# Android floor gives: adding tests never trips a floor, so the only thing this can
+# catch is a removal, and a removal should be deliberate. If this fails, bump FLOOR
+# in the same commit that removes the test so the diff records it.
+FLOOR=104
 
 if [ -z "$COUNT" ]; then
     echo "swift-test: found the summary line but could not read a count from it. The" >&2

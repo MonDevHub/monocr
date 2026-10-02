@@ -6,10 +6,11 @@
 # Grouped: ungrouped, this repo would open a PR per package and the review
 # would stop happening, which is the failure mode that matters.
 #
-# Only ecosystems CI can actually verify are listed. Android (gradle) is neither
-# built nor tested in CI, so a dependency PR for it could not be checked by
-# anything before merge — that is a bot opening unverifiable PRs, not a control.
-# Add the gradle ecosystem in the same change that adds an Android CI job.
+# Only ecosystems CI can actually verify are listed. Android (gradle) is not listed
+# yet. CI's `android` job compiles the debug variant and runs its unit tests, but
+# nothing assembles a release build or runs the instrumented tests, so a gradle
+# update that breaks either would still pass. Adding the gradle ecosystem is a
+# separate change that should say how those gaps are covered.
 #
 # iOS is the narrower case, and the distinction is the whole reason this comment
 # was wrong until 2026-08-28. The app TARGET is not built in CI: that needs Xcode,
@@ -27,6 +28,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # A new release is not proposed until it is a week old. Malware in a
+    # published package is usually caught and pulled within days, so waiting
+    # avoids most of that exposure; security updates ignore cooldown and still
+    # arrive at once. zizmor's dependabot-cooldown audit fails below 7 days.
+    cooldown:
+      default-days: 7
     groups:
       # Build and test tooling churns fastest and carries the least risk.
       dev-tooling:
@@ -48,17 +55,40 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
     groups:
       go-dependencies:
         patterns: ["*"]
 
-  # Keeps the SHA pins in ci.yml current. supply-chain-security.md:422 —
-  # "Pinning is not a reason to never update." Without this the pins rot.
+  # Keeps the SHA pins in ci.yml current. Pinning is not a reason never to
+  # update; without this the pins rot.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
     groups:
       actions:
         patterns: ["*"]
+
+  # apps/cli is a cargo crate with no Cargo workspace, and the npm entry never
+  # sees its Rust dependencies, so it needs its own entry. The `cli` job in
+  # ci.yml builds, lints and tests it, so a PR from here has a real gate.
+  - package-ecosystem: cargo
+    directory: /apps/cli
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    groups:
+      cargo-dependencies:
+        patterns: ["*"]
+    ignore:
+      # ort is pinned exactly to the release candidate the monocr crate builds
+      # against (see apps/cli/Cargo.toml). A newer rc changed Send bounds and
+      # does not compile here, so it moves with monocr, not on its own.
+      - dependency-name: ort

@@ -39,9 +39,7 @@ Android နှင့် iOS သည် ၎င်းကို bundle လုပ်�
 
 **v3.5 သည် v2 ၏ ဗားရှင်းအသစ်မဟုတ်ဘဲ contract အသစ်တစ်မျိုးဖြစ်သည်။** input အမြင့်သည် 128 မှ 160 သို့၊ output class အရေအတွက်သည် 316 မှ 277 သို့၊ စာလုံးအရေအတွက်သည် 315 မှ 276 သို့ ပြောင်းလဲပြီး graph ၏ width axis သည် dynamic မှ static 1024 သို့ ပြောင်းသွားသည်။ cache ထဲတွင် v2 artifact ကျန်နေသေးပါက ထိုကဲ့သို့ မကိုက်ညီမှုမျိုးသည် ပုံစံမှန်သော်လည်း မှားယွင်းနေသည့် မွန်စာသားကို ပြန်ပေးသောကြောင့် ၎င်းကို decode မလုပ်ဘဲ ငြင်းဆိုသည်။ **v2** ကို ၎င်းအပေါ် pin ထားသူများအတွက် revision `a51be11` တွင် ဆက်လက်ဝန်ဆောင်မှုပေးထားဆဲဖြစ်သည်။
 
-**v4** server model ကို 2026-08-05 တွင် archive လုပ်ခဲ့သည်။ ၎င်းကို convergence အထိ လေ့ကျင့်ခဲ့ခြင်းမရှိသဖြင့် archive လုပ်ခြင်းမှာ အရည်အသွေးတိုင်းတာမှုအရမဟုတ်ဘဲ ဒုတိယလမ်းကြောင်းကို ဆက်လက်ထိန်းသိမ်းမည်/မထိန်းသိမ်းဆိုသည့် ဆုံးဖြတ်ချက်ဖြစ်သည်။ ၎င်းကို ထိန်းသိမ်းထားခြင်းမရှိပါ။
-
-မည်သည့် platform အတွက်မျှ device latency ကိန်းဂဏန်း မရှိပါ။ ထိုကဲ့သို့ ကိန်းဂဏန်းများသည် 2026-08-15 အထိ ဤနေရာတွင် ပါရှိခဲ့ပြီး၊ architecture ခန့်မှန်းချက်များသာဖြစ်ကာ hardware ပေါ်တွင် တိုင်းတာခဲ့ခြင်း မရှိပါ။
+မည်သည့် platform အတွက်မျှ device latency ကိန်းဂဏန်း မရှိပါ။
 
 မွန်ဘာသာ dataset အရည်အသွေးမြင့်များ ရှားပါးသောကြောင့် application ၏ feedback flow မှ validated sample များသည် နောင်လေ့ကျင့်ရေးဆောင်ရွက်မှုများထဲသို့ တိုက်ရိုက်ဝင်ရောက်သည်။
 
@@ -61,7 +59,7 @@ Model သည် Web၊ Android နှင့် iOS တို့တွင် အ�
 - **[Android App](apps/android)** — Jetpack Compose
 - **[iOS App](apps/ios)** — SwiftUI
 - **[Feedback Service](services/feedback)** — Go ingestion API
-- **[Shared Assets](shared)** — model weights, locales, sync scripts
+- **[Shared Assets](shared)** — locales, API contract, segmentation fixtures
 
 ---
 
@@ -83,3 +81,7 @@ Model သည် Web၊ Android နှင့် iOS တို့တွင် အ�
 - **Standards**: [Contributing Guide](.github/CONTRIBUTING.md) · [Security Policy](.github/SECURITY.md)
 
 [Janakh Pon](https://github.com/janakhpon) · [Oung Seik Nyan](https://github.com/Oungseik) · [Rajel Da Key](https://www.facebook.com/RJOMDK10) · [MonDevHub](https://github.com/MonDevHub)
+
+## Licence
+
+[MIT](LICENSE)

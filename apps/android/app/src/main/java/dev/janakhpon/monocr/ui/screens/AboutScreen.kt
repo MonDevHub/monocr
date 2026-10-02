@@ -80,7 +80,7 @@ fun AboutScreen(
                 body  = stringResource(R.string.about_lang_support_desc)
             )
 
-            // FIX F13: LinksCard now uses clean Row-based links with external icon
+            // Each link is a full-width row with an external-link icon.
             LinksCard(
                 onLinkClick = { url -> uriHandler.openUri(url) },
                 onPrivacyClick = onNavigateToPrivacy
@@ -247,12 +247,12 @@ private fun LinksCard(
     onLinkClick: (String) -> Unit,
     onPrivacyClick: () -> Unit
 ) {
-    // FIX F13: Replaced TextButton with inner Row (ambiguous tap zone) with
-    //           direct TextButton using Arrangement.SpaceBetween — clean, clear affordance
+    // One full-width TextButton per link, label then icon, so the whole row is the
+    // tap target. A Row nested inside a TextButton left the tap zone ambiguous.
     data class Link(val label: String, val url: String)
     val links = listOf(
         Link("Hugging Face Models",  "https://huggingface.co/janakhpon/monocr"),
-        Link("monocr-web (GitHub)",  "https://github.com/MonDevHub/monocr-web"),
+        Link("monocr (GitHub)",      "https://github.com/MonDevHub/monocr"),
         Link("NPM Package",          "https://www.npmjs.com/package/monocr"),
         Link("PyPI Package",         "https://pypi.org/project/monocr-onnx/"),
     )

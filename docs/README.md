@@ -1,33 +1,33 @@
-# MonOCR Documentation Hub
+# MonOCR docs
 
-Welcome to the central technical repository for the MonOCR platform. This hub is organized by concern to ensure technical clarity and long-term maintainability.
+Technical documentation for this repository. Start with the [root README](../README.md).
+
+## Guides
+
+- [Environment setup](guides/setup.md): toolchain versions, keys and first builds.
+- [Building and testing the mobile apps](guides/mobile-build-and-test.md): the exact Android and
+  iOS clean-build and test commands, why both toolchains can look absent when they are only
+  mis-pathed, and what `pnpm test` caches away.
 
 ## Architecture
 
-Details on the polyglot monorepo strategy and platform-specific implementations.
+- [Architecture decision records](architecture/adr): the reasons behind the core technical choices,
+  including the [polyglot monorepo](architecture/adr/0001-polyglot-monorepo-architecture.md), the
+  [localisation bridge](architecture/adr/0002-unified-localization-bridge.md) and the
+  [CLI as the batch and desktop surface](architecture/adr/0004-cli-desktop-surface.md).
+- [Android architecture](architecture/platform/android.md).
+- [Line segmentation parity](architecture/platform/line-segmentation-parity.md): where the four
+  implementations of the segmenter disagree (web, Android, iOS, and the CLI through the
+  `monocr-onnx` Rust library), and why that is recorded rather than unified.
 
-- **[Architecture Decision Records (ADRs)](architecture/adr)**: The "Why" behind our core technical choices.
-- **[Platform Implementation Details](architecture/platform)**: Deep-dives into Android, iOS, and Web specific logic.
-- **[Line segmentation parity](architecture/platform/line-segmentation-parity.md)**: Where the four surfaces of the segmenter disagree (web, Android, iOS, and the CLI through `monocr-onnx/rust`), and why it is recorded rather than unified.
+## API
 
-## API & Contracts
-
-Machine-readable specifications and integration guides.
-
-- **[OpenAPI Specification](api/openapi.yaml)**: Formal contract for the mobile feedback service.
-- **[Authenticated UI Guide](architecture/adr/0003-openapi-and-authenticated-docs.md)**: How to interact with the secure Swagger UI.
+- [OpenAPI specification](api/openapi.yaml) for the feedback service. It is not what the service
+  serves: [ADR-0003](architecture/adr/0003-openapi-and-authenticated-docs.md) records that the
+  swaggo document in `services/feedback/docs/docs.go` is authoritative until a generation step
+  exists.
 
 ## Governance
 
-Project health, security, and contribution standards.
-
-- **[Contributing Guide](../.github/CONTRIBUTING.md)**: Standards for adding features and translations.
-- **[Security Policy](../.github/SECURITY.md)**: Vulnerability disclosure and secret management.
-
-## Getting Started
-
-Onboarding for new developers.
-
-- **[Environment Setup Guide](guides/setup.md)**: Dependencies, keys, and initial builds.
-- **[Building and testing the mobile apps](guides/mobile-build-and-test.md)**: The exact Android and iOS clean-build and test commands, why both toolchains look absent when they are only mis-pathed, and what `pnpm test` caches away.
-- **[Localization Sync Guide](architecture/adr/0002-unified-localization-bridge.md)**: Maintaining platform-parity for Mon charset translations.
+- [Contributing guide](../.github/CONTRIBUTING.md): standards for features and translations.
+- [Security policy](../.github/SECURITY.md): vulnerability disclosure and secret management.

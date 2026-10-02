@@ -72,8 +72,10 @@ export async function handleMessage(
 			case 'RECOGNIZE': {
 				if (!engine) throw new Error('Engine not initialized');
 				const imageBytes = payload as Uint8Array;
-				const text = await engine.recognize(imageBytes);
-				host.postMessage({ id, type: 'RESULT', payload: text });
+				// A PageReading, not a bare string: the page needs the failed-line
+				// count to say when the text it shows is incomplete.
+				const reading = await engine.recognize(imageBytes);
+				host.postMessage({ id, type: 'RESULT', payload: reading });
 				break;
 			}
 

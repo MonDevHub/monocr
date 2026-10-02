@@ -14,9 +14,8 @@ import Testing
 
  This block used to justify tiling with `CER 0.1434 squeezed against 0.0795
  tiled`. Retired 2026-08-22: that harness was never committed and the figures do
- not reproduce. The live measurement is an A/B (2026-08-22)
- over 201 rendered lines, and it is width-dependent — squeezing wins at 2 tiles,
- the two arms are level at 3, and tiling wins from 4 up. Tiling is still the
+ not reproduce. Measured on 201 rendered lines: squeezing wins at 2 tiles, level
+ at 3, tiling wins from 4. Tiling is still the
  default because its downside is bounded and squeezing's is not, which is a
  different argument from the one this comment used to make.
 

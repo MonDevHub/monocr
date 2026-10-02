@@ -102,7 +102,7 @@ class SyncPolicyTest {
      *
      * The first version of this test asserted `":" !in "0f8b1c22-..."` on a literal
      * declared two lines above it, referencing no production code. It could only fail if
-     * someone edited the test's own string. Caught in review of this file.
+     * someone edited the test's own string.
      */
     @Test
     fun `a request id built from a real generated record id has exactly one separator`() {
@@ -320,7 +320,7 @@ class SyncPolicyTest {
         // Spelled out as literals on purpose. Asserting
         // `MAX_REQUEST_BODY_BYTES - MULTIPART_ENVELOPE_RESERVE_BYTES == MAX_PAYLOAD_BYTES`
         // restates that constant's own definition and holds for every possible value of
-        // either operand — a test that cannot fail. Caught in review of this file.
+        // either operand — a test that cannot fail.
         assertEquals(20967424, SyncPolicy.MAX_PAYLOAD_BYTES)
         assertTrue(
             "the reserve must cover a long UTF-8 Mon filename twice over, not be a token",
@@ -380,7 +380,7 @@ class SyncPolicyTest {
         // size: `limit + 1` is the smallest read that proves the payload is over the cap,
         // so it is also the most a correct implementation ever needs. Coupling this to the
         // private chunk size made the test fail on any buffer-size change and silently
-        // weaken on any shrink. Caught in review of this file.
+        // weaken on any shrink.
         assertTrue(
             "read ${huge.bytesRead} bytes for a $limit-byte limit; must stop at limit + 1",
             huge.bytesRead <= limit.toLong() + 1
@@ -421,7 +421,7 @@ class SyncPolicyTest {
     }
 
 
-    // MARK: - Error body cap (a second unbounded read, found in review)
+    // MARK: - Error body cap (a second unbounded read)
 
     /**
      * Server error bodies were read with an uncapped `readText()` and stored verbatim in

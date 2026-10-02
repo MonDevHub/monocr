@@ -180,6 +180,12 @@ struct HistoryDetailView: View {
                         }
                     }
                     
+                    if let warning = record.warningSummary {
+                        Label(warning, systemImage: "exclamationmark.triangle")
+                            .font(MonTheme.Typography.meta)
+                            .foregroundColor(MonTheme.warning)
+                    }
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Text Content")
                             .font(MonTheme.Typography.section)

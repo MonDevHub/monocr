@@ -53,14 +53,15 @@ android {
                 FileInputStream(localPropertiesFile).use { localProperties.load(it) }
             }
 
-            // Absolute path to one laptop until 2026-08-16, which made the
-            // release variant unbuildable by anyone else. Configurable now, with
-            // the old location as the default so existing setups keep working.
-            storeFile = file(
-                localProperties.getProperty("RELEASE_STORE_FILE")
-                    ?: System.getenv("RELEASE_STORE_FILE")
-                    ?: "/Users/zinmin/Documents/ocrandroid.jks"
-            )
+            // No default keystore path: a path that exists on one machine makes the
+            // release variant unbuildable everywhere else. Left unset, debug builds
+            // and unit tests are unaffected, and a release build is refused with
+            // the message below rather than packaged unsigned.
+            val releaseStorePath = localProperties.getProperty("RELEASE_STORE_FILE")
+                ?: System.getenv("RELEASE_STORE_FILE")
+            if (releaseStorePath != null) {
+                storeFile = file(releaseStorePath)
+            }
             storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD") ?: System.getenv("RELEASE_STORE_PASSWORD")
             keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS") ?: System.getenv("RELEASE_KEY_ALIAS")
             keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD") ?: System.getenv("RELEASE_KEY_PASSWORD")
@@ -140,6 +141,29 @@ android {
             resources.srcDir(rootProject.file("../../shared/segmentation-fixtures"))
         }
     }
+}
+
+// Release signing needs a keystore, and there is no default one. Without a
+// storeFile AGP quietly packages an unsigned release, so refuse any run that
+// would package the release variant, before it starts, naming the property to
+// set. Debug and staging builds and the unit tests never reach this.
+val releaseKeystoreMissing = android.signingConfigs.getByName("release").storeFile == null
+val releasePackagingTasks = setOf("packageRelease", "packageReleaseBundle", "packageReleaseUniversalApk")
+gradle.taskGraph.whenReady {
+    val packagesRelease = allTasks.any { it.project == project && it.name in releasePackagingTasks }
+    if (releaseKeystoreMissing && packagesRelease) {
+        throw GradleException(
+            "Release signing needs a keystore: set RELEASE_STORE_FILE in " +
+                "local.properties or the environment. Debug builds do not need it."
+        )
+    }
+}
+
+// Room writes the schema of every database version here, so the next migration can
+// be checked against the exact schema it starts from. Version 4 is the first one
+// recorded; versions 1 to 3 were never exported.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 

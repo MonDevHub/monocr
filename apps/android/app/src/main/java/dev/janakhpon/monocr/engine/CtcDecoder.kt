@@ -33,6 +33,10 @@ object CtcDecoder {
         numClasses: Int,
         charset: String
     ): String {
+        if (timeSteps < 0 || numClasses <= 0 ||
+            timeSteps.toLong() * numClasses != logits.size.toLong() || logits.any { !it.isFinite() }) {
+            throw LineInferenceException("Invalid or nonfinite model output")
+        }
         // Step 1: Greedy argmax per time step
         val predictions = IntArray(timeSteps)
         for (t in 0 until timeSteps) {

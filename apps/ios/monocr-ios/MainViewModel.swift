@@ -21,6 +21,11 @@ class MainViewModel: ObservableObject {
     @Published private(set) var segmentationMode: SegmentationMode = .page
 
     private let engine = MonOcrEngine()
+    private var jobGeneration = OcrJobGeneration()
+    private var jobTask: Task<Void, Never>?
+    private var activeHistoryRecord: HistoryRecord?
+    private var activeFileName = "scan"
+
 
     // Kept so changing the segmentation mode can re-read what is on screen
     // instead of asking the user to pick the file again.
@@ -34,12 +39,15 @@ class MainViewModel: ObservableObject {
     }
     
     func initializeEngine() async {
+        let generation = jobGeneration.current
         status = .loading
         errorMessage = nil
         do {
             try await engine.initialize()
+            guard jobGeneration.accepts(generation), !isProcessing else { return }
             status = .ready
         } catch {
+            guard jobGeneration.accepts(generation), !isProcessing else { return }
             status = .error(error.localizedDescription)
             errorMessage = "Failed to initialize OCR engine: \(error.localizedDescription)"
             MonLogger.e("Engine initialization failed", error: error)
@@ -52,27 +60,73 @@ class MainViewModel: ObservableObject {
     /// modelContext is passed in from ContentView which has @Environment(\\.modelContext) access.
     private func saveHistory(result: MonOcrResult, fileName: String, context: ModelContext?) {
         guard let context else { return }
+        // Until some page has been read there is nothing to keep, only failures.
+        guard result.pages.contains(where: \.wasRead) else { return }
         
-        // Convert the debug image (or original image if debug missing) to JPEG data for storage
-        var imageData: Data? = nil
-        if let imageToSave = result.debugImage ?? selectedImage {
-            // Compress heavily for history thumbnail (0.5 quality)
-            imageData = imageToSave.jpegData(compressionQuality: 0.5)
+        // Keep the source preview, never an arbitrary processed model tile.
+        let record: HistoryRecord
+        if let existing = activeHistoryRecord {
+            record = existing
+            record.text = result.text
+            record.processingTimeMs = result.durationMs
+        } else {
+            let imageData = selectedImage?.jpegData(compressionQuality: 0.5)
+            record = HistoryRecord(fileName: fileName, fileType: "image/jpeg", text: result.text,
+                processingTimeMs: result.durationMs, category: "scan", imageData: imageData)
+            context.insert(record)
+            activeHistoryRecord = record
         }
-        
-        let record = HistoryRecord(
-            fileName: fileName,
-            fileType: "image/jpeg",
-            text: result.text,
-            processingTimeMs: result.durationMs,
-            category: "scan",
-            imageData: imageData
-        )
-        context.insert(record)
-        do {
-            try context.save()
-        } catch {
-            MonLogger.e("Failed to save history record: \(error)")
+        record.rawText = result.rawText
+        record.warningSummary = result.warningSummary
+        record.ocrMetadata = result.reviewMetadata.encoded()
+        do { try context.save() }
+        catch { MonLogger.e("Failed to save history record: \(error)") }
+    }
+
+    private func beginJob(fileName: String, modelContext: ModelContext?) -> UUID {
+        cancelProcessing(modelContext: modelContext)
+        let generation = jobGeneration.advance()
+        activeHistoryRecord = nil
+        activeFileName = fileName
+        ocrResult = nil
+        debugImage = nil
+        selectedImage = nil
+        isProcessing = true
+        errorMessage = nil
+        return generation
+    }
+
+    private func canPublish(_ generation: UUID) -> Bool {
+        jobGeneration.accepts(generation) && !Task.isCancelled
+    }
+
+    func cancelProcessing(modelContext: ModelContext? = nil) {
+        // Backgrounding before a scan starts must not invalidate engine startup
+        // and strand its status at loading.
+        guard isProcessing || jobTask != nil else { return }
+        let wasProcessing = isProcessing
+        _ = jobGeneration.advance()
+        jobTask?.cancel()
+        jobTask = nil
+        isProcessing = false
+        status = .ready
+        if wasProcessing, let partial = ocrResult {
+            let cancelled = MonOcrResult(text: partial.text, wordCount: partial.wordCount,
+                charCount: partial.charCount, durationMs: partial.durationMs,
+                debugImage: partial.debugImage, lines: partial.lines, mode: partial.mode,
+                looksSoft: partial.looksSoft, rawText: partial.rawText,
+                pages: partial.pages.map {
+                    PageOutcome(pageIndex: $0.pageIndex,
+                        state: $0.state == .notAttempted ? .cancelled : $0.state, error: $0.error)
+                }, cancelled: true)
+            ocrResult = cancelled
+            saveHistory(result: cancelled, fileName: activeFileName, context: modelContext)
+        }
+        // Only a PDF with at least one page read has a history row by now.
+        if wasProcessing {
+            errorMessage = activeHistoryRecord == nil
+                ? "Processing cancelled. Nothing was saved."
+                : "Processing cancelled. The pages read so far are in history."
         }
     }
 
@@ -113,34 +167,33 @@ class MainViewModel: ObservableObject {
     }
 
     private func runImage(_ image: UIImage, modelContext: ModelContext?) {
+        let generation = beginJob(fileName: "scan_\(Int(Date().timeIntervalSince1970))", modelContext: modelContext)
         lastImage = image
         selectedImage = image
-        ocrResult = nil
-        isProcessing = true
-        errorMessage = nil
-
         let mode = segmentationMode
-        Task {
-            let startTime = Date()
+        jobTask = Task {
             do {
                 let result = try await engine.recognize(image: image, mode: mode)
-                let duration = Date().timeIntervalSince(startTime)
-                MonLogger.i("Recognition took \(String(format: "%.2f", duration))s")
-                
-                await MainActor.run {
-                    self.ocrResult = result
-                    self.debugImage = result.debugImage
-                    self.isProcessing = false
-                    // Persist to history
-                    let label = "scan_\(Int(Date().timeIntervalSince1970))"
-                    self.saveHistory(result: result, fileName: label, context: modelContext)
+                guard canPublish(generation) else { return }
+                // Every line failing is a failed scan, not an empty reading: no
+                // result, no history row and no success haptic.
+                if PageOutcome.noPageRead(result.pages) {
+                    let reason = result.pages.first?.error ?? "No text could be read."
+                    failJob("Recognition failed: \(reason)", generation: generation)
+                    return
                 }
+                ocrResult = result
+                debugImage = result.debugImage
+                isProcessing = false
+                status = .ready
+                jobTask = nil
+                saveHistory(result: result, fileName: activeFileName, context: modelContext)
             } catch {
-                await MainActor.run {
-                    errorMessage = "Recognition failed: \(error.localizedDescription)"
-                    status = .error(error.localizedDescription)
-                    isProcessing = false
-                }
+                guard canPublish(generation) else { return }
+                errorMessage = "Recognition failed: \(error.localizedDescription)"
+                status = .error(error.localizedDescription)
+                isProcessing = false
+                jobTask = nil
             }
         }
     }
@@ -154,150 +207,123 @@ class MainViewModel: ObservableObject {
     }
 
     private func runPdf(at url: URL, modelContext: ModelContext?) {
+        let generation = beginJob(fileName: url.deletingPathExtension().lastPathComponent, modelContext: modelContext)
         lastPdfURL = url
-
-        if !url.startAccessingSecurityScopedResource() {
-            errorMessage = "Could not access file. Please check permissions."
-            status = .error("Permission denied")
-            return
-        }
-        
-        if let attr = try? FileManager.default.attributesOfItem(atPath: url.path),
-           let size = attr[.size] as? Int64,
-           size > 50 * 1024 * 1024 {
-            errorMessage = "File too large (Max 50MB). Use CLI tools or desktop version for bigger file support."
-            status = .error("File size limit exceeded")
-            url.stopAccessingSecurityScopedResource()
-            return
-        }
-
-        guard url.startAccessingSecurityScopedResource() else {
-            errorMessage = "Failed to access PDF file."
-            return
-        }
-        
-        isProcessing = true
-        ocrResult = nil
-        errorMessage = nil
-        
-        if let previewImage = PdfUtil.renderPdfPageToImage(at: url, pageIndex: 0) {
-            self.selectedImage = previewImage
-        }
-        
         let mode = segmentationMode
-        Task {
-            defer { url.stopAccessingSecurityScopedResource() }
-
+        jobTask = Task {
+            guard canPublish(generation) else { return }
+            let lease = ScopedResourceLease(start: { url.startAccessingSecurityScopedResource() },
+                                            stop: { url.stopAccessingSecurityScopedResource() })
+            defer { lease.close() }
+            // App-owned URLs need no security scope. External URLs still have
+            // to be readable after acquisition; a failed start is not a blank PDF.
+            guard lease.acquired || FileManager.default.isReadableFile(atPath: url.path) else {
+                failJob("Could not access the PDF file.", generation: generation)
+                return
+            }
+            if let attr = try? FileManager.default.attributesOfItem(atPath: url.path),
+               let size = attr[.size] as? Int64, size > 50 * 1024 * 1024 {
+                failJob("File too large (Max 50MB). Use CLI tools or desktop version for bigger file support.",
+                        generation: generation)
+                return
+            }
+            let totalPages: Int
+            do { totalPages = try PdfUtil.getPageCount(at: url) }
+            catch {
+                failJob(error.localizedDescription, generation: generation)
+                return
+            }
+            guard canPublish(generation) else { return }
+            selectedImage = PdfUtil.renderPdfPageToImage(at: url, pageIndex: 0)
             let startTime = Date()
-            let totalPages = PdfUtil.getPageCount(at: url)
-            MonLogger.i("starting pdf ocr: pages=\(totalPages) mode=\(mode.rawValue)")
-
-            var resultsMap = [Int: MonOcrResult]()
-            var failures = [Int: String]()
-
-            // At most `inFlight` pages rendered at once. Every page here is a
-            // scale-4.0 render — roughly 2380x3368, ~32 MB of bitmap — and
-            // recognize() is actor-isolated, so an unbounded group rendered every
-            // page before the first one was read: ~640 MB live for a 20-page PDF,
-            // on a device that gets jetsammed well below that.
-            //
-            // Capped low because the engine is a serial actor: extra rendered
-            // pages just queue, so they cost memory and buy nothing.
+            var results = [Int: MonOcrResult]()
+            var outcomes = (0..<totalPages).map { PageOutcome(pageIndex: $0, state: .notAttempted, error: nil) }
             let inFlight = max(2, min(4, ProcessInfo.processInfo.activeProcessorCount))
 
-            await withTaskGroup(of: (Int, MonOcrResult?, String?).self) { group in
-                // A local function because the group is now drained in two places:
-                // inside the submission loop, which is what bounds the bitmaps, and
-                // after it for the tail. Results stay keyed by page index, so the
-                // text below is assembled in page order however they arrive.
-                func record(_ index: Int, _ result: MonOcrResult?, _ failure: String?) async {
-                    // A page that failed used to vanish from the output, so a
-                    // half-read PDF looked like a complete one. Count them.
-                    if let failure {
-                        failures[index] = failure
-                        MonLogger.e("pdf page failed: page=\(index + 1) reason=\(failure)")
-                        return
-                    }
-                    guard let res = result else { return }
-                    resultsMap[index] = res
-
-                    let readings = resultsMap.mapValues {
-                        PageReading(
-                            text: $0.text, wordCount: $0.wordCount, charCount: $0.charCount,
-                            lines: $0.lines, looksSoft: $0.looksSoft)
+            await withTaskGroup(of: (Int, MonOcrResult?, PageOutcome).self) { group in
+                @MainActor func record(_ index: Int, _ result: MonOcrResult?, _ outcome: PageOutcome) {
+                    guard canPublish(generation) else { return }
+                    outcomes[index] = outcome
+                    if let result { results[index] = result }
+                    let readings = results.mapValues {
+                        PageReading(text: $0.text, wordCount: $0.wordCount, charCount: $0.charCount,
+                            lines: $0.lines, looksSoft: $0.looksSoft, rawText: $0.rawText)
                     }
                     let combined = PdfPageCombiner.combine(readings: readings, totalPages: totalPages)
-
-                    await MainActor.run {
-                        self.ocrResult = MonOcrResult(
-                            text: combined.text,
-                            wordCount: combined.wordCount,
-                            charCount: combined.charCount,
-                            durationMs: Int(Date().timeIntervalSince(startTime) * 1000),
-                            debugImage: res.debugImage,
-                            lines: combined.lines,
-                            mode: mode,
-                            looksSoft: combined.looksSoft
-                        )
-                        self.debugImage = res.debugImage
-                    }
+                    let reading = MonOcrResult(text: combined.text, wordCount: combined.wordCount,
+                        charCount: combined.charCount, durationMs: Int(Date().timeIntervalSince(startTime) * 1000),
+                        debugImage: result?.debugImage, lines: combined.lines, mode: mode,
+                        looksSoft: combined.looksSoft, rawText: combined.rawText, pages: outcomes)
+                    ocrResult = reading
+                    debugImage = reading.debugImage
+                    // Upsert one history row after each page. Interruption keeps
+                    // completed pages and explicit not-attempted/failed indices.
+                    saveHistory(result: reading, fileName: activeFileName, context: modelContext)
                 }
 
                 var submitted = 0
-                for i in 0..<totalPages {
-                    // Wait for a slot before adding, so at most `inFlight` renders
-                    // are alive. Nothing here can throw, so the whole PDF is still
-                    // attempted and per-page failures are still collected.
+                for index in 0..<totalPages {
+                    guard canPublish(generation) else { group.cancelAll(); break }
                     if submitted >= inFlight, let piece = await group.next() {
-                        await record(piece.0, piece.1, piece.2)
+                        record(piece.0, piece.1, piece.2)
                     }
+                    guard canPublish(generation) else { group.cancelAll(); break }
                     group.addTask {
-                        guard let image = PdfUtil.renderPdfPageToImage(at: url, pageIndex: i) else {
-                            return (i, nil, "the page could not be rendered")
+                        guard !Task.isCancelled else {
+                            return (index, nil, PageOutcome(pageIndex: index, state: .cancelled, error: nil))
+                        }
+                        guard let image = PdfUtil.renderPdfPageToImage(at: url, pageIndex: index) else {
+                            return (index, nil, PageOutcome(pageIndex: index, state: .renderFailed,
+                                                          error: "The page could not be rendered."))
                         }
                         do {
+                            try Task.checkCancellation()
                             let result = try await self.engine.recognize(image: image, mode: mode)
-                            return (i, result, nil)
+                            try Task.checkCancellation()
+                            return (index, result, PageOutcome(pageIndex: index,
+                                state: result.pages.first?.state ?? .completed, error: result.pages.first?.error))
+                        } catch is CancellationError {
+                            return (index, nil, PageOutcome(pageIndex: index, state: .cancelled, error: nil))
                         } catch {
-                            return (i, nil, error.localizedDescription)
+                            return (index, nil, PageOutcome(pageIndex: index, state: .inferenceFailed,
+                                                          error: error.localizedDescription))
                         }
                     }
                     submitted += 1
                 }
-
-                for await (index, result, failure) in group {
-                    await record(index, result, failure)
-                }
+                for await piece in group { record(piece.0, piece.1, piece.2) }
             }
-
-            await MainActor.run {
-                self.isProcessing = false
-                if let firstFailure = PdfPageCombiner.firstFailure(failures) {
-                    self.errorMessage = String(
-                        format: NSLocalizedString(
-                            "%1$d of %2$d pages could not be read (page %3$d: %4$@).",
-                            comment: "PDF partial failure"
-                        ),
-                        failures.count, totalPages, firstFailure.page + 1, firstFailure.reason
-                    )
-                }
-                // Persist final combined result to history
-                if let final = self.ocrResult {
-                    let pdfName = url.deletingPathExtension().lastPathComponent
-                    self.saveHistory(result: final, fileName: pdfName, context: modelContext)
-                }
+            guard canPublish(generation) else { return }
+            if PageOutcome.noPageRead(outcomes) {
+                // record() published a card per page; none of them holds a reading.
+                ocrResult = nil
+                debugImage = nil
+                failJob("No page of this PDF could be read.", generation: generation)
+                return
             }
+            isProcessing = false
+            status = .ready
+            jobTask = nil
         }
     }
-    
-    func clearResult() {
+
+    private func failJob(_ message: String, generation: UUID) {
+        guard canPublish(generation) else { return }
+        errorMessage = message
+        status = .error(message)
+        isProcessing = false
+        jobTask = nil
+    }
+
+    func clearResult(modelContext: ModelContext? = nil) {
+        cancelProcessing(modelContext: modelContext)
         selectedImage = nil
         ocrResult = nil
         errorMessage = nil
-        isProcessing = false
         debugImage = nil
         status = .ready
         lastImage = nil
         lastPdfURL = nil
+        activeHistoryRecord = nil
     }
 }

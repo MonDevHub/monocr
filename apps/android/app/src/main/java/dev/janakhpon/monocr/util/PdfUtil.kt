@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -18,29 +19,32 @@ object PdfUtil {
      * @param uri URI of the PDF file
      * @return Bitmap of the first page, or null if rendering fails
      */
-    suspend fun renderPdfPageToBitmap(context: Context, uri: Uri, pageIndex: Int = 0, scale: Float = 4.16f): Bitmap? = withContext(Dispatchers.IO) {
+    suspend fun renderPdfPageToBitmap(context: Context, uri: Uri, pageIndex: Int = 0, scale: Float = 4.16f): Bitmap? {
+        var allocated: Bitmap? = null
         try {
-            context.contentResolver.openFileDescriptor(uri, "r")?.use { fd ->
-                PdfRenderer(fd).use { renderer ->
-                    if (pageIndex >= renderer.pageCount) return@withContext null
-
-                    renderer.openPage(pageIndex).use { page ->
-                        // 300 DPI for OCR (scale ≈ 4.16), or lower for preview (scale ≈ 1.5)
-                        val width = (page.width * scale).toInt()
-                        val height = (page.height * scale).toInt()
-
-                        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                        val canvas = Canvas(bitmap)
-                        canvas.drawColor(Color.WHITE) // Ensure white background
-                        
-                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                        bitmap
+            return withContext(Dispatchers.IO) {
+                context.contentResolver.openFileDescriptor(uri, "r")?.use { fd ->
+                    PdfRenderer(fd).use { renderer ->
+                        if (pageIndex !in 0 until renderer.pageCount) return@withContext null
+                        renderer.openPage(pageIndex).use { page ->
+                            require(scale > 0 && scale.isFinite()) { "Invalid PDF render scale" }
+                            val bitmap = Bitmap.createBitmap((page.width * scale).toInt(),
+                                (page.height * scale).toInt(), Bitmap.Config.ARGB_8888)
+                            allocated = bitmap
+                            Canvas(bitmap).drawColor(Color.WHITE)
+                            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            bitmap
+                        }
                     }
                 }
             }
+        } catch (e: CancellationException) {
+            allocated?.recycle()
+            throw e
         } catch (e: Exception) {
+            allocated?.recycle()
             MonLogger.e("Failed to render PDF page", e)
-            null
+            return null
         }
     }
 
@@ -48,15 +52,13 @@ object PdfUtil {
      * Gets the total number of pages in a PDF file.
      */
     suspend fun getPageCount(context: Context, uri: Uri): Int = withContext(Dispatchers.IO) {
-        try {
-            context.contentResolver.openFileDescriptor(uri, "r")?.use { fd ->
-                PdfRenderer(fd).use { renderer ->
-                    renderer.pageCount
-                }
-            } ?: 0
-        } catch (e: Exception) {
-            MonLogger.e("Failed to get PDF page count", e)
-            0
+        val fd = context.contentResolver.openFileDescriptor(uri, "r")
+            ?: throw IllegalArgumentException("The PDF could not be opened.")
+        fd.use {
+            PdfRenderer(it).use { renderer ->
+                require(renderer.pageCount > 0) { "The PDF has no readable pages." }
+                renderer.pageCount
+            }
         }
     }
 

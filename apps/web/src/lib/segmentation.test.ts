@@ -22,10 +22,8 @@ import {
  *
  * This block used to justify tiling with `CER 0.1434 squeezed against 0.0795
  * tiled`. Retired 2026-08-22: that harness was never committed and the figures
- * do not reproduce. The live measurement is
- * an A/B (2026-08-22) over 201 rendered lines, and it is
- * width-dependent — squeezing wins at 2 tiles, the two arms are level at 3, and
- * tiling wins from 4 up. Tiling is still the default because its downside is
+ * do not reproduce. Measured on 201 rendered lines: squeezing wins at 2 tiles,
+ * level at 3, tiling wins from 4. Tiling is still the default because its downside is
  * bounded and squeezing's is not, which is a different argument from the one
  * this comment used to make.
  *
@@ -577,8 +575,8 @@ describe('mergeRuns', () => {
  *
  * In the Rust port a mutation that deleted the `merge_runs` call from the
  * pipeline SURVIVED all four helper tests, because they call the helper directly
- * and the call site was unguarded. That is the gap the testing standard names:
- * a tested helper does not make its call site safe.
+ * and the call site was unguarded. A tested helper does not make its call site
+ * safe.
  *
  * Geometry is this port's measured one. Rust's is not reusable here: this port
  * dilates the mask vertically with reach 2 before the profile, so a source gap

@@ -351,31 +351,8 @@ nonisolated enum LineSegmenter {
         }
         let activeGray = smoothedGray
         
-        // 2. Integral Image for Binarization (using smoothed buffer)
-        var integral = [Int64](repeating: 0, count: width * height)
-        for y in 0..<height {
-            var rowSum: Int64 = 0
-            for x in 0..<width {
-                rowSum += Int64(activeGray[y * width + x])
-                integral[y * width + x] = rowSum + (y > 0 ? integral[(y - 1) * width + x] : 0)
-            }
-        }
-        
-        var binary = [Bool](repeating: false, count: width * height)
-        let halfWin = windowSize / 2
-        for y in 0..<height {
-            for x in 0..<width {
-                let x1 = max(0, x - halfWin); let x2 = min(width - 1, x + halfWin)
-                let y1 = max(0, y - halfWin); let y2 = min(height - 1, y + halfWin)
-                let a = (x1 > 0 && y1 > 0) ? integral[(y1 - 1) * width + (x1 - 1)] : 0
-                let b = y1 > 0 ? integral[(y1 - 1) * width + x2] : 0
-                let c = x1 > 0 ? integral[y2 * width + (x1 - 1)] : 0
-                let sum = integral[y2 * width + x2] - b - c + a
-                let count = (x2 - x1 + 1) * (y2 - y1 + 1)
-                let mean = Float(sum) / Float(count)
-                binary[y * width + x] = Float(activeGray[y * width + x]) < (mean - Float(cThreshold))
-            }
-        }
+        // 2. Same adaptive box threshold without a full-page Int64 buffer.
+        var binary = adaptiveThreshold(activeGray, width: width, height: height)
         
         // 2.5 Printed-rule suppression. Before the smear, because the smear widens a
         // rule into something no line kernel matches cleanly, and because the crop's
@@ -498,6 +475,43 @@ nonisolated enum LineSegmenter {
         }
     }
     
+    /// Same clipped box mean as the integral-image path, with O(width) scratch space.
+    static func adaptiveThreshold(_ activeGray: [UInt8], width: Int, height: Int) -> [Bool] {
+        precondition(width > 0 && height > 0 && activeGray.count / width == height && activeGray.count % width == 0)
+        let halfWin = windowSize / 2
+        var columns = [Int](repeating: 0, count: width)
+        for y in 0...min(halfWin, height - 1) {
+            for x in 0..<width { columns[x] += Int(activeGray[y * width + x]) }
+        }
+        var binary = [Bool](repeating: false, count: activeGray.count)
+        for y in 0..<height {
+            if y > 0 {
+                let removeY = y - halfWin - 1
+                let addY = y + halfWin
+                for x in 0..<width {
+                    if removeY >= 0 { columns[x] -= Int(activeGray[removeY * width + x]) }
+                    if addY < height { columns[x] += Int(activeGray[addY * width + x]) }
+                }
+            }
+            let y1 = max(0, y - halfWin)
+            let y2 = min(height - 1, y + halfWin)
+            var sum = 0
+            for x in 0...min(halfWin, width - 1) { sum += columns[x] }
+            for x in 0..<width {
+                if x > 0 {
+                    if x - halfWin - 1 >= 0 { sum -= columns[x - halfWin - 1] }
+                    if x + halfWin < width { sum += columns[x + halfWin] }
+                }
+                let x1 = max(0, x - halfWin)
+                let x2 = min(width - 1, x + halfWin)
+                let count = (x2 - x1 + 1) * (y2 - y1 + 1)
+                let mean = Float(sum) / Float(count)
+                binary[y * width + x] = Float(activeGray[y * width + x]) < (mean - Float(cThreshold))
+            }
+        }
+        return binary
+    }
+
     private static func addSegment(smeared: [Bool], width: Int, height: Int, sY: Int, eY: Int, into list: inout [LineSegment]) {
         var minX = width
         var maxX = 0

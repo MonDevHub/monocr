@@ -127,6 +127,11 @@ fun HistoryResultDialog(
                     }
                 }
 
+                record.warningSummary?.let { warning ->
+                    Text(warning, color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall)
+                }
+
                 // Content
                 Surface(
                     modifier = Modifier

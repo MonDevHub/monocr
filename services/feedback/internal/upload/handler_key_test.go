@@ -73,9 +73,8 @@ func TestSanitizeKeySegmentNeverEmitsASeparator(t *testing.T) {
 //
 // Testing the sanitiser alone was not enough and a mutation proved it: replacing
 // `sanitizeKeySegment(recordID)` with `recordID` at the call site left every test
-// green, because none of them went through the assembly. That is the same shape of
-// gap this audit found elsewhere — a guard whose test does not cover the place it
-// is applied.
+// green, because none of them went through the assembly: a guard whose test does
+// not cover the place it is applied.
 func TestBuildObjectKeyCannotBeSteeredOutOfItsPrefix(t *testing.T) {
 	at := time.Date(2026, 8, 28, 13, 45, 30, 0, time.UTC)
 

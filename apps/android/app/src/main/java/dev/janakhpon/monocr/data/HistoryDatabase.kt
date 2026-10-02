@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [HistoryRecord::class], version = 3, exportSchema = false)
+@Database(entities = [HistoryRecord::class], version = 4, exportSchema = true)
 abstract class HistoryDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
 
@@ -36,6 +36,13 @@ abstract class HistoryDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE history_records ADD COLUMN rawText TEXT")
+                db.execSQL("ALTER TABLE history_records ADD COLUMN warningSummary TEXT")
+            }
+        }
+
         fun getDatabase(context: Context): HistoryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -43,7 +50,7 @@ abstract class HistoryDatabase : RoomDatabase() {
                     HistoryDatabase::class.java,
                     "monocr_history_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
                 INSTANCE = instance
                 instance

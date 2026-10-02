@@ -32,12 +32,22 @@ nonisolated enum ImagePreprocessor {
      2026-08-22 — harness never committed, figures do not reproduce. What the
      clamp actually costs is width-dependent and unbounded: at four model windows
      a squeezed line scores 0.21 CER against tiling's 0.06, and by six it is above
-     0.83 (an A/B over 201 rendered lines, 2026-08-22). It stays as a backstop
+     0.83 (measured on 201 rendered lines). It stays as a backstop
      precisely because reaching it means something upstream failed to tile.
      */
     static func processLine(source: UIImage, segment: LineSegment) -> [Float]? {
         guard segment.width > 0, segment.height > 0 else {
             MonLog_w("refusing to preprocess an empty segment \(segment)")
+            return nil
+        }
+        guard let cgImage = source.cgImage,
+              segment.x >= 0, segment.y >= 0,
+              segment.width <= cgImage.width, segment.height <= cgImage.height,
+              segment.x <= cgImage.width - segment.width,
+              segment.y <= cgImage.height - segment.height,
+              let croppedCg = cgImage.cropping(to: CGRect(x: segment.x, y: segment.y,
+                                                        width: segment.width, height: segment.height)) else {
+            MonLog_w("refusing an unavailable or out-of-bounds crop")
             return nil
         }
 
@@ -60,29 +70,10 @@ nonisolated enum ImagePreprocessor {
             UIColor.white.setFill()
             ctx.fill(CGRect(x: 0, y: 0, width: CGFloat(finalWidth), height: CGFloat(targetHeight)))
             
-            // CROP & DRAW
-            // Instead of drawing the whole source with a giant offset, 
-            // we crop specifically what we need. This is safer for memory.
-            guard let cgImage = source.cgImage else { return }
-            
-            let cropRect = CGRect(
-                x: CGFloat(segment.x),
-                y: CGFloat(segment.y),
-                width: CGFloat(segment.width),
-                height: CGFloat(segment.height)
-            )
-            
-            if let croppedCg = cgImage.cropping(to: cropRect) {
-                let croppedUi = UIImage(cgImage: croppedCg)
-                // Draw the crop into the (0,0,scaledWidth,targetHeight) area.
-                // Named rather than written as a literal: this said 128 and kept
-                // saying it after the window moved to 160, because the draw below
-                // reads ModelWindow.height while the comment read nothing.
-                // This correctly squashes the line if scaledWidth was capped.
-                croppedUi.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: CGFloat(targetHeight)))
-            } else {
-                MonLog_w("Failed to crop CGImage for segment \(segment)")
-            }
+            // Crop was validated before rendering: failure must never turn into
+            // an apparently valid white tensor/empty recognition.
+            let croppedUi = UIImage(cgImage: croppedCg)
+            croppedUi.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: CGFloat(targetHeight)))
         }
         
         // 3. Extract pixels for bit-perfect Grayscale & Normalization
