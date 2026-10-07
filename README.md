@@ -6,7 +6,7 @@
 
 MonOCR reads printed Mon script from images and PDFs and returns Unicode text, on the device.
 
-Mon is spoken by roughly one million people across Myanmar and Thailand. [UNESCO classifies it as vulnerable](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger). MonOCR is built and maintained by the Mon developer community.
+Mon is spoken by roughly one million people across Myanmar and Thailand. [UNESCO's 2010 atlas listed it as vulnerable](https://en.wikipedia.org/wiki/Atlas_of_the_World%27s_Languages_in_Danger). MonOCR is built and maintained by the Mon developer community.
 
 ## What is in this repository
 
@@ -98,14 +98,14 @@ CI runs the web unit tests and production build, the Android unit tests, the iOS
 - [Model card and exports](https://huggingface.co/janakhpon/monocr) on Hugging Face (ONNX and Core ML)
 - [`monocr-onnx`](https://github.com/MonDevHub/monocr-onnx): the Python, JavaScript, Go and Rust SDKs; the CLI is built on its Rust library
 - [`monocr` on npm](https://www.npmjs.com/package/monocr): the JavaScript SDK
-- [Mon Corpus Collection](https://github.com/MonDevHub/MonCorpusCollection): training dataset
+- [Mon Corpus Collection](https://github.com/MonDevHub/MonCorpusCollection): the training text, and [books read with `monocr-cli`](https://github.com/MonDevHub/MonCorpusCollection/tree/main/books) (machine OCR, not proofread)
 - [Architecture decisions](docs/architecture/adr) and [API specs](docs/api)
 
 ## Contributing
 
 - **Bugs**: [GitHub Issues](https://github.com/MonDevHub/monocr/issues)
 - **Translations**: [Shared translation sheet](https://docs.google.com/spreadsheets/d/1sr8WtiMEyDuDd1amI-wzAz5d2acZlVC7zOZMqixOADQ/edit?usp=sharing)
-- **Script samples**: Contribute via the Android or iOS app, or reach out directly. High-quality Mon datasets are scarce, so validated samples from the feedback flow feed into future training rounds.
+- **Script samples**: Contribute via the Android or iOS app, or reach out directly. Validated samples from the feedback flow are collected for future training. No training run has used them yet.
 - **Standards**: [Contributing Guide](.github/CONTRIBUTING.md) · [Security Policy](.github/SECURITY.md)
 
 [Janakh Pon](https://github.com/janakhpon) · [Oung Seik Nyan](https://github.com/Oungseik) · [Rajel Da Key](https://www.facebook.com/RJOMDK10) · [MonDevHub](https://github.com/MonDevHub)
