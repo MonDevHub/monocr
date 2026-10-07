@@ -105,7 +105,7 @@ CI runs the web unit tests and production build, the Android unit tests, the iOS
 
 - **Bugs**: [GitHub Issues](https://github.com/MonDevHub/monocr/issues)
 - **Translations**: [Shared translation sheet](https://docs.google.com/spreadsheets/d/1sr8WtiMEyDuDd1amI-wzAz5d2acZlVC7zOZMqixOADQ/edit?usp=sharing)
-- **Script samples**: Contribute via the Android or iOS app, or reach out directly. Validated samples from the feedback flow are collected for future training. No training run has used them yet.
+- **Script samples**: Contribute via the Android or iOS app, or reach out directly. Samples from the feedback flow are collected for future training. No training run has used them yet.
 - **Standards**: [Contributing Guide](.github/CONTRIBUTING.md) · [Security Policy](.github/SECURITY.md)
 
 [Janakh Pon](https://github.com/janakhpon) · [Oung Seik Nyan](https://github.com/Oungseik) · [Rajel Da Key](https://www.facebook.com/RJOMDK10) · [MonDevHub](https://github.com/MonDevHub)
