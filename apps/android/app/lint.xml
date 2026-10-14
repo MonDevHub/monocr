@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- Room's KSP output calls Room's own restricted APIs by design. Lint flags
+         it as RestrictedApi on every generated DAO; the hand-written code stays checked. -->
+    <issue id="RestrictedApi">
+        <ignore path="**/build/generated/**" />
+    </issue>
+</lint>

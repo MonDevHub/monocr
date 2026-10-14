@@ -41,10 +41,10 @@
     <string name="share_chooser_title">Share extracted text</string>
     <string name="open_file_chooser_title">Open saved file</string>
     <string name="close">Close</string>
-    <string name="error_file_large">File is too large (max {max}MB)</string>
+    <string name="error_file_large">File is too large (max %1$dMB)</string>
     <string name="error_file_type">Invalid file type. Use JPG, PNG, WEBP, or PDF.</string>
-    <string name="error_ocr_failed">OCR failed - {msg}</string>
-    <string name="error_engine_load">OCR Engine failed to load - {msg}</string>
+    <string name="error_ocr_failed">OCR failed</string>
+    <string name="error_engine_load">OCR Engine failed to load</string>
     <string name="error_timeout">The request timed out. Try a smaller or clearer image.</string>
     <string name="error_memory">Not enough memory. Close other apps and try again.</string>
     <string name="error_corrupt">Could not read the image file. Try a different format.</string>
