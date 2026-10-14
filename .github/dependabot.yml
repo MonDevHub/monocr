@@ -35,10 +35,14 @@ updates:
     cooldown:
       default-days: 7
     groups:
-      # Build and test tooling churns fastest and carries the least risk.
+      # Build and test tooling churns fastest, but only minor and patch updates are
+      # grouped. A major bump of one tool breaks the others (2026-10-14: SvelteKit
+      # 3, vite 8, vitest 5, TypeScript 7 and four more landed as one PR and took
+      # main red), so majors arrive one per PR, where one failure names one cause.
       dev-tooling:
         dependency-type: development
         patterns: ["*"]
+        update-types: [minor, patch]
       # Runtime dependencies, reviewed together but separately from tooling.
       runtime:
         dependency-type: production
@@ -47,8 +51,15 @@ updates:
       # onnxruntime-web is pinned to match the graph the model was exported
       # with. A major bump is a deliberate change that needs the export gates
       # re-run, not a dependency PR.
+      #
+      # Minor bumps are held too, for a second reason: the WebGPU build the app
+      # loads (ort-wasm-simd-threaded.jsep.wasm) is 23.86 MiB in 1.24.3 and grew
+      # to 25.02 MiB in 1.26.0 and 27.00 MiB in 1.30.0. Cloudflare Pages rejects
+      # any file over 25 MiB, so 1.30.0 broke the deploy while every CI job but
+      # Cloudflare passed. Lift this when a release is back under the limit, or
+      # the app serves that file from somewhere else.
       - dependency-name: onnxruntime-web
-        update-types: [version-update:semver-major]
+        versions: [">=1.25.0"]
 
   - package-ecosystem: gomod
     directory: /services/feedback
