@@ -31,10 +31,10 @@
     <string name="share_chooser_title">ပတိတ်ဖျေံ တင်လိခ်</string>
     <string name="open_file_chooser_title">ပံက်ဖိုင်</string>
     <string name="close">ကၟာတ်ရောၚ်။</string>
-    <string name="error_file_large">ဖိုင်ဇၞော်လောန်အာ (အောန်အိုတ် {max}MB)</string>
+    <string name="error_file_large">ဖိုင်ဇၞော်လောန်အာ (အောန်အိုတ် %1$dMB)</string>
     <string name="error_file_type">ဖိုင်ဟွံဒး။ စကာ JPG, PNG, WEBP, PDF ညိ။</string>
-    <string name="error_ocr_failed">OCR ကၠောန်ဟွံဂွံ - {msg}</string>
-    <string name="error_engine_load">အေန်ဂျေၚ် OCR စကာဟွံဂွံ - {msg}</string>
+    <string name="error_ocr_failed">OCR ကၠောန်ဟွံဂွံ</string>
+    <string name="error_engine_load">အေန်ဂျေၚ် OCR စကာဟွံဂွံ</string>
     <string name="error_timeout">အခိင်လောန်အာယျ။ စကာ ဗီုဍောတ်တ် ညိ။</string>
     <string name="error_memory">memory ဟွံရုမ်ဂပ်။ ကၟာတ် app တၞဟ်တအ်ညိ။</string>
     <string name="error_corrupt">ဗှ်ဗီုရုပ်ဖိုၚ်ဟွံဂွံ။ စကာဖိုင်တၞဟ်ညိ။</string>

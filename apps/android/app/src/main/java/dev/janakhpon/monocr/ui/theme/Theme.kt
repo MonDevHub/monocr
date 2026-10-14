@@ -1,5 +1,6 @@
 package dev.janakhpon.monocr.ui.theme
 
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -65,7 +66,8 @@ fun MonOCRTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        dynamicColor -> {
+        // Dynamic colour needs Android 12 (API 31); the app supports API 24 and up.
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val ctx = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
         }
