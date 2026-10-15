@@ -61,7 +61,7 @@ The first three rows are all Android against the others; the fourth is web again
 the others. So no surface is the reference, and no two agree completely.
 
 Printed-rule suppression is on all four surfaces; see the fifth-divergence section
-for what that port pinned.
+for what the three ports (iOS, Android, and the CLI's via Rust) pinned.
 
 **The blur edge-handling row is easy to miss, for the same reason the density ratio
 was.** Both were read as one number, "3×3 against 5×5", when the kernel size
