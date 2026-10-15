@@ -2,14 +2,8 @@
 
 **Status:** partly resolved. Measured 2026-08-15, corrected 2026-08-27 and 2026-08-28.
 
-**The heading used to carry a count, and it was wrong three times.** It said six; on
-the day it was removed the table held five rows on which web, Android and iOS do not
-all agree, and three rows had closed rather than the two the note claimed. Each
-closure is good news that silently invalidated the tally, so the number was most
-wrong exactly when the file was most useful. The lesson was already written here —
-"its own small lesson about keeping a tally in a heading" — and kept underneath a
-heading that still carried one. The count now lives only in the table, where it is
-recomputed by reading it.
+The count of open divergences lives only in the table, where it is recomputed by
+reading it.
 
 Web, Android and iOS each carry their own port of the same horizontal
 projection-profile line segmenter, and the CLI delegates to a fourth in
@@ -229,17 +223,10 @@ measurement and not in this repository. What is pinned instead is stronger for t
 purpose of this document: all three ports assert against one generated fixture, so
 they cannot drift apart again without a test going red.
 
-**This section previously said the three unported surfaces were blocked by tooling
-on the machine the work was done on**: a missing `clang_rt.osx` for Rust, Xcode
-absent for iOS, and Gradle unable to resolve a JDK offline for Android. Every one of
-those was a mis-configured lookup rather than a missing toolchain, and all three are
-resolved. `docs/guides/mobile-build-and-test.md` records what each actually was. The
-two ports here were written against suites that run: Android 50 tests through the
-restored wrapper, iOS 48 through `Scripts/swift-test.sh`. The Rust one is untouched
-because it lives in `monocr-onnx`, not because it is still blocked.
-
-An earlier version of this section said _no_ surface had it, which was true for
-about an hour.
+The two ports here were written against suites that run: Android 50 tests through
+the Gradle wrapper, iOS 48 through `Scripts/swift-test.sh`;
+`docs/guides/mobile-build-and-test.md` has the commands. The Rust port lives in
+`monocr-onnx`.
 
 ### How the three are held together
 

@@ -35,11 +35,8 @@ with Swift Testing.**
 - `Sources/MonOcrCore/` holds relative symlinks to the 12 Foundation-only files
   (`CaptureQuality`, `CtcDecoder`, `EngineStatus`, `GreyImage`, `LineSegment`,
   `LineSegmenter`, `LineTiler`, `Logger`, `LogitsLayout`, `ModelWindow`, `PageNormalizer`,
-  `SegmentationMode` — 1,275 lines on 2026-08-28). An earlier revision of this line said
-  11 files and 977 lines; a later edit corrected the count and left the list at 11, so
-  `CaptureQuality` was missing from it. The file list is stable; the line total is not,
-  and it has been wrong at every reading so far, so re-derive it with `wc -l` rather than
-  trusting the figure above.
+  `SegmentationMode` — 1,275 lines on 2026-08-28). The file list is stable; the line total
+  is not, so re-derive it with `wc -l` rather than trusting the figure above.
 - `Tests/MonOcrCoreTests/` holds eight suites: `CaptureQualityTests`, `CtcDecoderTests`,
   `LineTilingTests`, `PageNormalizerTests`, `PageNormalizerFixtureTests`,
   `RuleFixtureTests`, `RuleSuppressionTests` and `SegmentationModeTests`.

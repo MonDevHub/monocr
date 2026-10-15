@@ -57,6 +57,7 @@ Android Studio bundles one; the path below is the macOS location. CI installs on
 ```bash
 cd apps/android
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export ANDROID_HOME="$HOME/Library/Android/sdk"   # or set sdk.dir in apps/android/local.properties
 ./gradlew assembleDebug          # -> app/build/outputs/apk/debug/app-debug.apk
 ```
 
