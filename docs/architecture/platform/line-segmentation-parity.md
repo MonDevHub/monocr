@@ -7,8 +7,7 @@ reading it.
 
 Web, Android and iOS each carry their own port of the same horizontal
 projection-profile line segmenter, and the CLI delegates to a fourth in
-`monocr-onnx/rust`. This document said "three ports" and left the CLI out; it was
-written before `apps/cli` had a mode enum. They are meant to be the same algorithm, and
+`monocr-onnx/rust`. They are meant to be the same algorithm, and
 on several parameters they are not, so **the same page can produce different line
 sets on different platforms**. That is a correctness property of the product:
 a user photographing one page on two devices can get two different transcripts.
@@ -77,19 +76,16 @@ disagree in the outermost rows and columns _even at an identical kernel size_, s
 aligning Android's 5 to 3 would not close it. Low-impact, since the affected band is two pixels wide. It is still a divergence,
 and this file exists to list them.
 
-**The 0.03-against-0.05 row is a correction.** This document previously listed the
-density ratio under "what agrees", which was true of the three apps and never of
-the CLI. `apps/cli/src/mode.rs:39` calls 0.05 "the library default" and pins it by
+**The 0.03-against-0.05 row splits the apps from the CLI.** The three apps agree on
+the density ratio and the CLI does not. `apps/cli/src/mode.rs:39` calls 0.05 "the library default" and pins it by
 test, so the two values are each deliberate and simply were never compared.
 
-**The CLI is the only surface that does not normalise polarity**, and that row was
-missing from this document until 2026-08-27 — a three-against-one divergence absent
-from the file whose sole purpose is recording them. It matters because the segmenter
+**The CLI is the only surface that does not normalise polarity**, a three-against-one
+divergence. It matters because the segmenter
 treats dark as ink: handed a light-on-dark page, the CLI segments the _background_
 and returns the gaps between lines. The gap is in `monocr-onnx/rust`, which the CLI
 delegates to, so it is unported rather than undecided: it lives in another
-repository. This paragraph used to say it was blocked on a linker. That blocker was
-never real, and the fifth-divergence section below retracts it in full.
+repository.
 
 **Web has no mode at all**, which is worth stating beside the rest: it is the one
 surface where a fused-block reading cannot be retried, because there is no other
@@ -110,8 +106,8 @@ presented as a result.
 
 ### The one that turned out not to be taste
 
-That reasoning does **not** cover everything this file used to list under it, and
-one row left the table on 2026-08-28 because of it. All four surfaces detected run
+That reasoning does **not** cover every divergence, and one row left the table on
+2026-08-28 because of it. All four surfaces detected run
 boundaries on the smoothed row profile where the reference uses the raw one. That
 was never a question of taste: the reference calibrates its threshold on the
 smoothed profile because a mean is more stable there, and detects on the raw one
@@ -205,8 +201,7 @@ ratio is.
 and `monocr-onnx/rust` the same day, which the CLI inherits. Rust was the last of
 **ten** implementations across five repositories without it — the others being
 the reference segmenter, `monocr`, the training-data tooling and the Python, JS and Go
-bindings, all of which had gained it independently. This file said "only web has it" for long
-enough to be wrong in both directions. Each port
+bindings, all of which had gained it independently. Each port
 was measured through its own parameter set rather than inheriting the reference
 figure — bands over the same twelve pages, without → with:
 
@@ -251,10 +246,9 @@ Both make the reference remove the wrong _pixels_ rather than the wrong _number_
 them, which is why neither showed up in the band-count measurement that justified the
 step, and why the ports follow the sentence instead. Raised upstream to resolve.
 
-**An earlier version of this paragraph overstated the second one**, and the correction
-is worth keeping because the overstatement was the plausible reading rather than a
-slip. It said one pixel of every rule survives on any page of even width, "which is
-all of them". Neither half holds. The span is `max(15, int(w * 0.5))`, which is even
+**The even-span shift is smaller than it looks.** The plausible reading is that one
+pixel of every rule survives on any page of even width, and that every page is even.
+Neither half holds. The span is `max(15, int(w * 0.5))`, which is even
 for roughly half of page widths, not all: 100 and 101 both give 50, 102 and 103 both
 give 51. And measured against cv2 on interior runs of every length from the span up
 to the page width, the loss is exactly **one pixel at the leading end of the run**,
@@ -447,9 +441,8 @@ highest-priority warning is the one Android cannot report.
 
 The fused-block warning is a separate flag and is in better shape than the above:
 Android surfaces it in `HomeScreen` and iOS in `ResultCardView`. Only web stops at a
-`console.warn` the user never sees. An earlier version of this table recorded iOS as not
-surfacing it either, which was wrong, and it is noted because the difference between
-"computed" and "reaches a user" is exactly what this table is for.
+`console.warn` the user never sees. The difference between "computed" and "reaches a
+user" is exactly what this table is for: check it before recording a surface as silent.
 
 ## What would close it
 

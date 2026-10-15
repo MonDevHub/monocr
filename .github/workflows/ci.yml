@@ -186,7 +186,7 @@ jobs:
       - name: No edit-history prose in docs
         run: |
           set -euo pipefail
-          if hits="$(git grep -n -i -E 'This line (said|used to)|previously said|the lesson was' \
+          if hits="$(git grep -n -i -E 'This line (said|used to)|previously said|the lesson was|(paragraph|line|section|table|heading) used to (say|carry|read)|earlier (version|revision|draft) of|(this|the) (document|file) (said|previously|used to)' \
                 -- '*.md' ':(exclude,glob)**/CHANGELOG.md')"; then
             printf '%s\n' "$hits"
             printf '%s' "$hits" \

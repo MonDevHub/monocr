@@ -21,9 +21,10 @@ This guide ensures you have a consistent development environment for the MonOCR 
   `swift-tools-version: 6.0`, which Xcode 16 was the first to ship.
 
 > [!IMPORTANT]
-> Neither mobile app builds from a bare shell without one environment variable
-> each: `JAVA_HOME` for Android, `DEVELOPER_DIR` for iOS. Without them, both errors
-> read as "the toolchain is not installed" when it is.
+> Neither mobile app builds from a bare shell without its toolchain set: Android
+> needs `JAVA_HOME` and an SDK location (`ANDROID_HOME`, or `sdk.dir` in
+> `apps/android/local.properties`), iOS needs `DEVELOPER_DIR`. Without `JAVA_HOME`
+> or `DEVELOPER_DIR`, the error reads as "the toolchain is not installed" when it is.
 > See **[Building and testing the mobile apps](mobile-build-and-test.md)**.
 
 ## Installation

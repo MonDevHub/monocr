@@ -2,10 +2,8 @@
 
 ## Status
 
-**Partly superseded.** The served contract is the swaggo-generated Swagger 2.0
-document in `services/feedback/docs/docs.go`, not `docs/api/openapi.yaml`; the
-X-API-Key perimeter stands as decided. The decision below is left standing so the
-gap between it and the code is legible.
+Accepted, and **not implemented as written**. The decision below is left standing
+so the gap between it and the code is legible.
 
 Three of its claims are false in the current tree, and each was verified rather
 than inferred:
