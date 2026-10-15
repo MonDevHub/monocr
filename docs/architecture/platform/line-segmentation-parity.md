@@ -41,8 +41,8 @@ one, no morphological smear at all, a fixed 4px pad on both axes, and smoothing 
 It does share one row, and it is the newest: **all four surfaces now calibrate the
 gap threshold on the smoothed row profile and detect boundaries on the raw one.**
 The apps moved on 2026-08-28 and the CLI's implementation, `monocr-onnx` commit
-`8918ae9`, the same day. That row used to sit in the table below and is the only
-divergence this file has ever closed on every surface at once.
+`8918ae9`, the same day. It is the only divergence in this file closed on every
+surface at once.
 
 ## What does not
 
@@ -60,15 +60,11 @@ divergence this file has ever closed on every surface at once.
 The first three rows are all Android against the others; the fourth is web against
 the others. So no surface is the reference, and no two agree completely.
 
-That sentence read "two of the first three ... the third is web" until the blur
-edge-handling row was inserted above the binarisation row on 2026-08-28, which is a
-neat demonstration of why a positional reference into a table ages badly.
+Printed-rule suppression is on all four surfaces; see the fifth-divergence section
+for what that port pinned.
 
-The printed-rule row inverted on 2026-08-28: it read web-against-three, and now reads
-CLI-against-three. See the fifth-divergence section for what that port pinned.
-
-**The blur edge-handling row is new, and was missed for the same reason the density
-ratio was.** Both were read as one number, "3×3 against 5×5", when the kernel size
+**The blur edge-handling row is easy to miss, for the same reason the density ratio
+was.** Both were read as one number, "3×3 against 5×5", when the kernel size
 and what happens at the image border are separate decisions. Android clamps the
 sample index and always divides by the full kernel, replicating the edge pixel; web
 and iOS skip out-of-range samples and divide by how many they actually took. The two
