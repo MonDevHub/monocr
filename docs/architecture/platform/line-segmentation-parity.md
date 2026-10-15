@@ -76,12 +76,14 @@ and this file exists to list them.
 the density ratio and the CLI does not. `apps/cli/src/mode.rs:39` calls 0.05 "the library default" and pins it by
 test, so the two values are each deliberate and simply were never compared.
 
-**The CLI is the only surface that does not normalise polarity**, a three-against-one
-divergence. It matters because the segmenter
-treats dark as ink: handed a light-on-dark page, the CLI segments the _background_
-and returns the gaps between lines. The gap is in `monocr-onnx/rust`, which the CLI
-delegates to, so it is unported rather than undecided: it lives in another
-repository.
+**All four surfaces normalise polarity before segmenting.** It matters because the
+segmenter treats dark as ink: handed a light-on-dark page uncorrected, it segments the
+_background_ and returns the gaps between lines. The CLI gets this from the crate it
+delegates to: in `monocr` 0.5.0, `MonOcr::predict_page` in `monocr-onnx/rust/src/monocr.rs`
+calls `segment_page`, which runs `normalize_polarity` (a corner-median probe that inverts
+a dark-background page) before `LineSegmenter::segment_image`. Both CLI page paths,
+`read_image` and `read_pdf_page` in `apps/cli/src/main.rs`, go through `predict_page`;
+line mode gets the same probe per crop in `preprocess_line`.
 
 **Web has no mode at all**, which is worth stating beside the rest: it is the one
 surface where a fused-block reading cannot be retried, because there is no other
