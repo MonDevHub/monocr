@@ -6,12 +6,9 @@ non-obvious part is not the build — it is that **both toolchains look absent w
 they are merely mis-pathed**, and the default error messages point away from the
 fix.
 
-That happened three separate times in one day on this project: a Rust `cargo test`
-was written off as "needs Xcode", Android as "no JDK available", and iOS as
-"Command Line Tools only". All three were wrong, and all three were the same
-mistake — trusting a toolchain's own "not found" message instead of checking
-whether the thing existed somewhere else on disk. Read the troubleshooting
-sections before concluding anything is missing.
+Do not trust a toolchain's own "not found" message: check whether the thing
+exists somewhere else on disk first. Read the troubleshooting sections before
+concluding anything is missing.
 
 ---
 
@@ -156,20 +153,18 @@ Export `JAVA_HOME` permanently rather than relying on this.
 **`SDK location not found`**
 
 `local.properties` is gitignored, so a fresh clone has no SDK pointer. Either
-export `ANDROID_HOME=~/Library/Android/sdk` or recreate the file. Installed here:
-platforms 35/36/36.1, build-tools 34.0.0/35.0.0/36.0.0/36.1.0 — `compileSdk = 36`
-is satisfied. There is no `ndk/`, which nothing in the debug path needs.
+export `ANDROID_HOME=~/Library/Android/sdk` or recreate the file. The build needs
+platform 36 (`compileSdk = 36`); nothing in the debug path needs the NDK.
 
-**`./gradlew lint` fails with `Lint found 161 errors, 67 warnings`**
+**`./gradlew lint` fails with `Lint found 10 errors, 68 warnings`**
 
-A genuine code finding, not an environment problem, and the one script in
-`apps/android/package.json` that is actually broken. The first failure is
-`Theme.kt:70` — `Call requires API level 31 (current min is 24):
-dynamicDarkColorScheme [NewApi]`. There is no `lint { }` block, so `abortOnError`
-keeps its default `true`. Fixing it means addressing the errors, generating a
-baseline with `./gradlew updateLintBaseline`, or setting `lint { abortOnError =
-false }` — each a deliberate decision, none taken yet. Reports are still written
-to `app/build/reports/lint-results-debug.{html,txt,xml}`.
+A genuine finding, not an environment problem, and the one script in
+`apps/android/package.json` that fails for that reason. All ten are
+`MissingTranslation`: strings in `values/strings.xml` missing a Mon
+(`values-mnw`) or Burmese (`values-my`) translation. They need real translated
+text, not a placeholder. There is no `lint { }` block, so `abortOnError` keeps
+its default `true`. Reports are written to
+`app/build/reports/lint-results-debug.{html,txt,xml}`.
 
 ---
 
@@ -370,8 +365,8 @@ for one:
 - `apps/ios/package.json` declares no `lint` script, so `pnpm lint:all` skips
   iOS entirely — as it does `@monocr/locales`. Turbo resolves both to
   `<NONEXISTENT>` and moves on; in a filtered run it warns, in a full run it does
-  not. Note this is not what stops `lint:all` being useful: the Android leg is in
-  the same run and fails on the lint errors counted above.
+  not. The Android leg in the same run fails on the `MissingTranslation` errors
+  above.
 - Root `pnpm clean` only removes `node_modules`. It touches none of
   `apps/android/app/build`, `apps/android/.gradle`,
   `apps/ios/MonOcrCore/.build`, or DerivedData — each of which reaches hundreds of
@@ -379,26 +374,23 @@ for one:
 - The Gradle-invoking scripts in `apps/android/package.json` — `build`, `clean`,
   `test`, `lint` — all inherit the `JAVA_HOME` requirement and none of them sets
   it. That is a choice, not a limitation: a script is a shell command, so
-  `"test": "JAVA_HOME='...' ./gradlew test"` would work. An earlier version of
-  this line said `package.json` *cannot* set it, which turned a decision into a
-  false impossibility. (`prebuild` is `chmod +x gradlew`, not a Gradle call.)
+  `"test": "JAVA_HOME='...' ./gradlew test"` would work. (`prebuild` is
+  `chmod +x gradlew`, not a Gradle call.)
   `lint` is the one script broken for a non-environment reason.
 
-## What cannot be done on this machine
+## What these steps do not cover
 
-Only two things, and neither is a toolchain gap:
+Two things, and neither is a toolchain gap:
 
-- **Physical-device iOS builds and App Store distribution** — no development team
-  or signing identity is configured.
-- **Android release artifacts** — `assembleRelease`/`bundleRelease` were not
-  attempted. `local.properties` carries `RELEASE_STORE_PASSWORD`,
-  `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` but no `RELEASE_STORE_FILE`.
-  `app/build.gradle.kts` reads that key from `local.properties` and then the
-  environment, and has no default: with neither set, any run that would
+- **Physical-device iOS builds and App Store distribution** — the Xcode project
+  configures no development team or signing identity.
+- **Android release artifacts** — `app/build.gradle.kts` reads
+  `RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS` and
+  `RELEASE_KEY_PASSWORD` from `local.properties` and then the environment.
+  `RELEASE_STORE_FILE` has no default: with it unset, any run that would
   package the release variant stops before building with a message naming
   `RELEASE_STORE_FILE`. That is `assembleRelease` and `bundleRelease`, and
   also `./gradlew assemble` and `./gradlew build`, which include the release
   variant; debug builds and the unit tests are unaffected. Set it
   and the release build needs no code change. Minification plus
-  `ndk.debugSymbolLevel = "FULL"` is unverified, and the SDK has no `ndk/`
-  directory.
+  `ndk.debugSymbolLevel = "FULL"` is unverified.

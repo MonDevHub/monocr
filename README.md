@@ -35,6 +35,7 @@ cd apps/web && pnpm dev
 ```bash
 cd apps/android
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export ANDROID_HOME="$HOME/Library/Android/sdk"   # or set sdk.dir in apps/android/local.properties
 ./gradlew assembleDebug
 ```
 
@@ -78,7 +79,7 @@ Android and iOS bundle it (46.2 MB and 46.3 MB respectively). The web app and th
 
 ## Limitations
 
-**Held-out CER 0.0100** on 150 unseen lines in a typeface the model never trained on (95% interval 0.0056 to 0.0147), measured 2026-08-16. The [model card](https://huggingface.co/janakhpon/monocr#performance) states its limits:
+**Held-out CER 0.0100** on 150 unseen lines in a typeface the model never trained on (95% interval 0.0056 to 0.0147), measured 2026-08-16. The [model card](https://huggingface.co/janakhpon/monocr#evaluation) states its limits:
 
 - **n = 150**, so the interval is wide.
 - **One typeface.** All 150 lines are Pyidaungsu, held out from training.

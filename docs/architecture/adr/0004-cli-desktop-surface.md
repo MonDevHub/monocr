@@ -106,15 +106,14 @@ absences. The tiling fix landed in the library, so the published Rust binding im
   gets the default pool of one thread per physical core — which is where the headroom would have
   come from. N workers would instead mean N sessions at roughly 700 MB-1 GB for N=4, and would
   have to serialise the manifest writer, the resume state and the ordered document accumulator.
-  The release baseline below is what any future implementation has to beat. An earlier draft of
-  the CLI README claimed the flag was "accepted but not implemented", which was simply false.
+  The release baseline below is what any future implementation has to beat.
 - **Measured 2026-08-22, and it changed the framing.** Measured on 201 rendered lines:
   squeezing wins at 2 tiles, level at 3, tiling wins from 4. It was measured twice over the same
   images, once with Python arms and once through this binding with
   `monocr-onnx/rust/examples/tiling_ab.rs`, and both find the same crossover. By 6 tiles
   squeezing exceeds 0.83 CER and tiling wins by 24x (Python) and 36x (Rust). **At median 3
   tiles there is no tiling advantage**, which contradicts the squeezed-0.1434-against-tiled-0.0795
-  figures an earlier version of this ADR cited; those came from a harness that was never
+  figures still quoted in the app tilers' comments; those came from a harness that was never
   committed and do not reproduce.
 
   Two consequences for this CLI. Tiling stays on by default, because its downside is bounded and

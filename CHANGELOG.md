@@ -46,7 +46,7 @@
 
 Lifecycle behaviour on physical Android and iOS devices has not been tested yet.
 
-## monocr-cli 0.2.0 — 2026-10-01
+## monocr-cli 0.2.0 — 2026-10-03
 
 ### Added
 
@@ -73,3 +73,7 @@ Lifecycle behaviour on physical Android and iOS devices has not been tested yet.
 - A PDF page that cannot be rendered or read is named on stderr and
   recorded in `manifest.jsonl` with its page number, and the other pages are
   still read and written. One bad page used to fail the whole PDF.
+
+## monocr-cli 0.1.0 to 0.1.2
+
+These releases predate this changelog.

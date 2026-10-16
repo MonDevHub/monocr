@@ -4,7 +4,7 @@ Technical documentation for this repository. Start with the [root README](../REA
 
 ## Guides
 
-- [Environment setup](guides/setup.md): toolchain versions, keys and first builds.
+- [Environment setup](../.github/CONTRIBUTING.md#prerequisites): toolchain versions, keys and first builds.
 - [Building and testing the mobile apps](guides/mobile-build-and-test.md): the exact Android and
   iOS clean-build and test commands, why both toolchains can look absent when they are only
   mis-pathed, and what `pnpm test` caches away.

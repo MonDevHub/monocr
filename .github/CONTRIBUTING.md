@@ -19,13 +19,21 @@ Do not modify native resource files (Android XML, iOS Strings) directly.
 | Node | see `apps/web/.nvmrc` | CI reads the same file |
 | pnpm | see `packageManager` in the root `package.json` | Corepack picks it up |
 | Go | see `services/feedback/go.mod` | only needed for the feedback service |
-| JDK / Xcode | **JetBrains** JDK 21 (the one inside Android Studio), Xcode 26.2+ | only needed for the mobile apps; the JDK vendor is pinned, not just the version |
+| JDK | see `toolchainVendor` and `toolchainVersion` in `apps/android/gradle/gradle-daemon-jvm.properties` | only needed for Android; the vendor is pinned as well as the version, so use the JetBrains Runtime bundled with Android Studio |
+| Xcode | see `IPHONEOS_DEPLOYMENT_TARGET` in `apps/ios/monocr-ios.xcodeproj/project.pbxproj`, which needs that iOS SDK; `MonOcrCore` alone needs only the `swift-tools-version` in `apps/ios/MonOcrCore/Package.swift` | only needed for iOS |
+
+Neither mobile app builds from a bare shell. Android needs `JAVA_HOME` and an SDK
+location (`ANDROID_HOME`, or `sdk.dir` in `apps/android/local.properties`); iOS
+needs `DEVELOPER_DIR`. Without `JAVA_HOME` or `DEVELOPER_DIR` the error reads as
+"the toolchain is not installed" when it is. `docs/guides/mobile-build-and-test.md`
+has the commands.
 
 ### Development
 
 ```bash
 pnpm install            # at the root only — this is one workspace
-pnpm dev:all            # web + CLI + feedback service
+pnpm dev:all            # web + CLI + feedback service; not Android or iOS
+pnpm build              # every package; the mobile apps build Debug, not release
 ```
 
 No `.env` is needed to run the web app: it does OCR in the browser against a
