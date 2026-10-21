@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // The endpoint reads `platform.env` first and `$env/dynamic/private` second. Mock
 // the latter to empty so these tests control the whole configuration through
@@ -6,16 +6,22 @@ import { describe, expect, it, vi } from 'vitest';
 // satisfies the fallback and the "not configured" case cannot be reached.
 vi.mock('$env/dynamic/private', () => ({ env: {} }));
 
-import { GET } from './+server';
+// `dev` decides whether localhost is an allowed origin. A getter, so each test
+// can flip it; production (`false`) is the default.
+const mode = vi.hoisted(() => ({ dev: false }));
+vi.mock('$app/environment', () => ({
+	get dev() {
+		return mode.dev;
+	}
+}));
+
+import { POST } from './+server';
 
 /**
- * First tests for the signing endpoint.
- *
- * It had none, and it is the one route in this app that hands out a write
- * capability into the dataset bucket. What follows covers the parts a client can
- * steer — the object key, the validation, and the configuration guard — and pins
- * the origin check's current behaviour including the hole in it, so the hole is
- * visible in a test rather than only in a comment.
+ * Tests for the signing endpoint, the one route in this app that hands out a
+ * write capability into the dataset bucket. They cover the parts a client can
+ * steer: the origin, the object key, the type, the size, and the configuration
+ * guard.
  *
  * `getSignedUrl` is real here. Signing is HMAC over the request, so it needs
  * credentials but no network, and fake ones sign fine.
@@ -29,26 +35,40 @@ const CREDS = {
 };
 
 const UUID = '550e8400-e29b-41d4-a716-446655440000';
+const SITE = 'https://ocr.mondevhub.com';
+const MiB = 1024 * 1024;
+
+const OK = { fileName: 'page.png', fileType: 'image/png', recordId: UUID, size: 1234 };
 
 async function call(
-	params: Record<string, string>,
-	opts: { env?: Record<string, string>; origin?: string } = {}
+	body: Record<string, unknown>,
+	opts: { env?: Record<string, string>; origin?: string | null } = {}
 ) {
-	const url = new URL('https://monocr.app/api/sync/sign');
-	for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-	const headers = new Headers();
-	if (opts.origin) headers.set('origin', opts.origin);
-	return GET({
+	const url = new URL(`${SITE}/api/sync/sign`);
+	const headers = new Headers({ 'content-type': 'application/json' });
+	// `undefined` means the default, the production origin; `null` means none.
+	const origin = opts.origin === undefined ? SITE : opts.origin;
+	if (origin !== null) headers.set('origin', origin);
+	return POST({
 		url,
 		platform: { env: opts.env ?? CREDS },
-		request: new Request(url, { headers })
+		request: new Request(url, { method: 'POST', headers, body: JSON.stringify(body) })
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	} as any);
 }
 
+async function signedUrl(body: Record<string, unknown> = OK): Promise<URL> {
+	const res = await call(body);
+	return new URL((await res.json()).uploadUrl);
+}
+
+afterEach(() => {
+	mode.dev = false;
+});
+
 describe('the signed object key', () => {
 	it('is contribution/ singular, matching the service and the contract', async () => {
-		const res = await call({ fileName: 'page.png', fileType: 'image/png', recordId: UUID });
+		const res = await call(OK);
 		const body = await res.json();
 		const month = new Date().toISOString().slice(0, 7);
 
@@ -59,11 +79,7 @@ describe('the signed object key', () => {
 	});
 
 	it('cannot be steered out of its prefix by the filename', async () => {
-		const res = await call({
-			fileName: '../../../../etc/passwd',
-			fileType: 'image/png',
-			recordId: UUID
-		});
+		const res = await call({ ...OK, fileName: '../../../../etc/passwd' });
 		const { key } = await res.json();
 
 		expect(key).not.toContain('..');
@@ -73,29 +89,103 @@ describe('the signed object key', () => {
 	});
 
 	it('signs a URL for the configured bucket', async () => {
-		const res = await call({ fileName: 'a.png', fileType: 'image/png', recordId: UUID });
-		const { uploadUrl } = await res.json();
-		expect(uploadUrl).toContain('monocr-dataset');
+		expect((await signedUrl()).href).toContain('monocr-dataset');
+	});
+});
+
+describe('the signature binds the declared size and type', () => {
+	/**
+	 * A presigned PUT re-derives its signature from the headers named here. With
+	 * `content-length` in the set, a body of any other length fails the signature
+	 * at the store; with `content-type`, so does any other type. The presigner
+	 * leaves `content-type` out unless asked, so both are asserted.
+	 */
+	it('signs content-length and content-type', async () => {
+		const signed = (await signedUrl()).searchParams.get('X-Amz-SignedHeaders')?.split(';');
+		expect(signed).toEqual(expect.arrayContaining(['content-length', 'content-type', 'host']));
+	});
+
+	it('signs the size the client declared, not some other size', async () => {
+		// Same request, two sizes: if the size were not in the signature, the two
+		// signatures would match.
+		const a = (await signedUrl({ ...OK, size: 1000 })).searchParams.get('X-Amz-Signature');
+		const b = (await signedUrl({ ...OK, size: 1001 })).searchParams.get('X-Amz-Signature');
+		expect(a).not.toBe(b);
 	});
 });
 
 describe('validation', () => {
 	it('refuses a record id that is not a UUID', async () => {
-		await expect(
-			call({ fileName: 'a.png', fileType: 'image/png', recordId: 'not-a-uuid' })
-		).rejects.toMatchObject({ status: 400 });
+		await expect(call({ ...OK, recordId: 'not-a-uuid' })).rejects.toMatchObject({ status: 400 });
 	});
 
 	it('refuses a file type outside the allowlist', async () => {
-		await expect(
-			call({ fileName: 'a.exe', fileType: 'application/x-msdownload', recordId: UUID })
-		).rejects.toMatchObject({ status: 400 });
+		for (const fileType of ['application/x-msdownload', 'image/svg+xml', 'text/html']) {
+			await expect(call({ ...OK, fileName: 'a.bin', fileType })).rejects.toMatchObject({
+				status: 400,
+				body: { message: 'Invalid file type prohibited for sync' }
+			});
+		}
+	});
+
+	it('accepts each type the web client uploads', async () => {
+		for (const fileType of [
+			'image/jpeg',
+			'image/png',
+			'image/webp',
+			'application/pdf',
+			'text/plain'
+		]) {
+			const res = await call({ ...OK, fileType });
+			expect(res.status).toBe(200);
+		}
 	});
 
 	it('refuses a missing parameter', async () => {
-		await expect(call({ fileName: 'a.png', fileType: 'image/png' })).rejects.toMatchObject({
-			status: 400
+		const withoutRecordId: Record<string, unknown> = { ...OK };
+		delete withoutRecordId.recordId;
+		await expect(call(withoutRecordId)).rejects.toMatchObject({ status: 400 });
+	});
+
+	it('refuses a body that is not JSON', async () => {
+		const url = new URL(`${SITE}/api/sync/sign`);
+		const request = new Request(url, {
+			method: 'POST',
+			headers: { origin: SITE },
+			body: 'fileName=a.png'
 		});
+		await expect(
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			POST({ url, platform: { env: CREDS }, request } as any)
+		).rejects.toMatchObject({ status: 400 });
+	});
+});
+
+describe('the size bound', () => {
+	it('refuses an upload over 20 MiB, the feedback service limit', async () => {
+		await expect(call({ ...OK, size: 20 * MiB + 1 })).rejects.toMatchObject({ status: 413 });
+	});
+
+	it('accepts exactly 20 MiB', async () => {
+		const res = await call({ ...OK, size: 20 * MiB });
+		expect(res.status).toBe(200);
+	});
+
+	it('refuses a missing, empty, fractional or non-numeric size', async () => {
+		const withoutSize: Record<string, unknown> = { ...OK };
+		delete withoutSize.size;
+		for (const body of [
+			withoutSize,
+			{ ...OK, size: 0 },
+			{ ...OK, size: -1 },
+			{ ...OK, size: 1.5 },
+			{ ...OK, size: '1234' }
+		]) {
+			await expect(call(body)).rejects.toMatchObject({
+				status: 400,
+				body: { message: 'Missing or invalid size' }
+			});
+		}
 	});
 });
 
@@ -112,54 +202,76 @@ describe('configuration', () => {
 		// and without asserting which one fired this test passed with the guard
 		// removed: the SDK failed on `Bucket: undefined` and the outer catch turned
 		// that into a 500 as well. Right outcome, wrong reason.
-		await expect(
-			call({ fileName: 'a.png', fileType: 'image/png', recordId: UUID }, { env: withoutBucket })
-		).rejects.toMatchObject({ status: 500, body: { message: 'Cloud storage not configured' } });
+		await expect(call(OK, { env: withoutBucket })).rejects.toMatchObject({
+			status: 500,
+			body: { message: 'Cloud storage not configured' }
+		});
 	});
 });
 
-describe('the origin check, including what it does not do', () => {
-	it('rejects a disallowed origin', async () => {
-		await expect(
-			call(
-				{ fileName: 'a.png', fileType: 'image/png', recordId: UUID },
-				{ origin: 'https://attacker.example' }
-			)
-		).rejects.toMatchObject({ status: 403 });
-	});
-
-	/**
-	 * PINS A KNOWN HOLE, deliberately.
-	 *
-	 * The check is `if (origin && !isAllowedOrigin)`, so a request with NO Origin
-	 * header passes — which is curl's default, and there is no authentication
-	 * behind it. This is not tightened here because browsers omit Origin on
-	 * same-origin GETs, so requiring it would break the web app; closing it needs
-	 * real authentication, which is a design decision rather than a patch.
-	 *
-	 * The test exists so the hole is a visible, failing-on-change fact. When auth
-	 * arrives, this test should start failing and be replaced.
-	 */
-	it('currently allows a request with no Origin header at all', async () => {
-		const res = await call({ fileName: 'a.png', fileType: 'image/png', recordId: UUID });
+describe('the origin check', () => {
+	it('allows the production site', async () => {
+		const res = await call(OK, { origin: SITE });
 		expect(res.status).toBe(200);
 	});
 
 	/**
-	 * The allowlist uses `includes`, so these attacker-controlled hosts pass.
-	 * Pinned for the same reason as above: visible rather than silent.
+	 * This used to pass: the check was `if (origin && !isAllowedOrigin)`, so no
+	 * Origin header at all, which is curl's default, skipped it. The client now
+	 * signs with a POST, which a browser always sends Origin on.
 	 */
-	it('currently allows substring matches on the allowlisted hosts', async () => {
+	it('refuses a request with no Origin header', async () => {
+		await expect(call(OK, { origin: null })).rejects.toMatchObject({ status: 403 });
+	});
+
+	it('refuses a disallowed origin', async () => {
+		await expect(call(OK, { origin: 'https://attacker.example' })).rejects.toMatchObject({
+			status: 403
+		});
+	});
+
+	/**
+	 * The allowlist used `includes('localhost' | 'vercel.app' | 'pages.dev')`, so
+	 * every one of these passed. It is an exact match now.
+	 */
+	it('refuses look-alikes of the allowed hosts', async () => {
 		for (const origin of [
-			'https://localhost.attacker.example',
-			'https://evil-vercel.app.attacker.example',
-			'https://pages.dev.attacker.example'
+			'https://evil-pages.dev',
+			'https://monocr.pages.dev',
+			'https://evil-vercel.app',
+			'https://localhost.attacker.com',
+			'https://ocr.mondevhub.com.attacker.com',
+			'http://ocr.mondevhub.com',
+			'https://monocr.app'
 		]) {
-			const res = await call(
-				{ fileName: 'a.png', fileType: 'image/png', recordId: UUID },
-				{ origin }
-			);
+			await expect(call(OK, { origin })).rejects.toMatchObject({ status: 403 });
+		}
+	});
+
+	it('refuses localhost in production', async () => {
+		for (const origin of ['http://localhost:5173', 'http://127.0.0.1:4173']) {
+			await expect(call(OK, { origin })).rejects.toMatchObject({ status: 403 });
+		}
+	});
+
+	it('allows localhost and 127.0.0.1 on any port in development', async () => {
+		mode.dev = true;
+		for (const origin of ['http://localhost:5173', 'http://127.0.0.1:4173', 'http://localhost']) {
+			const res = await call(OK, { origin });
 			expect(res.status).toBe(200);
 		}
+	});
+
+	it('still refuses a localhost look-alike in development', async () => {
+		mode.dev = true;
+		await expect(call(OK, { origin: 'http://localhost.attacker.com:5173' })).rejects.toMatchObject({
+			status: 403
+		});
+	});
+
+	it('checks the origin before it reads the body', async () => {
+		await expect(
+			call({ fileName: 'a', fileType: 'nope', recordId: 'x' }, { origin: null })
+		).rejects.toMatchObject({ status: 403 });
 	});
 });
