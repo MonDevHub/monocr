@@ -105,6 +105,21 @@ describe('the signature binds the declared size and type', () => {
 		expect(signed).toEqual(expect.arrayContaining(['content-length', 'content-type', 'host']));
 	});
 
+	/**
+	 * The SDK computes a request checksum by default, and on a presign it has no
+	 * body to hash, so it signed the CRC32 of nothing (`AAAAAA==`) into every URL.
+	 * Cloudflare advises `WHEN_REQUIRED` for S3 clients against R2. The URL must
+	 * carry no checksum while still binding length, type and host.
+	 */
+	it('carries no request checksum', async () => {
+		const url = await signedUrl();
+		const names = [...url.searchParams.keys()].map((k) => k.toLowerCase());
+		expect(names).not.toContain('x-amz-checksum-crc32');
+		expect(names).not.toContain('x-amz-sdk-checksum-algorithm');
+		const signed = url.searchParams.get('X-Amz-SignedHeaders')?.split(';');
+		expect(signed).toEqual(['content-length', 'content-type', 'host']);
+	});
+
 	it('signs the size the client declared, not some other size', async () => {
 		// Same request, two sizes: if the size were not in the signature, the two
 		// signatures would match.

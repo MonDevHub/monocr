@@ -127,7 +127,11 @@ export const POST: RequestHandler = async ({ platform, request }) => {
 			credentials: {
 				accessKeyId: finalId,
 				secretAccessKey: finalSecret
-			}
+			},
+			// Cloudflare's advice for S3 clients against R2: by default the SDK signs a
+			// CRC32 of the empty presign body (`AAAAAA==`) into every upload URL.
+			requestChecksumCalculation: 'WHEN_REQUIRED',
+			responseChecksumValidation: 'WHEN_REQUIRED'
 		});
 		lastUsedAccountId = finalAccount;
 	}
