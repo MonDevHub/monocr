@@ -128,7 +128,7 @@ export const POST: RequestHandler = async ({ platform, request }) => {
 				accessKeyId: finalId,
 				secretAccessKey: finalSecret
 			},
-			// Cloudflare's advice for S3 clients against R2: by default the SDK signs a
+			// SDK 3.729.0 and later add default request checksums: the SDK would sign a
 			// CRC32 of the empty presign body (`AAAAAA==`) into every upload URL.
 			requestChecksumCalculation: 'WHEN_REQUIRED',
 			responseChecksumValidation: 'WHEN_REQUIRED'
