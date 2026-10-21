@@ -10,10 +10,11 @@ If you find a security vulnerability, please report it via a private GitHub Vuln
 
   A `gitleaks` job now runs on every push and scans the full history, so this is enforced rather than asserted. `apps/web/package.json` had defined a `scan:secrets` script since before the incident; nothing ran it, because the repository had no CI.
 - **Service Security**: The Feedback service is protected by API key authentication. Internal documentation (Swagger) is also restricted to authenticated requests.
+- **Web Upload Signing**: The web app does not use the Feedback service. It asks `apps/web`'s `/api/sync/sign` for a 15-minute signed PUT URL into the dataset bucket. That endpoint has no authentication: it accepts only the exact origin `https://ocr.mondevhub.com` (plus `localhost` and `127.0.0.1` in development), and refuses a request with no `Origin` header. An Origin check stops other websites, not a client that forges the header, so a rate limit at the edge (a Cloudflare rate-limiting rule on `/api/sync/sign`) is recommended for any deployment.
 - **Data Protection**: Uploads are stored in Cloudflare R2 with access controls. Objects are organized using unique identifiers and date-based partitioning to prevent enumeration.
 
 ## Input Validation
 Each service implements standard security checks:
-- **Content Verification**: Files are verified using MIME-type sniffing (magic numbers) to ensure they match the expected format.
-- **Payload Limits**: Request sizes are limited to prevent denial-of-service attacks.
+- **Content Verification**: The Feedback service verifies files using MIME-type sniffing (magic numbers) to ensure they match the expected format. Web uploads go directly to storage and are not sniffed: `/api/sync/sign` checks the declared type against the same five types (JPEG, PNG, WebP, PDF, plain text) and signs it into the URL, so the upload must carry that `Content-Type`.
+- **Payload Limits**: Uploads are capped at 20 MiB. The Feedback service limits the request body; `/api/sync/sign` refuses a declared size over 20 MiB and signs the size into the URL, so the upload must carry exactly that `Content-Length`.
 - **Sanitization**: External inputs are sanitized before being used in storage operations.

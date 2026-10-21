@@ -13,6 +13,14 @@ Wasm backend otherwise. The model is fetched once and kept in the Cache API. No 
 recognised text leaves the machine: there is no network call on the recognition path. Sending a
 correction or a contribution is opt-in.
 
+A contribution goes straight to the dataset bucket. The app POSTs the file's name, type, size
+and record id to `/api/sync/sign`, which answers with a 15-minute signed PUT URL. The endpoint
+takes requests only from `https://ocr.mondevhub.com` (and `localhost` or `127.0.0.1` under
+`pnpm dev`), refuses a request with no `Origin`, signs only JPEG, PNG, WebP, PDF and plain text
+(`CONFIG.SYNC.ALLOWED_MIME_TYPES`), and refuses anything over 20 MiB
+(`CONFIG.SYNC.MAX_UPLOAD_BYTES`, the feedback service's limit). The size and type are signed into
+the URL, so the upload must carry exactly the declared `Content-Length` and `Content-Type`.
+
 Imports are capped at 50 MiB (`CONFIG.UI.MAX_IMAGE_SIZE_MB`). For larger files or whole folders,
 use [`monocr-cli`](../cli/README.md), which runs the same model and takes PDFs up to 500 MiB. The
 `pip install monocr` on the app's docs page is a different project,
@@ -89,6 +97,10 @@ unless at least 214 tests passed.
 Cloudflare Pages (`@sveltejs/adapter-cloudflare`), with `apps/web` as the root directory. The model
 is not bundled, being far past the edge asset limit: production fetches it from Hugging Face at the
 pinned revision.
+
+`/api/sync/sign` has no authentication. The Origin check stops other sites' pages, not a script
+that sets the header itself, so a Cloudflare rate-limiting rule on `/api/sync/sign` is recommended.
+It is set in the Cloudflare dashboard for the zone, not in this repository.
 
 ## Licence
 
