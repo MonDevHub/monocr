@@ -28,7 +28,7 @@ someone is participating in this project.
 
 ## Reporting
 
-Report to **zin.min@nosbaan.com**. Reports are handled privately.
+Report to **minchanhtutoo@gmail.com**. Reports are handled privately.
 
 Unacceptable behaviour will be dealt with proportionately: usually a request to
 stop, and if that does not work, a block. The maintainer decides, and will say
