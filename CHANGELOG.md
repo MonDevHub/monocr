@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Security
+
+- Web: the upload-signing endpoint (`/api/sync/sign`) accepts only requests
+  from https://ocr.mondevhub.com (and localhost in development), and refuses a
+  request with no Origin. It used to match origins by substring, so look-alike
+  domains passed.
+- Web: a signed upload URL is bound to the file's size and type. Files over
+  20 MiB and types outside the allowed list are refused before signing, as the
+  feedback service and the mobile apps already did. The endpoint is now a POST.
+
 ### Changed
 
 - Android: warnings about the reading (soft photo, merged or failed lines) are
@@ -16,6 +26,10 @@
 
 ### Fixed
 
+- Web: a report sent with no file and no earlier scan now uploads its text. It
+  used to fail to sync on every attempt.
+- Web: signed upload URLs no longer carry the SDK's default CRC32 of an empty
+  body, which could never match a real upload.
 - Android: an older image or PDF selection can no longer replace a newer one.
 - Android: a PDF in which no page could be read shows an error instead of an
   empty result. A page that cannot be rendered or read is named in a warning

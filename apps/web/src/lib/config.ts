@@ -45,7 +45,12 @@ export const CONFIG = {
 	SYNC: {
 		MAX_RETRIES: 3,
 		BATCH_DELAY_MS: 1000,
-		ALLOWED_MIME_TYPES: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'text/plain']
+		// The types `/api/sync/sign` will sign for, and the same five the feedback
+		// service accepts (`services/feedback/internal/upload/handler.go`).
+		ALLOWED_MIME_TYPES: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'text/plain'],
+		// 20 MiB, the feedback service's `MaxUploadSize`, so web and mobile
+		// contributions share one ceiling. The signed URL binds the declared size.
+		MAX_UPLOAD_BYTES: 20 * 1024 * 1024
 	}
 } as const;
 

@@ -1,53 +1,99 @@
 import { json, error } from '@sveltejs/kit';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
+import { CONFIG } from '$lib/config';
 import type { RequestHandler } from './$types';
 
 // Cache S3 client instance to reuse connections
 let s3ClientInstance: S3Client | null = null;
 let lastUsedAccountId: string | null = null;
 
-export const GET: RequestHandler = async ({ url, platform, request }) => {
-	const fileName = url.searchParams.get('fileName');
-	const fileType = url.searchParams.get('fileType');
-	const recordId = url.searchParams.get('recordId');
+/**
+ * The only origin allowed in production. Exact match: the old check used
+ * `includes('localhost')`, `includes('vercel.app')` and `includes('pages.dev')`,
+ * so `https://localhost.attacker.example` passed.
+ */
+const PRODUCTION_ORIGIN = 'https://ocr.mondevhub.com';
 
-	// 1. Basic Validation
-	if (!fileName || !fileType || !recordId) {
+/** Local development only, any port. Never allowed in a production build. */
+const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/;
+
+function isAllowedOrigin(origin: string | null): boolean {
+	if (!origin) return false;
+	if (origin === PRODUCTION_ORIGIN) return true;
+	return dev && LOCAL_ORIGIN.test(origin);
+}
+
+const ALLOWED_TYPES: readonly string[] = CONFIG.SYNC.ALLOWED_MIME_TYPES;
+const MAX_BYTES = CONFIG.SYNC.MAX_UPLOAD_BYTES;
+
+/**
+ * Signs a 15-minute PUT URL into the dataset bucket.
+ *
+ * POST, not GET: a browser sends `Origin` on a same-origin POST but not on a
+ * same-origin GET, and the check below refuses a request without one. A missing
+ * Origin is what curl sends by default, so it is refused rather than waved
+ * through. This is not authentication — a non-browser client can set any
+ * Origin — so the endpoint also needs a rate limit at the edge (see the web
+ * README, "Deploy").
+ *
+ * Body: `{ fileName, fileType, recordId, size }`, `size` in bytes. The size and
+ * the type are signed into the URL, so the PUT has to carry exactly that
+ * Content-Length and Content-Type.
+ */
+export const POST: RequestHandler = async ({ platform, request }) => {
+	// 1. Security: Strict Origin Check, first, before anything else is read.
+	if (!isAllowedOrigin(request.headers.get('origin'))) {
+		throw error(403, 'Unauthorized cross-origin request');
+	}
+
+	let body: Record<string, unknown>;
+	try {
+		body = await request.json();
+	} catch {
+		throw error(400, 'Request body must be JSON');
+	}
+	const { fileName, fileType, recordId, size } = body ?? {};
+
+	// 2. Basic Validation
+	if (
+		typeof fileName !== 'string' ||
+		typeof fileType !== 'string' ||
+		typeof recordId !== 'string' ||
+		!fileName ||
+		!fileType ||
+		!recordId
+	) {
 		throw error(400, 'Missing required parameters');
 	}
 
-	// 2. Security: Validate recordId format (RFC 4122 UUID)
+	// 3. Security: Validate recordId format (RFC 4122 UUID)
 	const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 	if (!uuidRegex.test(recordId)) {
 		throw error(400, 'Invalid record identifier format');
 	}
 
-	// 3. Security: Validate File Type
-	const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'text/plain'];
-	if (!allowedTypes.includes(fileType)) {
+	// 4. Security: Validate File Type
+	if (!ALLOWED_TYPES.includes(fileType)) {
 		throw error(400, 'Invalid file type prohibited for sync');
 	}
 
-	// 4. Security: Sanitize Filename (No path traversal, limit length)
+	// 5. Security: Bound the size. Empty is refused as the feedback service
+	// refuses it: a zero-byte object is a corpus row nothing can use.
+	if (typeof size !== 'number' || !Number.isInteger(size) || size < 1) {
+		throw error(400, 'Missing or invalid size');
+	}
+	if (size > MAX_BYTES) {
+		throw error(413, `File exceeds the maximum upload size of ${MAX_BYTES / (1024 * 1024)} MB`);
+	}
+
+	// 6. Security: Sanitize Filename (No path traversal, limit length)
 	const sanitizedFileName = fileName
 		.replace(/\.\./g, '') // remove ".."
 		.replace(/[^a-zA-Z0-9.-]/g, '_')
 		.slice(0, 100);
-
-	// 5. Security: Strict Origin Check
-	const origin = request.headers.get('origin');
-	// In production, strictly match your TLD. Here we allow localhost for development.
-	const isAllowedOrigin =
-		origin === 'https://monocr.app' ||
-		origin?.includes('localhost') ||
-		origin?.includes('vercel.app') ||
-		origin?.includes('pages.dev');
-
-	if (origin && !isAllowedOrigin) {
-		throw error(403, 'Unauthorized cross-origin request');
-	}
 
 	// Environment variables - Check platform.env (Cloudflare) or fallback to static env
 	const platformEnv = (platform as { env?: Record<string, string> })?.env || {};
@@ -73,7 +119,7 @@ export const GET: RequestHandler = async ({ url, platform, request }) => {
 		throw error(500, 'Cloud storage not configured');
 	}
 
-	// 5. Performance: Connection Pooling / Client Reuse
+	// 7. Performance: Connection Pooling / Client Reuse
 	if (!s3ClientInstance || lastUsedAccountId !== finalAccount) {
 		s3ClientInstance = new S3Client({
 			region: 'auto',
@@ -81,7 +127,11 @@ export const GET: RequestHandler = async ({ url, platform, request }) => {
 			credentials: {
 				accessKeyId: finalId,
 				secretAccessKey: finalSecret
-			}
+			},
+			// SDK 3.729.0 and later add default request checksums: the SDK would sign a
+			// CRC32 of the empty presign body (`AAAAAA==`) into every upload URL.
+			requestChecksumCalculation: 'WHEN_REQUIRED',
+			responseChecksumValidation: 'WHEN_REQUIRED'
 		});
 		lastUsedAccountId = finalAccount;
 	}
@@ -112,14 +162,24 @@ export const GET: RequestHandler = async ({ url, platform, request }) => {
 			Bucket: finalBucket,
 			Key: key,
 			ContentType: fileType,
+			// Signed as `content-length`, so the URL accepts this many bytes and no
+			// other count. Without it the URL took any body up to the store's limit.
+			ContentLength: size,
 			Metadata: {
 				'record-id': recordId,
 				'original-name': fileName
 			}
 		});
 
-		// URL expires in 15 minutes (900 seconds) to support slow connections
-		const signedUrl = await getSignedUrl(client, command, { expiresIn: 900 });
+		// URL expires in 15 minutes (900 seconds) to support slow connections.
+		//
+		// `signableHeaders`: the presigner adds `content-type` to its unsignable
+		// set by default, so the type checked above would otherwise be advisory
+		// and the PUT could carry any Content-Type. Naming it here signs it.
+		const signedUrl = await getSignedUrl(client, command, {
+			expiresIn: 900,
+			signableHeaders: new Set(['content-type'])
+		});
 
 		return json({
 			uploadUrl: signedUrl,

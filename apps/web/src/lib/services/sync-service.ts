@@ -76,14 +76,29 @@ export class SyncService {
 	 * Extracts the common upload logic to an R2 presigned URL
 	 */
 	private async uploadToR2(fileName: string, fileType: string, recordId: string, data: Blob) {
-		const signUrl = `/api/sync/sign?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(fileType)}&recordId=${recordId}`;
+		// The server refuses this too (413); checking first saves three signing
+		// round trips that cannot succeed.
+		if (data.size > CONFIG.SYNC.MAX_UPLOAD_BYTES) {
+			throw new Error(
+				`${fileName} exceeds the ${CONFIG.SYNC.MAX_UPLOAD_BYTES / (1024 * 1024)} MB upload limit`
+			);
+		}
+
+		// POST, because a same-origin GET carries no Origin header and the
+		// endpoint refuses a request without one. `size` is signed into the URL,
+		// so the PUT below must send exactly these bytes.
+		const signBody = JSON.stringify({ fileName, fileType, recordId, size: data.size });
 
 		let lastError: Error | null = null;
 		const maxRetries = 3;
 
 		for (let attempt = 1; attempt <= maxRetries; attempt++) {
 			try {
-				const signRes = await fetch(signUrl);
+				const signRes = await fetch('/api/sync/sign', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: signBody
+				});
 
 				if (!signRes.ok) {
 					const errorText = await signRes.text();
@@ -128,13 +143,28 @@ export class SyncService {
 		console.info(`[Sync] Attempting ${record.fileName} (${typeLabel})...`);
 
 		try {
-			// 1. Upload the primary file data
-			await this.uploadToR2(record.fileName, record.fileType, record.id, record.fileData);
-
-			// 2. If it's a file upload AND there's an attached attached text transcription, upload text alongside it
-			// We check if it's explicitly NOT just the fallback plain text submission
+			// The sign endpoint refuses size 0, so an empty primary would fail every
+			// attempt and take the transcription down with it. /report opened with
+			// no prior scan saves exactly that: an empty Blob plus the typed
+			// correction. Skip the empty file; the text still goes.
+			const hasPrimary = record.fileData.size > 0;
+			// A text-only contribution's primary IS the text, so it is not sent twice.
 			const isJustTextBlob = record.fileName === 'Mon Text Contribution';
-			if (!isJustTextBlob && record.text && record.text.trim().length > 0) {
+			const hasTranscription = !isJustTextBlob && !!record.text && record.text.trim().length > 0;
+
+			// Nothing to send is an error, not a sync: "Synced" would claim the
+			// bucket holds something it never received.
+			if (!hasPrimary && !hasTranscription) {
+				throw new Error('Nothing to upload: the file is empty and there is no text');
+			}
+
+			// 1. Upload the primary file data
+			if (hasPrimary) {
+				await this.uploadToR2(record.fileName, record.fileType, record.id, record.fileData);
+			}
+
+			// 2. If there's an attached text transcription, upload text alongside it
+			if (hasTranscription) {
 				const textFileName = `${record.fileName.replace(/\.[^/.]+$/, '')}-transcription.txt`;
 				const textBlob = new Blob([record.text], { type: 'text/plain' });
 				await this.uploadToR2(textFileName, 'text/plain', record.id, textBlob);
