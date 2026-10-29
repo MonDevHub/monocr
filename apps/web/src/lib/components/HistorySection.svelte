@@ -4,6 +4,7 @@
 	import { db, getRecords, deleteRecord, clearHistory, type OCRRecord } from '$lib/storage/db';
 	import { syncService, syncEvents } from '$lib/services/sync-service';
 	import { ConfirmationModal, Badge, Icon } from './index';
+	import { syncBadge } from '$lib/sync-badge';
 	import { focusTrap } from '$lib/actions/focus-trap';
 	import { m } from '$lib/paraglide/messages';
 
@@ -117,9 +118,10 @@
 							</div>
 
 							<div class="flex items-center gap-2">
-								{#if record.isSynced}
+								{@const badge = syncBadge(record)}
+								{#if badge === 'synced'}
 									<Badge type="success" label={m.history_synced()} icon="check_circle" />
-								{:else if record.syncError}
+								{:else if badge === 'failed'}
 									<Badge type="error" label={m.history_failed()} icon="error" />
 									<button
 										onclick={async (e) => {
@@ -132,7 +134,7 @@
 									>
 										{m.history_retry()}
 									</button>
-								{:else}
+								{:else if badge === 'pending'}
 									<Badge type="neutral" label={m.history_pending()} icon="progress_activity" />
 								{/if}
 							</div>
