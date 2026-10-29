@@ -9,9 +9,15 @@ final class ContributeViewModel: ObservableObject {
     @Published var sourceImage: UIImage? = nil
     @Published var originalPdfData: Data? = nil
     @Published var selectedFileName: String? = nil
-    
+    /// A contribution is uploaded on submit, so it waits for consent, as
+    /// Feedback always has. This screen used to send on a tap.
+    @Published var consent: Bool = false
+
     var isSubmitDisabled: Bool {
-        transcription.isEmpty && sourceImage == nil && originalPdfData == nil
+        !SubmissionRules.canSubmitContribution(
+            transcription: transcription,
+            hasAttachment: sourceImage != nil || originalPdfData != nil,
+            consent: consent)
     }
 
     func handleSelectedPDF(at url: URL) {
@@ -65,5 +71,6 @@ final class ContributeViewModel: ObservableObject {
         sourceImage = nil
         originalPdfData = nil
         selectedFileName = nil
+        consent = false
     }
 }

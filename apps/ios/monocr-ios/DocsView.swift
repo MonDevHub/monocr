@@ -89,7 +89,7 @@ struct DocsView: View {
                             .font(MonTheme.Typography.section)
                         }
                         
-                        Text("Documents are processed entirely on your local machine. No data is uploaded to our servers.")
+                        Text("Recognition runs entirely on your device. Scans are never uploaded; only Feedback and Contributions you choose to submit are.")
                             .font(MonTheme.Typography.meta)
                             .foregroundColor(.secondary)
                         

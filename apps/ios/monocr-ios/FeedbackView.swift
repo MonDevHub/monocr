@@ -123,24 +123,7 @@ struct FeedbackView: View {
                         Divider()
                             .padding(.vertical, 8)
                         
-                        HStack(alignment: .top, spacing: 12) {
-                            Button {
-                                viewModel.consent.toggle()
-                            } label: {
-                                Image(systemName: viewModel.consent ? "checkmark.square.fill" : "square")
-                                    .foregroundColor(viewModel.consent ? .accentColor : .secondary)
-                                    .font(.title3)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("I want to help improve MonOCR")
-                                    .font(MonTheme.Typography.secondary)
-                                    .fontWeight(.medium)
-                                Text("Allow this feedback to be used for model verification and archival research.")
-                                    .font(MonTheme.Typography.meta)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
+                        UploadConsentToggle(isOn: $viewModel.consent)
                         
                         Button {
                             viewModel.submitFeedback(context: modelContext)

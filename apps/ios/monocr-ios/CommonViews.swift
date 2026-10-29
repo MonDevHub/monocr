@@ -87,4 +87,29 @@ struct MonTextEditor: View {
     }
 }
 
+/// Consent to upload, shared by Feedback and Contribute so both ask the same
+/// question in the same words.
+///
+/// A real `Toggle`, so VoiceOver reads its caption and state as one control.
+/// Feedback used an image-only button with the caption beside it, which
+/// VoiceOver announced as an unnamed button.
+struct UploadConsentToggle: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("I want to help improve MonOCR")
+                    .font(MonTheme.Typography.secondary)
+                    .fontWeight(.medium)
+                Text("Submitting uploads the text and any attached image or PDF to the MonDevHub feedback service, where they are used to check and improve the model.")
+                    .font(MonTheme.Typography.meta)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .tint(.accentColor)
+    }
+}
+
 typealias Unit = () -> Void

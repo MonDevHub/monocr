@@ -22,7 +22,7 @@ final class FeedbackViewModel: ObservableObject {
     }
     
     var isSubmitDisabled: Bool {
-        correctedText.isEmpty || !consent
+        !SubmissionRules.canSubmitFeedback(correctedText: correctedText, consent: consent)
     }
 
     func handleSelectedPDF(at url: URL) {

@@ -13,43 +13,47 @@ struct PrivacyView: View {
                             .font(MonTheme.Typography.title)
                             .fontWeight(.bold)
                         
-                        Text("Effective Date: March 21, 2026")
+                        Text("Effective Date: October 29, 2026")
                             .font(MonTheme.Typography.meta)
                             .foregroundColor(.secondary)
                     }
                     .padding(.bottom, 8)
                     
+                    // What the code does, checked against SyncService: scans are
+                    // never uploaded, Feedback and Contribute are, on submit. This
+                    // screen said nothing was transmitted, and that images went to
+                    // the Neural Engine, which has never been checked on a device.
                     VStack(spacing: 8) {
                         PrivacySectionCard(
                             icon: "lock.fill",
-                            title: "1. Zero Data Collection Promise",
-                            content: "MonOCR is built from the ground up for absolute privacy. Our edge-AI architecture ensures that 100% of optical character recognition (OCR) processing occurs entirely on your device.\n\nWe do not use loud telemetry, we do not require an account, and we do not transmit your photos or documents to any external server."
+                            title: "1. Scans stay on your device",
+                            content: "MonOCR reads text on your device with Core ML. The images, PDFs and camera photos you scan, and the text read from them, are not sent anywhere unless you include them in Feedback or a contribution (section 3). There is no account and no analytics."
                         )
-                        
+
                         PrivacySectionCard(
-                            icon: "icloud.slash.fill",
-                            title: "2. Processing of Images",
-                            content: "Any images you select from your library or capture via your camera are loaded straight into the Neural Processing Unit (ANE) on your local hardware. The original image and the generated text extraction both remain isolated in your device's memory."
+                            icon: "clock.arrow.circlepath",
+                            title: "2. Scan history",
+                            content: "Scans are saved in the app's history on this device so you can open them again. You can delete them from the history at any time, and deleting the app deletes them."
                         )
-                        
+
                         PrivacySectionCard(
-                            icon: "checkmark.shield.fill",
-                            title: "3. Voluntary Contributions",
-                            content: "If you choose to use the \"Feedback\" or \"Contribute\" features, data is saved locally using SwiftData. It is not transmitted anywhere unless you manually choose to export and share those logs or screenshots with our engineering team."
+                            icon: "icloud.and.arrow.up",
+                            title: "3. Feedback and contributions are uploaded",
+                            content: "Feedback and Contribute are the only screens that send anything. When you submit one, its text and any image or PDF attached to it are uploaded to the MonDevHub feedback service, where they are used to check and improve the recognition model. Feedback starts with the scan you are reporting attached; you can change or remove it. Both screens ask for your consent first, and nothing is sent until you submit. Each submission is also kept in that screen's history, which shows whether it has been uploaded."
                         )
-                        
+
                         PrivacySectionCard(
                             icon: "doc.text.magnifyingglass",
                             title: "4. Diagnostic Data",
                             content: "To maintain privacy compliance, we do not use third-party cloud crash reporters. Diagnostic logs are written locally. You are in full control and can export them voluntarily if you encounter bugs."
                         )
-                        
+
                         PrivacySectionCard(
                             icon: "arrow.triangle.2.circlepath",
                             title: "5. Changes to Policy",
-                            content: "Because we do not collect data, we do not anticipate needing to update this policy often. Fundamental changes will be reflected in our open source repositories and in-app documentation."
+                            content: "Changes to this policy will be published in the project's open-source repository and on this screen."
                         )
-                        
+
                         PrivacySectionCard(
                             icon: "envelope.fill",
                             title: "6. Contact Us",

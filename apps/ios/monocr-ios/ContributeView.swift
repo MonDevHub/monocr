@@ -143,6 +143,8 @@ struct ContributeView: View {
     
     private var submitAction: some View {
         VStack(spacing: 24) {
+            UploadConsentToggle(isOn: $viewModel.consent)
+
             Button {
                 viewModel.submitContribution(context: modelContext)
                 selectedItem = nil

@@ -99,18 +99,19 @@ struct HistoryItemView: View {
                     Text(record.timestamp.formatted(.dateTime.month().day().hour().minute()))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
-                    
-                    Text("•")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary.opacity(0.5))
-                    
-                    HStack(spacing: 2) {
-                        Image(systemName: record.isSynced ? "cloud.checkmark" : "cloud.arrow.up")
+
+                    // Only rows that are uploaded get an upload badge. Every scan
+                    // row showed "Pending" with an upload cloud, for a scan that
+                    // never leaves the device.
+                    if let badge = SyncPolicy.badge(
+                        category: record.category, isSynced: record.isSynced, attempts: record.syncAttempts) {
+                        Text("•")
                             .font(.system(size: 10))
-                        Text(record.isSynced ? "Synced" : "Pending")
-                            .font(.system(size: 10))
+                            .foregroundColor(.secondary.opacity(0.5))
+                            .accessibilityHidden(true)
+
+                        SyncBadgeView(badge: badge)
                     }
-                    .foregroundColor(record.isSynced ? .accentColor.opacity(0.8) : .secondary.opacity(0.7))
                 }
             }
             
@@ -141,6 +142,45 @@ struct HistoryItemView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Record: \(record.fileName), dated \(record.timestamp.formatted())")
         .accessibilityHint("Double tap to view details")
+    }
+}
+
+private struct SyncBadgeView: View {
+    let badge: SyncPolicy.Badge
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .accessibilityHidden(true)
+            text
+                .font(.system(size: 10))
+        }
+        .foregroundColor(color)
+    }
+
+    private var icon: String {
+        switch badge {
+        case .synced: return "checkmark.icloud"
+        case .pending: return "icloud.and.arrow.up"
+        case .failed: return "exclamationmark.icloud"
+        }
+    }
+
+    private var text: Text {
+        switch badge {
+        case .synced: return Text("Synced")
+        case .pending: return Text("Pending")
+        case .failed: return Text("Upload failed")
+        }
+    }
+
+    private var color: Color {
+        switch badge {
+        case .synced: return .accentColor
+        case .pending: return .secondary
+        case .failed: return MonTheme.error
+        }
     }
 }
 
