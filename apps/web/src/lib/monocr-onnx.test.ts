@@ -509,11 +509,23 @@ describe('recognizing a page', () => {
 		const page = await engine.recognize(bytes());
 
 		expect(run).toHaveBeenCalledTimes(3);
-		expect(page).toEqual({
+		expect(page).toMatchObject({
 			text: `${CHARSET[0]}${CHARSET[1]}\n${CHARSET[0]}${CHARSET[1]}`,
 			lineCount: 3,
 			failedLineCount: 1
 		});
+	});
+
+	it('returns what it measured about the capture on the reading, not only to the console', async () => {
+		// The production build strips console output, so a warning that stays there
+		// never reaches the person. The blank fixture canvas is soft and its bands
+		// are short, which assessCapture flags.
+		const { engine } = engineReading([text, text, text]);
+
+		const page = await engine.recognize(bytes());
+
+		expect(page.captureWarnings?.length).toBeGreaterThan(0);
+		expect(page.captureWarnings?.join(' ')).toMatch(/soft/);
 	});
 
 	it('fails a page on which every band failed, instead of returning it blank', async () => {
@@ -527,7 +539,7 @@ describe('recognizing a page', () => {
 	it('returns a partial page, not an error, when some bands failed and the rest read blank', async () => {
 		const { engine } = engineReading([broken(), blank]);
 
-		await expect(engine.recognize(bytes())).resolves.toEqual({
+		await expect(engine.recognize(bytes())).resolves.toMatchObject({
 			text: '',
 			lineCount: 2,
 			failedLineCount: 1

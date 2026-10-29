@@ -310,3 +310,94 @@ describe('recognising a timeout', () => {
 		expect(isTimeout(null)).toBe(false);
 	});
 });
+
+describe('capture warnings on a reading', () => {
+	const clean: PageReading = { text: 'a', lineCount: 1, failedLineCount: 0 };
+
+	it('assemblePage carries the capture notes and omits empty ones', () => {
+		const page = assemblePage([{ state: 'read', text: 'a' }], {
+			captureWarnings: ['The image is soft'],
+			fusedBandCount: 2
+		});
+		expect(page.captureWarnings).toEqual(['The image is soft']);
+		expect(page.fusedBandCount).toBe(2);
+		expect(assemblePage([{ state: 'read', text: 'a' }])).toEqual(clean);
+	});
+
+	it('pageWarnings reports a soft capture even when every line was read', () => {
+		const warnings = pageWarnings({ ...clean, captureWarnings: ['The image is soft'] });
+		expect(warnings).toEqual(['The image is soft']);
+	});
+
+	it('pageWarnings reports fused bands', () => {
+		const warnings = pageWarnings({ ...clean, fusedBandCount: 3 });
+		expect(warnings).toHaveLength(1);
+		expect(warnings[0]).toMatch(/3 block\(s\).*several lines read as one/);
+	});
+
+	it('combinePages names the pages a capture note applies to, once per note', () => {
+		const soft = { ...clean, captureWarnings: ['The image is soft'] };
+		const { warnings } = combinePages([
+			{ pageNumber: 1, status: 'read', reading: soft },
+			{ pageNumber: 2, status: 'read', reading: clean },
+			{ pageNumber: 3, status: 'read', reading: soft }
+		]);
+		expect(warnings).toEqual(['Page(s) 1, 3: The image is soft']);
+	});
+});
+
+describe('readPdfPages progress and cancellation', () => {
+	const reading: PageReading = { text: 'a', lineCount: 1, failedLineCount: 0 };
+
+	it('reports each page as it starts', async () => {
+		const seen: Array<[number, number]> = [];
+		await readPdfPages(
+			3,
+			async (n) => n,
+			async () => reading,
+			() => {},
+			{ onPage: (n, total) => seen.push([n, total]) }
+		);
+		expect(seen).toEqual([
+			[1, 3],
+			[2, 3],
+			[3, 3]
+		]);
+	});
+
+	it('stops after the page in flight once cancelled, and starts no further page', async () => {
+		let cancelled = false;
+		const rendered: number[] = [];
+		const pages = await readPdfPages(
+			14,
+			async (n) => {
+				rendered.push(n);
+				return n;
+			},
+			async (n) => {
+				if (n === 2) cancelled = true;
+				return reading;
+			},
+			() => {},
+			{ isCancelled: () => cancelled }
+		);
+		expect(rendered).toEqual([1, 2]);
+		expect(pages.map((p) => p.pageNumber)).toEqual([1, 2]);
+	});
+
+	it('does not recognise a page that was rendered after the cancel', async () => {
+		let cancelled = false;
+		const recognise = vi.fn(async () => reading);
+		await readPdfPages(
+			2,
+			async () => {
+				cancelled = true;
+				return 1;
+			},
+			recognise,
+			() => {},
+			{ isCancelled: () => cancelled }
+		);
+		expect(recognise).not.toHaveBeenCalled();
+	});
+});

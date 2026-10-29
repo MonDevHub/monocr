@@ -665,7 +665,8 @@ export class MonOcrOnnx {
 		// was a regression this call introduced. Assessed here, before the
 		// whole-page fallback below, so an empty result is reported as "no lines
 		// found" rather than hidden by the fallback that replaces it.
-		for (const warning of assessCapture(imageData, segments).warnings) {
+		const { qualityWarnings: captureWarnings } = assessCapture(imageData, segments);
+		for (const warning of captureWarnings) {
 			console.warn(`[monocr-onnx] capture: ${warning}`);
 		}
 
@@ -680,6 +681,9 @@ export class MonOcrOnnx {
 			segments = [{ ...whole, lineShaped: looksLikeALine(whole, fullBitmap.height) }];
 		}
 
+		// Counted after the fallback, so a whole page read as one band is included.
+		const fusedBandCount = segments.filter((seg) => seg.lineShaped === false).length;
+
 		const lines: LineReading[] = [];
 
 		// 4. Process each line. A line that fails is recorded and the rest are still
@@ -692,9 +696,8 @@ export class MonOcrOnnx {
 				// reading it as one returns text that appears nowhere on the page —
 				// upstream measured exactly that at confidence 0.83, so confidence
 				// cannot be the filter. Logged rather than dropped, because the band
-				// still carries text a reader may want. The flag is not yet on the
-				// worker's RESULT payload; surfacing it in the UI means adding it to
-				// PageReading.
+				// still carries text a reader may want. The count is returned on the
+				// reading (fusedBandCount), so the page can say so.
 				if (seg.lineShaped === false) {
 					console.warn(
 						`[monocr-onnx] band ${seg.width}x${seg.height} at (${seg.x},${seg.y}) is not ` +
@@ -745,7 +748,9 @@ export class MonOcrOnnx {
 			fullBitmap.close();
 		}
 
-		return assemblePage(lines);
+		// The capture notes ride on the reading: the production build strips
+		// console output, so a console.warn alone never reaches the person.
+		return assemblePage(lines, { captureWarnings, fusedBandCount });
 	}
 
 	/**

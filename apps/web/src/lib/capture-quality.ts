@@ -82,6 +82,14 @@ export interface CaptureAssessment {
 	lineCount: number;
 	/** Human-readable problems, most consequential first. Empty means nothing to say. */
 	warnings: string[];
+	/**
+	 * `warnings` without the fused-band sentence. The page reports fused bands
+	 * itself, from the final segment list, which also counts the whole-page
+	 * fallback band that is assessed after this function runs.
+	 */
+	qualityWarnings: string[];
+	/** Bands that are not line-shaped. */
+	fusedBandCount: number;
 }
 
 /**
@@ -171,6 +179,7 @@ export function assessCapture(image: ImageData, segments?: LineSegment[]): Captu
 		);
 	}
 
+	const qualityWarnings = [...warnings];
 	const fused = segments.filter((s) => s.lineShaped === false).length;
 	if (fused > 0) {
 		warnings.push(
@@ -179,5 +188,12 @@ export function assessCapture(image: ImageData, segments?: LineSegment[]): Captu
 		);
 	}
 
-	return { sharpness, medianLineHeight, lineCount: segments.length, warnings };
+	return {
+		sharpness,
+		medianLineHeight,
+		lineCount: segments.length,
+		warnings,
+		qualityWarnings,
+		fusedBandCount: fused
+	};
 }
