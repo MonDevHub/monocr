@@ -5,6 +5,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -74,9 +76,18 @@ fun ResultView(
     result: OcrResult,
     originalUri: Uri? = null,
     fileType: String = "image/jpeg",
-    onNavigateToFeedback: (String, Uri?) -> Unit = { _, _ -> }
+    onNavigateToFeedback: (String, Uri?) -> Unit = { _, _ -> },
+    onSaved: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
+    // Save goes where the user chooses, through the system file picker. It used to
+    // write to the app's private external folder, which file managers on Android 11+
+    // do not show and an uninstall deletes, and it swallowed every failure.
+    val saveLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri != null) onSaved(writeTextTo(context, uri, result.text))
+    }
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     var copied by remember { mutableStateOf(false) }
@@ -192,7 +203,7 @@ fun ResultView(
                         horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
                     ) {
                         ResultActionButton(
-                            onClick = { saveTextToFile(context, result.text) },
+                            onClick = { saveLauncher.launch(suggestedFileName()) },
                             icon = Icons.Outlined.Download,
                             label = stringResource(R.string.save_text)
                         )
@@ -233,9 +244,11 @@ private fun ResultActionButton(
         onClick = onClick,
         modifier = Modifier.height(40.dp)
     ) {
+        // The Text beside it labels the button; a description here too made TalkBack
+        // read every action twice.
         Icon(
             icon,
-            contentDescription = label,
+            contentDescription = null,
             modifier = Modifier.size(16.dp),
             tint = tint
         )
@@ -281,23 +294,18 @@ private fun shareText(context: Context, text: String) {
     context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_chooser_title)))
 }
 
-private fun saveTextToFile(context: Context, text: String) {
-    try {
-        val sdf = SimpleDateFormat("yyyyMMdd_HH_mm_ss", Locale.getDefault())
-        val filename = "monocr-${sdf.format(Date())}.txt"
-        val file = File(context.getExternalFilesDir(null), filename)
-        file.writeText(text, Charsets.UTF_8)
+private fun suggestedFileName(): String =
+    "monocr-${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.txt"
 
-        @Suppress("SpellCheckingInspection")
-        val uri = androidx.core.content.FileProvider.getUriForFile(
-            context, "${context.packageName}.fileprovider", file
-        )
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "text/plain")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        context.startActivity(Intent.createChooser(intent, context.getString(R.string.open_file_chooser_title)))
-    } catch (_: Exception) { /* ignore */ }
+/** Writes [text] as UTF-8 to [uri]; false when the destination could not be written. */
+internal fun writeTextTo(context: Context, uri: Uri, text: String): Boolean = try {
+    context.contentResolver.openOutputStream(uri, "wt")?.use {
+        it.write(text.toByteArray(Charsets.UTF_8))
+        true
+    } ?: false
+} catch (e: Exception) {
+    dev.janakhpon.monocr.util.MonLogger.e("saving the result failed", e)
+    false
 }
 
 @Composable

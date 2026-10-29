@@ -1,5 +1,6 @@
 package dev.janakhpon.monocr.ui.screens
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -41,6 +42,8 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -79,6 +82,7 @@ import dev.janakhpon.monocr.ui.components.OcrErrorView
 import dev.janakhpon.monocr.ui.components.PickerView
 import dev.janakhpon.monocr.ui.components.ProcessingView
 import dev.janakhpon.monocr.ui.components.SkeletonResultCard
+import dev.janakhpon.monocr.util.FileUtil
 import dev.janakhpon.monocr.util.PdfUtil
 import dev.janakhpon.monocr.util.orientBitmap
 import kotlinx.coroutines.CancellationException
@@ -163,6 +167,11 @@ fun HomeScreen(
         scope.launch { loadAndProcess(context, uri, viewModel, chooseMode = ::galleryModeFor) }
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val savedMessage = stringResource(R.string.save_done)
+    val saveFailedMessage = stringResource(R.string.save_failed)
+    val noCameraMessage = stringResource(R.string.camera_unavailable)
+
     val scanHistory by viewModel.scanHistory.collectAsState()
     val segmentationMode by viewModel.segmentationMode.collectAsState()
     val rerunnableImage by viewModel.rerunnableImage.collectAsState()
@@ -175,7 +184,8 @@ fun HomeScreen(
                 title = "MonOCR",
                 onMenuClick = onMenuClick
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Box(modifier = Modifier
             .fillMaxSize()
@@ -215,7 +225,11 @@ fun HomeScreen(
                                 // permission is involved.
                                 val uri = createCameraUri(context)
                                 cameraUri = uri
-                                cameraLauncher.launch(uri)
+                                try {
+                                    cameraLauncher.launch(uri)
+                                } catch (_: ActivityNotFoundException) {
+                                    scope.launch { snackbarHostState.showSnackbar(noCameraMessage) }
+                                }
                             }
                         )
                         is UiState.Processing   -> {
@@ -229,7 +243,12 @@ fun HomeScreen(
                             result    = state.result,
                             originalUri = state.originalUri,
                             fileType = state.fileType,
-                            onNavigateToFeedback = onNavigateToFeedback
+                            onNavigateToFeedback = onNavigateToFeedback,
+                            onSaved = { ok ->
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(if (ok) savedMessage else saveFailedMessage)
+                                }
+                            }
                         )
                         is UiState.OcrError     -> OcrErrorView(
                             imageUri = state.imageUri,
@@ -408,7 +427,11 @@ internal data class ImportPreparationOps(
     val fileSize: suspend (Context, Uri) -> Long,
     val isPdf: suspend (Context, Uri) -> Boolean,
     val preparePdfPreview: suspend (Context, Uri, ImportPreparationResources) -> PreparedPdfPreview,
-    val decodeImage: suspend (Context, Uri, ImportPreparationResources) -> Bitmap?
+    val decodeImage: suspend (Context, Uri, ImportPreparationResources) -> Bitmap?,
+    /** The name the history shows: the provider's display name, not a URI segment. */
+    val displayName: suspend (Context, Uri) -> String? = { context, uri ->
+        withContext(Dispatchers.IO) { runCatching { FileUtil.getFileName(context, uri) }.getOrNull() }
+    }
 )
 
 private val defaultImportPreparationOps = ImportPreparationOps(
@@ -493,9 +516,11 @@ internal suspend fun loadAndProcess(
             return
         }
 
+        val fileName = preparation.displayName(context, uri)
+
         if (preparation.isPdf(context, uri)) {
             val preview = preparation.preparePdfPreview(context, uri, resources)
-            viewModel.onPdfSelected(context, uri, preview.uri, token, resources.previewFile)
+            viewModel.onPdfSelected(context, uri, preview.uri, token, resources.previewFile, fileName)
             resources.previewFile = null
             return
         }
@@ -507,7 +532,7 @@ internal suspend fun loadAndProcess(
         } catch (e: SecurityException) { throw e
         } catch (e: Exception) { throw UnreadableImageException(e)
         } ?: throw UnreadableImageException()
-        viewModel.onImageSelected(uri, bitmap, chooseMode(bitmap), token)
+        viewModel.onImageSelected(uri, bitmap, chooseMode(bitmap), token, fileName)
         resources.bitmap = null // The job (or stale-import rejection) now owns recycling.
     } catch (e: CancellationException) {
         viewModel.cancelImport(token)

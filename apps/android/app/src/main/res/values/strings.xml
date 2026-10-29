@@ -23,6 +23,9 @@
     <string name="copied">Copied!</string>
     <string name="share_text">Share</string>
     <string name="save_text">Save</string>
+    <string name="save_done">Saved</string>
+    <string name="save_failed">Could not save the file</string>
+    <string name="camera_unavailable">No camera app is available on this device.</string>
     <string name="process_another">Process another image</string>
     <string name="segmentation_mode_label">Line detection</string>
     <string name="segmentation_mode_page">Page</string>

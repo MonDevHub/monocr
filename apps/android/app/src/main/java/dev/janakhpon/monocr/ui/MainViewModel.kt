@@ -115,7 +115,13 @@ class MainViewModel(private val repository: OcrPipeline) : ViewModel() {
         }
     }
 
-    fun onImageSelected(uri: Uri, bitmap: android.graphics.Bitmap, mode: SegmentationMode, token: Long = beginImport(uri)) {
+    fun onImageSelected(
+        uri: Uri,
+        bitmap: android.graphics.Bitmap,
+        mode: SegmentationMode,
+        token: Long = beginImport(uri),
+        fileName: String? = null
+    ) {
         if (!generations.isCurrent(token)) { bitmap.recycle(); return }
         scanJob = viewModelScope.launch {
             _uiState.value = UiState.Processing(uri)
@@ -129,7 +135,7 @@ class MainViewModel(private val repository: OcrPipeline) : ViewModel() {
                 // that must not also drop the history row for a scan the user saw.
                 withContext(NonCancellable) {
                     repository.saveToHistory(
-                        fileName = uri.lastPathSegment ?: "scan",
+                        fileName = fileName ?: "scan",
                         fileType = "image/jpeg",
                         text = result.text,
                         durationMs = result.durationMs,
@@ -152,7 +158,14 @@ class MainViewModel(private val repository: OcrPipeline) : ViewModel() {
         }.also { job -> job.invokeOnCompletion { bitmap.recycle() } }
     }
 
-    fun onPdfSelected(context: android.content.Context, uri: Uri, previewUri: Uri?, token: Long = beginImport(uri), previewFile: File? = null) {
+    fun onPdfSelected(
+        context: android.content.Context,
+        uri: Uri,
+        previewUri: Uri?,
+        token: Long = beginImport(uri),
+        previewFile: File? = null,
+        fileName: String? = null
+    ) {
         if (!generations.isCurrent(token)) { previewFile?.delete(); return }
         currentPreviewFile = previewFile
         scanJob = viewModelScope.launch {
@@ -168,7 +181,7 @@ class MainViewModel(private val repository: OcrPipeline) : ViewModel() {
                 // As for images: a later import must not cancel this insert.
                 withContext(NonCancellable) {
                     repository.saveToHistory(
-                        fileName = uri.lastPathSegment ?: "document.pdf",
+                        fileName = fileName ?: "document.pdf",
                         fileType = "application/pdf",
                         text = result.text,
                         durationMs = result.durationMs,

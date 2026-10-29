@@ -42,6 +42,8 @@ The app uploads it once submitted, so the translation was removed rather than le
 | `drawer_version` | "Version %1$s" under the drawer title |
 | `docs_contributors` | Docs section title |
 | `opens_in_browser` | TalkBack suffix on About links, "%1$s, opens in browser" |
+| `save_done`, `save_failed` | Snackbar after Save |
+| `camera_unavailable` | Snackbar when no camera app can take the picture |
 
 ## Already missing before this change
 
