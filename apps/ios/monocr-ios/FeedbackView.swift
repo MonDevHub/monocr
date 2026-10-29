@@ -36,6 +36,7 @@ struct FeedbackView: View {
                                     selectedItem = nil
                                 }
                                 .font(.caption)
+                                .frame(minHeight: 44)
                             }
                         } else {
                             Menu {
@@ -108,11 +109,12 @@ struct FeedbackView: View {
                                             .font(MonTheme.Typography.meta)
                                             .fontWeight(.bold)
                                             .padding(.horizontal, 12)
-                                            .padding(.vertical, 4)
+                                            .frame(minHeight: 44)
                                             .background(viewModel.selectedType == type ? Color.accentColor : Color(.secondarySystemBackground))
                                             .foregroundColor(viewModel.selectedType == type ? .white : .primary)
                                             .cornerRadius(4)
                                     }
+                                    .accessibilityAddTraits(viewModel.selectedType == type ? [.isSelected] : [])
                                 }
                             }
                         }
@@ -132,7 +134,7 @@ struct FeedbackView: View {
                             Text("Share Correction")
                                 .fontWeight(.bold)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 36) // Reduced from 40
+                                .frame(minHeight: 44)
                                 .background(viewModel.isSubmitDisabled ? Color.gray : Color.accentColor)
                                 .foregroundColor(.white)
                                 .cornerRadius(4)
@@ -144,7 +146,7 @@ struct FeedbackView: View {
                         }
                         .font(MonTheme.Typography.secondary)
                         .foregroundColor(.secondary)
-                        .padding(.vertical, 8)
+                        .frame(minHeight: 44)
 
                         // History Section for Feedback
                         HistorySection(title: "Accuracy Feedback", category: "feedback")

@@ -25,6 +25,7 @@ struct SideMenuView: View {
                 // Dimmed background
                 Color.black.opacity(0.25)
                     .ignoresSafeArea()
+                    .accessibilityHidden(true)
                     .onTapGesture {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                             isShowing = false
@@ -94,6 +95,14 @@ struct SideMenuView: View {
                         }
                     )
                     .ignoresSafeArea()
+                    // Keep VoiceOver inside the open menu, and let the escape
+                    // gesture (two-finger scrub) close it like the dimmed area does.
+                    .accessibilityAddTraits(.isModal)
+                    .accessibilityAction(.escape) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            isShowing = false
+                        }
+                    }
                     .transition(.move(edge: .leading))
                     
                     Spacer()

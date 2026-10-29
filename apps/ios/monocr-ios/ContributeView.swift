@@ -96,6 +96,7 @@ struct ContributeView: View {
                     }
                     .font(.caption)
                     .foregroundColor(.red)
+                    .frame(minHeight: 44)
                 }
                 .frame(maxWidth: .infinity)
             } else {
@@ -152,7 +153,7 @@ struct ContributeView: View {
                 Text("Submit Contribution")
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 40) // Reduced from 52
+                    .frame(minHeight: 44)
                     .background(viewModel.isSubmitDisabled ? Color.gray : Color.accentColor)
                     .foregroundColor(.white)
                     .cornerRadius(4) // Reduced from 12

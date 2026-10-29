@@ -3664,6 +3664,21 @@
     },
     "Feedback and Contribute are the only screens that send anything. When you submit one, its text and any image or PDF attached to it are uploaded to the MonDevHub feedback service, where they are used to check and improve the recognition model. Feedback starts with the scan you are reporting attached; you can change or remove it. Both screens ask for your consent first, and nothing is sent until you submit. Each submission is also kept in that screen's history, which shows whether it has been uploaded.": {
       "extractionState": "manual"
+    },
+    "New scan": {
+      "extractionState": "manual"
+    },
+    "Menu": {
+      "extractionState": "manual"
+    },
+    "Delete": {
+      "extractionState": "manual"
+    },
+    "Delete this item?": {
+      "extractionState": "manual"
+    },
+    "%lld words, %lld characters, %@ seconds": {
+      "extractionState": "manual"
     }
   },
   "version": "1.1"

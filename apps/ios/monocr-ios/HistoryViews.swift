@@ -31,6 +31,7 @@ struct HistorySection: View {
                     }
                     .font(MonTheme.Typography.meta)
                     .foregroundColor(.secondary)
+                    .frame(minHeight: 44)
                     .confirmationDialog("Are you sure?", isPresented: $showingClearConfirmation) {
                         Button("Clear All History", role: .destructive) {
                             clearAll()
@@ -51,10 +52,9 @@ struct HistorySection: View {
             } else {
                 VStack(spacing: 6) { // Reduced from 8
                     ForEach(history) { record in
-                        HistoryItemView(record: record)
-                            .onTapGesture {
-                                selectedRecord = record
-                            }
+                        HistoryItemView(record: record) {
+                            selectedRecord = record
+                        }
                     }
                 }
             }
@@ -71,77 +71,105 @@ struct HistorySection: View {
     }
 }
 
+/// One history row: a button that opens the record, and a separate delete
+/// button that asks first.
+///
+/// The row was a plain view with `.onTapGesture`, so VoiceOver did not call it a
+/// button, and `.accessibilityElement(children: .combine)` folded the trash
+/// button into it, leaving delete unreachable. The trash glyph was a 14pt
+/// borderless target that deleted on touch with no way back.
 struct HistoryItemView: View {
     let record: HistoryRecord
+    let onOpen: () -> Void
     @Environment(\.modelContext) private var modelContext
-    @State private var isPressed = false
-    
+    @State private var confirmingDelete = false
+
     var body: some View {
-        HStack(spacing: 12) {
-            // Icon
-            ZStack {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.accentColor.opacity(0.15))
-                    .frame(width: 40, height: 40)
-                
-                Image(systemName: "doc.text")
-                    .font(.system(size: 18))
-                    .foregroundColor(.accentColor)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(record.fileName)
-                    .font(MonTheme.Typography.meta)
-                    .fontWeight(.bold)
-                    .lineLimit(1)
-                
-                HStack(spacing: 6) {
-                    Text(record.timestamp.formatted(.dateTime.month().day().hour().minute()))
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+        HStack(spacing: 4) {
+            Button(action: onOpen) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.accentColor.opacity(0.15))
+                            .frame(width: 40, height: 40)
 
-                    // Only rows that are uploaded get an upload badge. Every scan
-                    // row showed "Pending" with an upload cloud, for a scan that
-                    // never leaves the device.
-                    if let badge = SyncPolicy.badge(
-                        category: record.category, isSynced: record.isSynced, attempts: record.syncAttempts) {
-                        Text("•")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary.opacity(0.5))
-                            .accessibilityHidden(true)
-
-                        SyncBadgeView(badge: badge)
+                        Image(systemName: "doc.text")
+                            .font(.system(size: 18))
+                            .foregroundColor(.accentColor)
                     }
+                    .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(verbatim: record.fileName)
+                            .font(MonTheme.Typography.meta)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+
+                        HStack(spacing: 6) {
+                            Text(record.timestamp.formatted(.dateTime.month().day().hour().minute()))
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+
+                            // Only rows that are uploaded get an upload badge. Every scan
+                            // row showed "Pending" with an upload cloud, for a scan that
+                            // never leaves the device.
+                            if let badge = SyncPolicy.badge(
+                                category: record.category, isSynced: record.isSynced, attempts: record.syncAttempts) {
+                                Text(verbatim: "•")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.secondary.opacity(0.5))
+                                    .accessibilityHidden(true)
+
+                                SyncBadgeView(badge: badge)
+                            }
+                        }
+                    }
+
+                    Spacer(minLength: 0)
                 }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
-            
-            Spacer()
-            
+            .buttonStyle(PressableRowStyle())
+            .accessibilityHint("Double tap to view details")
+
             Button {
-                modelContext.delete(record)
+                confirmingDelete = true
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 14))
-                    .foregroundColor(.red.opacity(0.7))
+                    .font(.system(size: 16))
+                    .foregroundColor(MonTheme.error)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel("Delete")
+            .confirmationDialog("Delete this item?", isPresented: $confirmingDelete, titleVisibility: .visible) {
+                Button("Delete", role: .destructive) {
+                    modelContext.delete(record)
+                }
+            }
         }
-        .padding(10) // Reduced from 12
+        .padding(.vertical, 6)
+        .padding(.leading, 10)
+        .padding(.trailing, 2)
         .background(MonTheme.surfaceColor.opacity(0.6))
-        .cornerRadius(6) // Reduced from 8
+        .cornerRadius(6)
         .overlay(
             RoundedRectangle(cornerRadius: 6)
-                .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
         )
-        .contentShape(Rectangle())
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(.spring(response: 0.2, dampingFraction: 0.6), value: isPressed)
-        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
-            withAnimation { self.isPressed = pressing }
-        }, perform: {})
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Record: \(record.fileName), dated \(record.timestamp.formatted())")
-        .accessibilityHint("Double tap to view details")
+    }
+}
+
+/// The press feedback the row had through a long-press gesture, which fought
+/// the tap; a button style gives it without a second gesture.
+private struct PressableRowStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 

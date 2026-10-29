@@ -73,14 +73,17 @@ struct ContentView: View {
                         Button {
                             withAnimation { viewModel.clearResult(modelContext: modelContext); selectedItem = nil }
                         } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 18, weight: .semibold)) // Smaller icon
-                                .frame(width: 44, height: 44) // 44x44 standard but compact
+                            // `plus`, not `arrow.clockwise`: this clears the result for
+                            // a new scan, it does not re-read the current one.
+                            Image(systemName: "plus")
+                                .font(.system(size: 18, weight: .semibold))
+                                .frame(width: 44, height: 44)
                                 .background(Color.accentColor)
                                 .foregroundColor(.white)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .shadow(color: Color.accentColor.opacity(0.2), radius: 4, x: 0, y: 2) // Lighter shadow
                         }
+                        .accessibilityLabel("New scan")
                         .padding(24)
                         .transition(.scale.combined(with: .opacity))
                     }
@@ -130,6 +133,7 @@ struct ContentView: View {
                                     .foregroundColor(.accentColor)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
+                                    .frame(minHeight: 44)
                                     .background(Color.accentColor.opacity(0.1))
                                     .clipShape(Capsule())
                             }
@@ -150,7 +154,10 @@ struct ContentView: View {
                     } label: {
                         Image(systemName: "line.3.horizontal")
                             .font(.system(size: 18, weight: .semibold))
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("Menu")
                 }
                 ToolbarItem(placement: .principal) {
                     if viewModel.selectedImage != nil {
@@ -166,7 +173,10 @@ struct ContentView: View {
                         showAbout = true
                     } label: {
                         Image(systemName: "info.circle")
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("About")
                 }
             }
             .sheet(isPresented: $showAbout) {

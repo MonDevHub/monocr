@@ -20,6 +20,9 @@ struct ResultCardView: View {
                     StatChip(label: "\(result.charCount) ch")
                     StatChip(label: "\(result.durationMs)ms")
                 }
+                // Read aloud as words: the chips alone came out as "12 w", "340 ch".
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text("\(result.wordCount) words, \(result.charCount) characters, \(seconds) seconds"))
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -53,6 +56,8 @@ struct ResultCardView: View {
                         Label("Save", systemImage: "arrow.down.circle")
                             .font(MonTheme.Typography.meta)
                         .fontWeight(.medium)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .padding(.trailing, 12)
 
@@ -61,6 +66,8 @@ struct ResultCardView: View {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .font(MonTheme.Typography.meta)
                         .fontWeight(.medium)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .padding(.trailing, 12)
 
@@ -82,6 +89,8 @@ struct ResultCardView: View {
                         .font(MonTheme.Typography.meta)
                         .fontWeight(.medium)
                         .foregroundColor(showCopyToast ? .green : .accentColor)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 
                 // Report Issue
@@ -92,12 +101,15 @@ struct ResultCardView: View {
                         Label("Report", systemImage: "info.circle")
                             .font(MonTheme.Typography.meta)
                             .fontWeight(.medium)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                     .padding(.leading, 8)
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8) // Reduced from 12
+            // Each action is at least 44pt tall; the labels alone were about 30.
+            .frame(minHeight: 44)
             .background(Color(.systemGroupedBackground).opacity(0.6))
         }
         .background(Color(.secondarySystemBackground))
@@ -108,6 +120,10 @@ struct ResultCardView: View {
         )
     }
     
+    private var seconds: String {
+        (Double(result.durationMs) / 1000).formatted(.number.precision(.fractionLength(1)))
+    }
+
     private func StatChip(label: String) -> some View {
         Text(label)
             .font(.system(size: 11, weight: .medium, design: .monospaced))
