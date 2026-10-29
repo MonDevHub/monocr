@@ -151,20 +151,11 @@ internal fun ContributeContent(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                     border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    val isImage = context.contentResolver.getType(uri)?.startsWith("image/") ?: false
-                    if (isImage) {
-                        AsyncImage(
-                            model = uri,
-                            contentDescription = stringResource(R.string.selected_image),
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        PdfPreviewList(
-                            uri = uri,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                    SelectedFilePreview(
+                        uri = uri,
+                        mimeType = context.contentResolver.getType(uri),
+                        name = FileUtil.getFileName(context, uri)
+                    )
                 }
             }
 
@@ -250,4 +241,38 @@ internal fun ContributeContent(
         )
     }
 
+}
+
+/**
+ * What the picked file looks like: the image, the PDF's pages, or, for a text or Word
+ * file, its icon and name. Every non-image used to go to the PDF renderer, which put a
+ * red "PDF preview unavailable" under a perfectly good .txt.
+ */
+@Composable
+internal fun SelectedFilePreview(uri: Uri, mimeType: String?, name: String?) {
+    when {
+        mimeType?.startsWith("image/") == true -> AsyncImage(
+            model = uri,
+            contentDescription = stringResource(R.string.selected_image),
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        mimeType == "application/pdf" -> PdfPreviewList(uri = uri, modifier = Modifier.fillMaxSize())
+        else -> Row(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Outlined.Description,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                name ?: stringResource(R.string.file_selected),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
 }

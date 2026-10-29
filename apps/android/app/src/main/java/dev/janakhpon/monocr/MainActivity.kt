@@ -27,6 +27,8 @@ import dev.janakhpon.monocr.engine.OcrRepository
 import dev.janakhpon.monocr.ui.ContributeViewModel
 import dev.janakhpon.monocr.ui.FeedbackViewModel
 import dev.janakhpon.monocr.ui.MainViewModel
+import dev.janakhpon.monocr.ui.baseRoute
+import dev.janakhpon.monocr.ui.finishIntro
 import dev.janakhpon.monocr.ui.screens.AboutScreen
 import dev.janakhpon.monocr.ui.screens.ContributeScreen
 import dev.janakhpon.monocr.ui.screens.DocsScreen
@@ -87,7 +89,7 @@ class MainActivity : AppCompatActivity() {
                 val drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
                 val scope = androidx.compose.runtime.rememberCoroutineScope()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
+                val currentRoute = baseRoute(navBackStackEntry?.destination?.route)
                 val startDestination = remember {
                     if (prefManager.isOnboardingCompleted) "home" else "intro"
                 }
@@ -100,7 +102,7 @@ class MainActivity : AppCompatActivity() {
                     val uri = share ?: return@LaunchedEffect
                     vm.offerSharedImage(uri)
                     incomingShare.value = null
-                    val route = navController.currentDestination?.route
+                    val route = baseRoute(navController.currentDestination?.route)
                     if (route != null && route != "home" && route != "intro") {
                         navController.navigate("home") {
                             popUpTo("home")
@@ -181,7 +183,11 @@ class MainActivity : AppCompatActivity() {
                                     viewModel = feedbackVm,
                                     originalText = text,
                                     sourceUriDefault = imageUri,
-                                    onMenuClick = { scope.launch { drawerState.open() } }
+                                    onMenuClick = { scope.launch { drawerState.open() } },
+                                    // Cancel leaves the screen; it used to open the drawer.
+                                    onCancel = {
+                                        if (!navController.popBackStack()) navController.navigate("home")
+                                    }
                                 )
                             }
                             composable("contribute?text={text}") { backStackEntry ->
@@ -198,9 +204,7 @@ class MainActivity : AppCompatActivity() {
                             composable("intro") {
                                 IntroScreen(onFinish = {
                                     prefManager.isOnboardingCompleted = true
-                                    navController.navigate("home") {
-                                        popUpTo("intro") { inclusive = true }
-                                    }
+                                    navController.finishIntro()
                                 })
                             }
                         }

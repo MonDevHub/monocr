@@ -27,6 +27,8 @@ fun AppDrawer(
     currentRoute: String?
 ) {
     val haptic = LocalHapticFeedback.current
+    // Callers may pass a registered pattern such as "feedback?text={text}".
+    val currentRoute = dev.janakhpon.monocr.ui.baseRoute(currentRoute)
     val showLanguagePicker = remember { mutableStateOf(false) }
 
     if (showLanguagePicker.value) {

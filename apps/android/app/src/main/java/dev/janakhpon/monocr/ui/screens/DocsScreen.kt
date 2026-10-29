@@ -171,8 +171,9 @@ fun DocsScreen(onMenuClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
                 OutlinedButton(
-                    onClick = { /* Open link */ },
+                    onClick = { uriHandler.openUri(MODEL_HUB_URL) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -227,6 +228,9 @@ fun DocsScreen(onMenuClick: () -> Unit) {
         }
     }
 }
+
+/** The model card the Model Hub section describes. */
+internal const val MODEL_HUB_URL = "https://huggingface.co/janakhpon/monocr"
 
 @Composable
 fun DocSection(
