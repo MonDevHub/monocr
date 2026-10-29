@@ -65,9 +65,7 @@ describe('theme tokens', () => {
 		});
 
 		it(`${name}: selected text reads on the selection background (4.5:1)`, () => {
-			expect(
-				contrast(hex(t['--fg-on-primary']), hex(t['--primary']))
-			).toBeGreaterThanOrEqual(4.5);
+			expect(contrast(hex(t['--fg-on-primary']), hex(t['--primary']))).toBeGreaterThanOrEqual(4.5);
 		});
 	}
 
