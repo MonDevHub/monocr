@@ -195,12 +195,19 @@ class OcrRepository(
      * A PDF render is a page of dense text by construction, so it gets
      * [SegmentationMode.PAGE] and the mode is not offered per page.
      */
-    override suspend fun performMultiPageOcr(context: Context, uri: android.net.Uri): OcrResult = withContext(Dispatchers.Default) {
+    override suspend fun performMultiPageOcr(
+        context: Context,
+        uri: android.net.Uri,
+        onPage: (page: Int, total: Int) -> Unit
+    ): OcrResult = withContext(Dispatchers.Default) {
         val startMs = System.currentTimeMillis()
         val pageCount = PdfUtil.getPageCount(context, uri)
         val pages = readDocumentPages(
             pageCount,
-            render = { index -> PdfUtil.renderPdfPageToBitmap(context, uri, index) },
+            render = { index ->
+                onPage(index + 1, pageCount)
+                PdfUtil.renderPdfPageToBitmap(context, uri, index)
+            },
             recognize = { bitmap -> performOcr(bitmap, SegmentationMode.PAGE) },
             release = { bitmap -> bitmap.recycle() }
         )

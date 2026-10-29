@@ -17,7 +17,12 @@ interface OcrPipeline {
     suspend fun initialize()
     fun getScanHistory(): Flow<List<HistoryRecord>>
     suspend fun performOcr(bitmap: Bitmap, mode: SegmentationMode = SegmentationMode.PAGE): OcrResult
-    suspend fun performMultiPageOcr(context: Context, uri: Uri): OcrResult
+    /** [onPage] is told each page (1-based) as it starts, with the page count. */
+    suspend fun performMultiPageOcr(
+        context: Context,
+        uri: Uri,
+        onPage: (page: Int, total: Int) -> Unit = { _, _ -> }
+    ): OcrResult
     suspend fun saveToHistory(
         fileName: String,
         fileType: String,

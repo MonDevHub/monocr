@@ -44,6 +44,8 @@ The app uploads it once submitted, so the translation was removed rather than le
 | `opens_in_browser` | TalkBack suffix on About links, "%1$s, opens in browser" |
 | `save_done`, `save_failed` | Snackbar after Save |
 | `camera_unavailable` | Snackbar when no camera app can take the picture |
+| `intro_page_state` | TalkBack state of the intro indicator, "Page %1$d of %2$d" |
+| `scan_progress` | "Reading page %1$d of %2$d" while a PDF is read |
 
 ## Already missing before this change
 

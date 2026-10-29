@@ -19,11 +19,15 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import java.io.File
 
+/** Page [page] of [total] is being read. */
+data class ScanProgress(val page: Int, val total: Int)
+
 sealed class UiState {
     data object Initializing : UiState()
     data class InitError(val message: String) : UiState()
     data object Ready : UiState()
-    data class Processing(val imageUri: Uri) : UiState()
+    /** [progress] is set while a multi-page document is read, page by page. */
+    data class Processing(val imageUri: Uri, val progress: ScanProgress? = null) : UiState()
     data class Success(val imageUri: Uri, val result: OcrResult, val originalUri: Uri? = null, val fileType: String = "image/jpeg") : UiState()
     data class OcrError(val imageUri: Uri, val failure: OcrFailure) : UiState()
 }
@@ -175,7 +179,16 @@ class MainViewModel(private val repository: OcrPipeline) : ViewModel() {
             _segmentationMode.value = SegmentationMode.PAGE
             _rerunnableImage.value = null
             try {
-                val result = repository.performMultiPageOcr(context, uri)
+                val shown = previewUri ?: uri
+                val result = repository.performMultiPageOcr(context, uri) { page, total ->
+                    // Called on the worker thread. Published on the main thread, and only
+                    // while this same scan is still the one in progress, so a page that
+                    // reports late cannot overwrite a reset or the finished result.
+                    viewModelScope.launch {
+                        if (generations.isCurrent(token) && _uiState.value is UiState.Processing)
+                            _uiState.value = UiState.Processing(shown, ScanProgress(page, total))
+                    }
+                }
                 if (!generations.isCurrent(token)) return@launch
                 _uiState.value = UiState.Success(previewUri ?: uri, result, uri, "application/pdf")
                 // As for images: a later import must not cancel this insert.

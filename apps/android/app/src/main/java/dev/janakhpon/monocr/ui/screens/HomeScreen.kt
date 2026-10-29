@@ -212,6 +212,9 @@ fun HomeScreen(
                                 fadeOut(tween(180))
                     },
                     label = "main_content",
+                    // Animate between kinds of state only: a page-progress update is a new
+                    // Processing value, and must not fade the whole view out and back in.
+                    contentKey = { it::class },
                     modifier = Modifier.fillMaxWidth()
                 ) { state ->
                     when (state) {
@@ -234,7 +237,13 @@ fun HomeScreen(
                         )
                         is UiState.Processing   -> {
                             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                                ProcessingView(imageUri = state.imageUri)
+                                // reset() cancels the scan job and invalidates its
+                                // generation, so a late result is never published.
+                                ProcessingView(
+                                    imageUri = state.imageUri,
+                                    progress = state.progress,
+                                    onCancel = viewModel::reset
+                                )
                                 SkeletonResultCard()
                             }
                         }

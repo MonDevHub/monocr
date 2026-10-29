@@ -71,7 +71,7 @@ class OcrFailureTest {
     }
 
     @Test fun `engine failures map to their own types`() {
-        pipeline.document = { _, _ -> throw EmptyPdfException() }
+        pipeline.document = { _, _, _ -> throw EmptyPdfException() }
         assertEquals(UiState.OcrError(uri, OcrFailure.PdfNoPages), import(ops(pdf = true)))
 
         pipeline.image = { _, _ -> throw LineInferenceException("all lines failed") }
