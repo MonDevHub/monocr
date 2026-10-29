@@ -276,6 +276,44 @@ body {
 	font-family: 'PyidaungSu', 'Myanmar Text', 'Padauk', 'Noto Sans Myanmar', sans-serif;
 }
 
+/* Interface text in Mon and Burmese. Only .font-mon (the recognised text) used to
+   get PyidaungSu; the nav, buttons and labels were set in Inter, which has no
+   Myanmar glyphs, so the OS fallback (Noto Sans Myanmar here) drew them, and
+   app.css itself warns that a local font may be an incomplete Pyidaungsu 1.x or
+   Zawgyi. Inter stays first so Latin text is unchanged; PyidaungSu comes before
+   any system font so Myanmar-script characters are drawn by the vetted 2.053.
+   It keys on <html lang>, which doc-lang.ts keeps current. */
+html:lang(mnw),
+html:lang(my) {
+	--font-display: 'Inter', 'PyidaungSu', 'Myanmar Text', 'Noto Sans Myanmar', system-ui, sans-serif;
+}
+
+/* Myanmar script has no capitals to shout and no word spaces to widen; added
+   letter-spacing pulls stacked consonants and medials apart. */
+html:lang(mnw) *,
+html:lang(my) * {
+	letter-spacing: normal;
+}
+
+/* Drop-zone feedback while a file is dragged over it. */
+.dropzone-active {
+	outline: 2px dashed var(--primary);
+	outline-offset: -8px;
+}
+
+/* People who ask for less motion get none of the spin, pulse, shimmer or
+   transitions; the loading state stays readable as text. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
 /* The text colour is the token paired with --primary, not a literal white: with a
    light --primary in dark mode, white-on-white made selected text unreadable. */
 ::selection {

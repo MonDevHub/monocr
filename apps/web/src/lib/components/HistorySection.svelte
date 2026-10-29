@@ -118,10 +118,9 @@
 							</div>
 
 							<div class="flex items-center gap-2">
-								{@const badge = syncBadge(record)}
-								{#if badge === 'synced'}
+								{#if syncBadge(record) === 'synced'}
 									<Badge type="success" label={m.history_synced()} icon="check_circle" />
-								{:else if badge === 'failed'}
+								{:else if syncBadge(record) === 'failed'}
 									<Badge type="error" label={m.history_failed()} icon="error" />
 									<button
 										onclick={async (e) => {
@@ -130,11 +129,11 @@
 											await syncService.syncAll();
 											await loadHistory();
 										}}
-										class="text-primary hover:text-primary/80 focus-ring ml-1 rounded-sm px-1 text-[9px] font-bold tracking-tighter uppercase underline underline-offset-2 transition-colors"
+										class="text-primary hover:text-primary/80 focus-ring ml-1 rounded-sm px-1 text-[11px] font-bold tracking-tighter uppercase underline underline-offset-2 transition-colors"
 									>
 										{m.history_retry()}
 									</button>
-								{:else if badge === 'pending'}
+								{:else if syncBadge(record) === 'pending'}
 									<Badge type="neutral" label={m.history_pending()} icon="progress_activity" />
 								{/if}
 							</div>

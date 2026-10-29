@@ -3,6 +3,7 @@ import * as m from '$lib/paraglide/messages.js';
 import { writable } from 'svelte/store';
 import { logger } from '$lib/logger';
 import { browser } from '$app/environment';
+import { applyDocumentLang } from '$lib/doc-lang';
 
 // Map runtime exports to consistent names
 export const sourceLanguageTag = runtime.baseLocale;
@@ -27,6 +28,7 @@ export const initLanguage = () => {
 		// 1. Try localStorage
 		const saved = localStorage.getItem('PARAGLIDE_LOCALE') as AvailableLanguageTag;
 		if (saved && availableLanguageTags.includes(saved)) {
+			applyDocumentLang(document.documentElement, saved);
 			runtime.setLocale(saved);
 			currentLang.set(saved);
 			return;
@@ -34,11 +36,9 @@ export const initLanguage = () => {
 
 		// 2. Try browser detection or Paraglide default
 		const detected = runtime.getLocale() as AvailableLanguageTag;
-		if (availableLanguageTags.includes(detected)) {
-			currentLang.set(detected);
-		} else {
-			currentLang.set(sourceLanguageTag);
-		}
+		const lang = availableLanguageTags.includes(detected) ? detected : sourceLanguageTag;
+		applyDocumentLang(document.documentElement, lang);
+		currentLang.set(lang);
 	} catch (error) {
 		logger.error('lang init failed:', error);
 	}
@@ -53,6 +53,10 @@ export const switchLanguage = async (lang: string) => {
 		}
 
 		const newLang = lang as AvailableLanguageTag;
+
+		// Before setLocale, which reloads the page: the attribute and the store are
+		// then right for the moment before the reload as well.
+		if (browser) applyDocumentLang(document.documentElement, newLang);
 
 		// Update runtime
 		await runtime.setLocale(newLang);

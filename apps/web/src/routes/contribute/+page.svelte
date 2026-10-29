@@ -82,9 +82,9 @@
 							/>
 						</div>
 						<div class="space-y-1">
-							<h3 class="text-fg-primary font-semibold tracking-tight text-[var(--text-secondary)]">
+							<p class="text-fg-primary font-semibold tracking-tight text-[var(--text-secondary)]">
 								{sourceFile ? sourceFile.name : m.action_upload_docs()}
-							</h3>
+							</p>
 						</div>
 					</div>
 				</ActionBox>
@@ -95,20 +95,20 @@
 				<div class="border-border flex-grow border-t opacity-30"></div>
 				<span
 					class="text-fg-muted mx-4 flex-shrink text-[10px] font-bold tracking-[0.3em] uppercase"
-					>OR</span
+					>{m.contribute_or()}</span
 				>
 				<div class="border-border flex-grow border-t opacity-30"></div>
 			</div>
 
 			<!-- Section 2: Textarea -->
 			<section class="mb-16">
-				<h3 class="zen-label mb-6">Type Mon Script</h3>
+				<h2 class="zen-label mb-6">{m.contribute_type_script()}</h2>
 				<div class="relative">
 					<textarea
 						bind:value={transcription}
 						class="focus-ring font-mon border-border bg-canvas placeholder:text-fg-muted w-full resize-y rounded-xl border p-5 leading-relaxed text-[var(--text-body)] transition-all duration-150 placeholder:text-[var(--text-meta)]"
 						rows="6"
-						placeholder="Example: မန်ဒိုင် (Type or paste the Mon script here)..."
+						placeholder={m.contribute_placeholder()}
 					></textarea>
 				</div>
 			</section>
@@ -120,18 +120,22 @@
 					disabled={(!transcription && !sourceFile) || loading}
 					class="btn-primary min-w-[160px]"
 				>
-					{loading ? 'Submitting...' : 'Submit Contribution'}
+					{loading ? m.contribute_submitting() : m.contribute_submit()}
 				</button>
 			</div>
 
-			<HistorySection bind:this={historySection} category="contribution" title="Contributions" />
+			<HistorySection
+				bind:this={historySection}
+				category="contribution"
+				title={m.contribute_history()}
+			/>
 		</div>
 	</main>
 
 	<SuccessModal
 		isOpen={showSuccessModal}
-		title="Contribution Received"
-		message="Thank you for contributing to the Mon language community! Your submission has been saved."
+		title={m.contribute_received_title()}
+		message={m.contribute_received_msg()}
 		onClose={() => {
 			showSuccessModal = false;
 		}}

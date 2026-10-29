@@ -14,6 +14,13 @@
 	let correctedText = $state('');
 	let previewUrl = $state<string | null>(null);
 	let selectedType = $state('Spelling');
+	// The value is what is saved; the label is what is shown.
+	const errorTypes = [
+		{ type: 'Spelling', label: () => m.report_type_spelling() },
+		{ type: 'Layout', label: () => m.report_type_layout() },
+		{ type: 'Formatting', label: () => m.report_type_formatting() },
+		{ type: 'Other', label: () => m.report_type_other() }
+	];
 	let consent = $state(false);
 	let sourceFile = $state<File | null>(null);
 	let sourceFileInput: HTMLInputElement;
@@ -103,7 +110,7 @@
 		</section>
 		<!-- Original Source Selection -->
 		<section class="mb-12">
-			<h3 class="zen-label mb-6">{m.action_upload_source()}</h3>
+			<h2 class="zen-label mb-6">{m.action_upload_source()}</h2>
 			<ActionBox onclick={() => sourceFileInput.click()} label={m.action_upload_source()}>
 				<input
 					bind:this={sourceFileInput}
@@ -131,7 +138,7 @@
 		{#if originalText}
 			<!-- Original Output Section -->
 			<section class="mb-12">
-				<h3 class="zen-label mb-6">Original Output</h3>
+				<h2 class="zen-label mb-6">{m.report_original_output()}</h2>
 				<div class="bg-canvas-subtle/20 overflow-hidden rounded-[var(--radius-huge)]">
 					<div class="p-4">
 						<div class="flex flex-col gap-4">
@@ -139,7 +146,7 @@
 								<div class="bg-canvas-subtle/40 relative h-[200px] w-full overflow-hidden rounded">
 									<img
 										src={previewUrl}
-										alt="Source Scan"
+										alt={m.report_source_alt()}
 										class="absolute inset-0 h-full w-full object-contain"
 										onerror={() => (previewUrl = null)}
 									/>
@@ -152,7 +159,7 @@
 							</p>
 							<div class="text-fg-muted flex items-center gap-2 text-[var(--text-meta)]">
 								<Icon name="info" size={14} />
-								<span>Report quality issues to help improve our model</span>
+								<span>{m.report_quality_hint()}</span>
 							</div>
 						</div>
 					</div>
@@ -163,18 +170,18 @@
 		<!-- Corrected Text Section -->
 		<section class="mb-12">
 			<div class="mb-6 flex items-center justify-between">
-				<h3 class="zen-label mb-0">Corrected Text</h3>
-				<span class="text-fg-muted text-[8px] font-bold tracking-widest uppercase"
-					>Human Verification</span
+				<h2 class="zen-label mb-0">{m.report_corrected_text()}</h2>
+				<span class="text-fg-muted text-[11px] font-bold tracking-widest uppercase"
+					>{m.report_human_verification()}</span
 				>
 			</div>
 			<div class="flex flex-col gap-3">
 				<label class="block">
 					<textarea
 						bind:value={correctedText}
-						class="focus-ring bg-canvas-subtle/30 hover:bg-canvas-subtle/50 focus:bg-canvas text-fg-primary placeholder:text-fg-muted block w-full resize-y rounded-[var(--radius-huge)] px-5 py-4 leading-relaxed text-[var(--text-body)] transition-all duration-150 outline-none placeholder:text-[var(--text-meta)]"
+						class="focus-ring bg-canvas-subtle/30 hover:bg-canvas-subtle/50 focus:bg-canvas font-mon text-fg-primary placeholder:text-fg-muted block w-full resize-y rounded-[var(--radius-huge)] px-5 py-4 leading-relaxed text-[var(--text-body)] transition-all duration-150 outline-none placeholder:text-[var(--text-meta)]"
 						rows="5"
-						placeholder="Corrected Mon script..."
+						placeholder={m.report_corrected_placeholder()}
 					></textarea>
 				</label>
 			</div>
@@ -182,9 +189,9 @@
 
 		<!-- Error Categories -->
 		<section class="mb-16">
-			<h3 class="zen-label mb-6">Error Type</h3>
+			<h2 class="zen-label mb-6">{m.report_error_type()}</h2>
 			<div class="flex flex-wrap gap-3">
-				{#each ['Spelling', 'Layout', 'Formatting', 'Other'] as type (type)}
+				{#each errorTypes as { type, label } (type)}
 					<button
 						onclick={() => (selectedType = type)}
 						class="hover:bg-canvas-subtle/60 focus-ring rounded-[var(--radius-lg)] px-5 py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all {selectedType ===
@@ -192,7 +199,7 @@
 							? 'bg-primary-action text-fg-on-primary shadow-sm hover:brightness-110'
 							: 'bg-canvas-subtle/30 text-fg-muted'}"
 					>
-						{type}
+						{label()}
 					</button>
 				{/each}
 			</div>
@@ -212,11 +219,10 @@
 				<div class="space-y-1.5">
 					<label
 						class="text-fg-primary cursor-pointer font-bold text-[var(--text-body)]"
-						for="consent">I want to help improve MonOCR</label
+						for="consent">{m.report_consent_label()}</label
 					>
 					<p class="text-fg-secondary leading-relaxed text-[var(--text-meta)]">
-						Allow this correction to be used for future model training and verification. We respect
-						your privacy according to our policies.
+						{m.report_consent_desc()}
 					</p>
 				</div>
 			</div>
@@ -226,24 +232,28 @@
 					disabled={!correctedText || !consent || loading}
 					class="btn-primary min-w-[140px]"
 				>
-					{loading ? 'Sharing...' : 'Share Correction'}
+					{loading ? m.report_sharing() : m.report_share()}
 				</button>
 				<button
 					onclick={handleCancel}
 					class="text-fg-secondary hover:text-fg-primary focus-ring rounded-sm px-2 py-1 text-[11px] font-bold tracking-wider uppercase transition-colors"
 				>
-					Cancel
+					{m.modal_cancel()}
 				</button>
 			</div>
 		</section>
 
-		<HistorySection bind:this={historySection} category="feedback" title="Past Feedback" />
+		<HistorySection
+			bind:this={historySection}
+			category="feedback"
+			title={m.report_past_feedback()}
+		/>
 	</main>
 
 	<SuccessModal
 		isOpen={showSuccessModal}
-		title="Feedback Received"
-		message="Thanks for helping us improve MonOCR! Your correction has been saved."
+		title={m.report_received_title()}
+		message={m.report_received_msg()}
 		onClose={() => {
 			showSuccessModal = false;
 		}}
