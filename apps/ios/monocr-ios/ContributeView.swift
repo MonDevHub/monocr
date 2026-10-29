@@ -59,7 +59,7 @@ struct ContributeView: View {
     private var heroHeader: some View {
         VStack(spacing: 4) { // Reduced from 8
             Image(systemName: "hand.raised.fill")
-                .font(.system(size: 32)) // Reduced from 40
+                .font(.largeTitle)
                 .foregroundColor(.accentColor)
                 .padding(.bottom, 4)
             
@@ -125,7 +125,7 @@ struct ContributeView: View {
         HStack {
             VStack { Divider() }
             Text("OR")
-                .font(.system(size: 10, weight: .bold))
+                .font(.caption2.weight(.bold))
                 .foregroundColor(.secondary.opacity(0.5))
                 .padding(.horizontal, 10)
             VStack { Divider() }

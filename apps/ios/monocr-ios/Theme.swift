@@ -14,13 +14,16 @@ struct MonTheme {
     static let warning = Color.orange
     static let error = Color.red
     
-    // Typography Constitution (20, 16, 14, 13, 12)
+    /// Text styles, so every size follows Dynamic Type. These were fixed
+    /// `Font.system(size:)` values (20, 14, 13, 12, 11) that never scaled; the
+    /// styles below are the same sizes at the default setting, except `section`,
+    /// which is 15 rather than 14 because no text style is 14.
     struct Typography {
-        static let title     = Font.system(size: 20, weight: .semibold)
-        static let section   = Font.system(size: 14, weight: .semibold) // Reduced from 16
-        static let body      = Font.system(size: 13, weight: .regular)  // Reduced from 14
-        static let secondary = Font.system(size: 12, weight: .medium)   // Reduced from 13
-        static let meta      = Font.system(size: 11, weight: .regular)  // Reduced from 12
+        static let title     = Font.title3.weight(.semibold)       // 20
+        static let section   = Font.subheadline.weight(.semibold)  // 15
+        static let body      = Font.footnote                       // 13
+        static let secondary = Font.caption.weight(.medium)        // 12
+        static let meta      = Font.caption2                       // 11
         
         /// Mon text. The name must be the font's own, and `Font.custom` fails
         /// **silently** to the system font when it is not.
@@ -36,8 +39,11 @@ struct MonTheme {
         /// Keep this string equal to nameID 6. Read it back with:
         ///   python3 -c "from fontTools.ttLib import TTFont; \
         ///     print([str(r) for r in TTFont('Fonts/pyidaungsu_regular.ttf')['name'].names if r.nameID==6])"
+        ///
+        /// `relativeTo: .body` scales it with Dynamic Type from `size` at the
+        /// default setting; it was fixed at every setting.
         static func monBody(size: CGFloat = 18) -> Font {
-            return Font.custom("Pyidaungsu", size: size)
+            return Font.custom("Pyidaungsu", size: size, relativeTo: .body)
         }
     }
 }

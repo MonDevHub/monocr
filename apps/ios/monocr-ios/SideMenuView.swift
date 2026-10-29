@@ -121,7 +121,7 @@ struct MenuButton: View {
         Button(action: action) {
             HStack(spacing: 16) {
                 Image(systemName: icon)
-                    .font(.system(size: 18))
+                    .font(.body)
                     .frame(width: 24)
                     .foregroundColor(.accentColor)
                 Text(title)

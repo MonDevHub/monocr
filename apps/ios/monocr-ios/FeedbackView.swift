@@ -70,7 +70,7 @@ struct FeedbackView: View {
                                 
                                 HStack(spacing: 6) {
                                     Image(systemName: "info.circle")
-                                        .font(.system(size: 10))
+                                        .font(.caption2)
                                     Text("Report quality issues to help improve our model")
                                         .font(MonTheme.Typography.meta)
                                 }
@@ -89,7 +89,7 @@ struct FeedbackView: View {
                             SectionHeader(title: "Corrected Text")
                             Spacer()
                             Text("VERIFIED BY HUMANS")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.caption2.weight(.bold))
                                 .foregroundColor(.secondary.opacity(0.5))
                         }
                         

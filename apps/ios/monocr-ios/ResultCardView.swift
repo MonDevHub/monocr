@@ -41,7 +41,6 @@ struct ResultCardView: View {
 
             // Content
             MonTextView(text: result.text)
-                .frame(height: 300) // Reduced from 350 for density
                 .background(Color(.systemBackground))
 
             Divider()
@@ -126,7 +125,7 @@ struct ResultCardView: View {
 
     private func StatChip(label: String) -> some View {
         Text(label)
-            .font(.system(size: 11, weight: .medium, design: .monospaced))
+            .font(.system(.caption2, design: .monospaced).weight(.medium))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(Color(.tertiarySystemFill))

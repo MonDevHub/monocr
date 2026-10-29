@@ -8,20 +8,18 @@ struct ActionButtonsView: View {
     let onImageSelected: (UIImage) -> Void
     let onFileTooLarge: () -> Void
     
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// Side by side normally; stacked at accessibility sizes, where three
+    /// columns broke the captions mid-word ("Galler/y", "Cam-era").
+    private var layout: AnyLayout {
+        typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 15))
+    }
+
     var body: some View {
-        HStack(spacing: 15) {
+        layout {
             PhotosPicker(selection: $selectedItem, matching: .images) {
-                VStack {
-                    Image(systemName: "photo.on.rectangle")
-                        .font(.title3)
-                    Text("Gallery")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.accentColor.opacity(0.1))
-                .cornerRadius(12)
+                ActionLabel(title: "Gallery", systemImage: "photo.on.rectangle", prominent: false)
             }
             .task(id: selectedItem) {
                 guard let newItem = selectedItem else { return }
@@ -45,17 +43,7 @@ struct ActionButtonsView: View {
                 showFileImporter = true
                 selectedItem = nil
             } label: {
-                VStack {
-                    Image(systemName: "doc.text.fill")
-                        .font(.title3)
-                    Text("PDF")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.accentColor.opacity(0.1))
-                .cornerRadius(12)
+                ActionLabel(title: "PDF", systemImage: "doc.text.fill", prominent: false)
             }
             
             Button {
@@ -64,20 +52,42 @@ struct ActionButtonsView: View {
                 showCamera = true
                 selectedItem = nil
             } label: {
-                VStack {
-                    Image(systemName: "camera")
-                        .font(.title3)
-                    Text("Camera")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.accentColor)
-                .foregroundColor(.white)
-                .cornerRadius(12)
+                ActionLabel(title: "Camera", systemImage: "camera", prominent: true)
             }
         }
         .padding()
+    }
+}
+
+/// One of the three source buttons. Icon over caption normally, icon beside
+/// caption at accessibility sizes, where the buttons stack.
+private struct ActionLabel: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    let prominent: Bool
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        Group {
+            if typeSize.isAccessibilitySize {
+                Label(title, systemImage: systemImage)
+                    .font(.body.weight(.medium))
+            } else {
+                VStack {
+                    Image(systemName: systemImage)
+                        .font(.title3)
+                    Text(title)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .padding(.vertical, 12)
+        .background(prominent ? Color.accentColor : Color.accentColor.opacity(0.1))
+        .foregroundColor(prominent ? .white : .accentColor)
+        .cornerRadius(12)
     }
 }

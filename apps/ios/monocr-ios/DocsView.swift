@@ -94,7 +94,7 @@ struct DocsView: View {
                             .foregroundColor(.secondary)
                         
                         Label("100% Local Processing", systemImage: "lock.shield")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.caption2.weight(.bold))
                             .foregroundColor(.accentColor)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -194,13 +194,13 @@ struct DocRow<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
                 Text(number)
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.caption2.weight(.bold))
                     .frame(width: 20, height: 20)
                     .background(Color(.systemGray5))
                     .cornerRadius(4)
                 
                 Image(systemName: systemImage)
-                    .font(.system(size: 14))
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                 
                 Text(title)
@@ -218,7 +218,7 @@ struct CodeBlockView: View {
     
     var body: some View {
         Text(code)
-            .font(.system(size: 12, weight: .regular, design: .monospaced))
+            .font(.system(.caption, design: .monospaced))
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(.secondarySystemBackground))
@@ -246,7 +246,7 @@ struct QualityItem: View {
                 .fontWeight(.bold)
             
             Text(description)
-                .font(.system(size: 10))
+                .font(.caption2)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
         }

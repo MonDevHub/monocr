@@ -43,7 +43,7 @@ struct DashedBox: View {
             }
             .padding(12) // Reduced from 24
             .frame(maxWidth: .infinity)
-            .frame(height: 100) // Reduced from 120 for compactness
+            .frame(minHeight: 100)
             .background(Color.accentColor.opacity(0.01))
             .cornerRadius(8) // Reduced from 16
             .overlay(
@@ -64,14 +64,14 @@ struct MonTextEditor: View {
         ZStack(alignment: .topLeading) {
             if text.isEmpty {
                 Text(placeholder)
-                    .font(.custom("Pyidaungsu", size: 16))
+                    .font(MonTheme.Typography.monBody(size: 16))
                     .foregroundColor(Color(.placeholderText))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 12)
             }
             
             TextEditor(text: $text)
-                .font(.custom("Pyidaungsu", size: 16))
+                .font(MonTheme.Typography.monBody(size: 16))
                 .lineSpacing(4)
                 .scrollContentBackground(.hidden)
                 .background(Color(.systemBackground))

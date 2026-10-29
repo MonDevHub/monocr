@@ -7,6 +7,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = MainViewModel()
 
+    @Environment(\.dynamicTypeSize) private var typeSize
     @AppStorage("language_pref") private var languagePref: String = "en"
     
     @State private var selectedItem: PhotosPickerItem?
@@ -31,6 +32,10 @@ struct ContentView: View {
                 ZStack(alignment: .bottomTrailing) {
                     ScrollView {
                         VStack(spacing: 12) { // Tighter spacing
+                            if typeSize.isAccessibilitySize {
+                                controls
+                            }
+
                             if let image = viewModel.selectedImage {
                                 Button {
                                     showFullImage = true
@@ -76,7 +81,7 @@ struct ContentView: View {
                             // `plus`, not `arrow.clockwise`: this clears the result for
                             // a new scan, it does not re-read the current one.
                             Image(systemName: "plus")
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(.body.weight(.semibold))
                                 .frame(width: 44, height: 44)
                                 .background(Color.accentColor)
                                 .foregroundColor(.white)
@@ -90,57 +95,13 @@ struct ContentView: View {
                 }
                 .animation(.spring(response: 0.4, dampingFraction: 0.7), value: viewModel.ocrResult != nil)
                 .animation(.spring(response: 0.4, dampingFraction: 0.7), value: viewModel.selectedImage != nil)
-                
-                Spacer()
-                
-                Spacer()
-                
-                SegmentationModePicker(
-                    mode: viewModel.segmentationMode,
-                    isEnabled: !viewModel.isProcessing,
-                    onSelect: { mode in
-                        viewModel.selectSegmentationMode(mode, modelContext: modelContext)
-                    }
-                )
 
-                ActionButtonsView(
-                    selectedItem: $selectedItem,
-                    showFileImporter: $showFileImporter,
-                    showCamera: $viewModel.showCamera,
-                    onImageSelected: { image in
-                        viewModel.processImage(image, provenance: .photoLibrary, modelContext: modelContext)
-                    },
-                    onFileTooLarge: {
-                        viewModel.errorMessage = .fileTooLarge
-                        viewModel.status = .error(AppLocalization.string("File size limit exceeded"))
-                    }
-                )
-                
-                if let errorMessage = viewModel.errorMessage {
-                    VStack(spacing: 12) {
-                        Text(verbatim: errorMessage.text(in: AppLanguage(preference: languagePref)))
-                            .font(MonTheme.Typography.meta)
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
-                        if errorMessage.offersCliHelp {
-                            Button {
-                                showDocs = true
-                            } label: {
-                                Label("Learn more about CLI", systemImage: "terminal")
-                                    .font(MonTheme.Typography.meta.bold())
-                                    .foregroundColor(.accentColor)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .frame(minHeight: 44)
-                                    .background(Color.accentColor.opacity(0.1))
-                                    .clipShape(Capsule())
-                            }
-                        }
-                    }
-                    .padding(.top, 8)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+
+                // Pinned under the results normally. At accessibility sizes they
+                // move into the scroll view: pinned, they took most of the screen
+                // and left about a fifth of it for the content.
+                if !typeSize.isAccessibilitySize {
+                    controls
                 }
             }
             .navigationTitle("Mon OCR")
@@ -153,7 +114,7 @@ struct ContentView: View {
                         }
                     } label: {
                         Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.body.weight(.semibold))
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(Rectangle())
                     }
@@ -264,6 +225,59 @@ struct ContentView: View {
         .environment(\.locale, AppLanguage(preference: languagePref).locale)
     }
     
+    /// The segmentation picker, the three source buttons and any error.
+    private var controls: some View {
+        VStack(spacing: 0) {
+            SegmentationModePicker(
+                mode: viewModel.segmentationMode,
+                isEnabled: !viewModel.isProcessing,
+                onSelect: { mode in
+                    viewModel.selectSegmentationMode(mode, modelContext: modelContext)
+                }
+            )
+
+            ActionButtonsView(
+                selectedItem: $selectedItem,
+                showFileImporter: $showFileImporter,
+                showCamera: $viewModel.showCamera,
+                onImageSelected: { image in
+                    viewModel.processImage(image, provenance: .photoLibrary, modelContext: modelContext)
+                },
+                onFileTooLarge: {
+                    viewModel.errorMessage = .fileTooLarge
+                    viewModel.status = .error(AppLocalization.string("File size limit exceeded"))
+                }
+            )
+
+            if let errorMessage = viewModel.errorMessage {
+                VStack(spacing: 12) {
+                    Text(verbatim: errorMessage.text(in: AppLanguage(preference: languagePref)))
+                        .font(MonTheme.Typography.meta)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+
+                    if errorMessage.offersCliHelp {
+                        Button {
+                            showDocs = true
+                        } label: {
+                            Label("Learn more about CLI", systemImage: "terminal")
+                                .font(MonTheme.Typography.meta.bold())
+                                .foregroundColor(.accentColor)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .frame(minHeight: 44)
+                                .background(Color.accentColor.opacity(0.1))
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+                .padding(.top, 8)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+    }
+
     private func imagePreview(_ image: UIImage) -> some View {
         Image(uiImage: image)
             .resizable()

@@ -94,7 +94,7 @@ struct HistoryItemView: View {
                             .frame(width: 40, height: 40)
 
                         Image(systemName: "doc.text")
-                            .font(.system(size: 18))
+                            .font(.body)
                             .foregroundColor(.accentColor)
                     }
                     .accessibilityHidden(true)
@@ -108,7 +108,7 @@ struct HistoryItemView: View {
 
                         HStack(spacing: 6) {
                             Text(record.timestamp.formatted(.dateTime.month().day().hour().minute()))
-                                .font(.system(size: 10))
+                                .font(.caption2)
                                 .foregroundColor(.secondary)
 
                             // Only rows that are uploaded get an upload badge. Every scan
@@ -117,7 +117,7 @@ struct HistoryItemView: View {
                             if let badge = SyncPolicy.badge(
                                 category: record.category, isSynced: record.isSynced, attempts: record.syncAttempts) {
                                 Text(verbatim: "•")
-                                    .font(.system(size: 10))
+                                    .font(.caption2)
                                     .foregroundColor(.secondary.opacity(0.5))
                                     .accessibilityHidden(true)
 
@@ -138,7 +138,7 @@ struct HistoryItemView: View {
                 confirmingDelete = true
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 16))
+                    .font(.body)
                     .foregroundColor(MonTheme.error)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
@@ -179,10 +179,10 @@ private struct SyncBadgeView: View {
     var body: some View {
         HStack(spacing: 2) {
             Image(systemName: icon)
-                .font(.system(size: 10))
+                .font(.caption2)
                 .accessibilityHidden(true)
             text
-                .font(.system(size: 10))
+                .font(.caption2)
         }
         .foregroundColor(color)
     }
@@ -340,7 +340,7 @@ struct PDFPreview: View {
                     VStack(spacing: 8) {
                         ProgressView()
                         Text("Rendering PDF...")
-                            .font(.system(size: 10))
+                            .font(.caption2)
                             .foregroundColor(.secondary)
                     }
                 }
