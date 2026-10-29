@@ -43,12 +43,12 @@ struct HistorySection: View {
             }
             
             if history.isEmpty {
-                ContentUnavailableView {
-                    Label("No history found", systemImage: "doc.text.magnifyingglass")
-                }
-                .frame(height: 80)
-                .background(MonTheme.surfaceColor.opacity(0.4))
-                .cornerRadius(4) // Reduced from 8
+                // One quiet line. A ContentUnavailableView squeezed into 80pt drew
+                // more attention than the main actions and clipped at large sizes.
+                Text("No history found")
+                    .font(MonTheme.Typography.body)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 VStack(spacing: 6) { // Reduced from 8
                     ForEach(history) { record in
@@ -291,8 +291,11 @@ struct HistoryDetailView: View {
                         Label(copied ? "Copied" : "Copy to Clipboard", systemImage: copied ? "checkmark.circle.fill" : "doc.on.doc")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(copied ? Color.green.opacity(0.8) : Color.accentColor)
-                            .foregroundColor(.black)
+                            // White on the accent, like every other primary button;
+                            // the copied state is the label and icon, since white on
+                            // system green is 2.2:1.
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
                             .fontWeight(.bold)
                             .cornerRadius(4)
                     }
@@ -312,7 +315,7 @@ struct HistoryDetailView: View {
             }
         }
         .presentationDetents([.medium, .large])
-        .preferredColorScheme(.dark)
+        // No forced colour scheme: this sheet was always dark, even in light mode.
     }
 }
 struct PDFPreview: View {

@@ -99,7 +99,7 @@ struct ContributeView: View {
                         selectedItem = nil
                     }
                     .font(.caption)
-                    .foregroundColor(.red)
+                    .foregroundColor(MonTheme.error)
                     .frame(minHeight: 44)
                 }
                 .frame(maxWidth: .infinity)

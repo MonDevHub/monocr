@@ -9,10 +9,16 @@ struct MonTheme {
 
     static let secondaryTextColor = Color.secondary.opacity(0.8)
     
-    // Semantic Status Colors
+    // Semantic status colours. Warning and error are text at caption sizes, so
+    // their light variants are darkened to at least 4.5:1 on the light
+    // backgrounds (#A65300 is 4.9:1 on #F2F2F7, #C9251B is 5.0:1); system orange
+    // was 2.0:1 and system red 3.2:1. The dark variants are the system colours,
+    // above 5:1 on #151517. Success only colours the status dot.
     static let success = Color.green
-    static let warning = Color.orange
-    static let error = Color.red
+    static let warning = Color(light: Color(red: 0xA6 / 255, green: 0x53 / 255, blue: 0x00 / 255),
+                               dark: Color(red: 0xFF / 255, green: 0x9F / 255, blue: 0x0A / 255))
+    static let error = Color(light: Color(red: 0xC9 / 255, green: 0x25 / 255, blue: 0x1B / 255),
+                             dark: Color(red: 0xFF / 255, green: 0x45 / 255, blue: 0x3A / 255))
     
     /// Text styles, so every size follows Dynamic Type. These were fixed
     /// `Font.system(size:)` values (20, 14, 13, 12, 11) that never scaled; the

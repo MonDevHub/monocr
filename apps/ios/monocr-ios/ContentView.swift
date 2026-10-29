@@ -272,7 +272,7 @@ struct ContentView: View {
                 VStack(spacing: 12) {
                     Text(verbatim: errorMessage.text(in: AppLanguage(preference: languagePref)))
                         .font(MonTheme.Typography.meta)
-                        .foregroundColor(.red)
+                        .foregroundColor(MonTheme.error)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
 

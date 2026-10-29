@@ -90,7 +90,7 @@ struct ResultCardView: View {
                           systemImage: showCopyToast ? "checkmark" : "doc.on.doc")
                         .font(MonTheme.Typography.meta)
                         .fontWeight(.medium)
-                        .foregroundColor(showCopyToast ? .green : .accentColor)
+                        .foregroundColor(.accentColor)
                         .frame(minHeight: 44)
                         .contentShape(Rectangle())
                 }
