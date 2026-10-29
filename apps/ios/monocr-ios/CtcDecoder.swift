@@ -26,8 +26,8 @@ nonisolated enum CtcDecoder {
         case dimensions, nonfinite
         var errorDescription: String? {
             switch self {
-            case .dimensions: return "The recognizer returned an invalid tensor shape."
-            case .nonfinite: return "The recognizer returned nonfinite scores."
+            case .dimensions: return AppLocalization.string("The recognizer returned an invalid tensor shape.")
+            case .nonfinite: return AppLocalization.string("The recognizer returned nonfinite scores.")
             }
         }
     }

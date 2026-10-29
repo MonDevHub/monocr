@@ -1,0 +1,1 @@
+../../../monocr-ios/AppLocalization.swift

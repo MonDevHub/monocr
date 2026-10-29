@@ -69,7 +69,13 @@ nonisolated struct PageOutcome: Codable {
     }
     let pageIndex: Int
     let state: State
+    /// English, and a catalogue key: shown through `AppLocalization`, so it is
+    /// translated where a translation exists.
     let error: String?
+
+    static let linesUnreadError = "No detected line could be read completely."
+    static let renderFailedError = "The page could not be rendered."
+    static let errorKeys = [linesUnreadError, renderFailedError]
 
     /// Recognition ran on this page and returned, whether or not it read text.
     var wasRead: Bool {
@@ -97,7 +103,7 @@ nonisolated struct PageOutcome: Codable {
             return PageOutcome(pageIndex: pageIndex, state: state, error: nil)
         }
         if failed == lines.count {
-            return PageOutcome(pageIndex: pageIndex, state: .inferenceFailed, error: "No detected line could be read completely.")
+            return PageOutcome(pageIndex: pageIndex, state: .inferenceFailed, error: linesUnreadError)
         }
         return PageOutcome(pageIndex: pageIndex, state: .partial, error: nil)
     }
@@ -112,35 +118,106 @@ nonisolated struct OcrReviewMetadata: Codable {
     let looksSoft: Bool
     let cancelled: Bool
 
-    var warningSummary: String? {
-        var warnings = [String]()
+    /// What the reader should know before trusting this reading, in display order.
+    var warnings: [ReviewWarning] {
+        var warnings = [ReviewWarning]()
         let failedPages = pages.filter { $0.state == .renderFailed || $0.state == .inferenceFailed }
-        if !failedPages.isEmpty {
-            warnings.append("Pages could not be read: " + failedPages.map { String($0.pageIndex + 1) }.joined(separator: ", ") + ".")
-        }
-        if cancelled { warnings.append("Processing was cancelled; this reading is incomplete.") }
+        if !failedPages.isEmpty { warnings.append(.pagesUnread(failedPages.map { $0.pageIndex + 1 })) }
+        if cancelled { warnings.append(.cancelled) }
         let unfinished = pages.filter { $0.state == .notAttempted || $0.state == .cancelled }.count
-        if unfinished > 0 && !cancelled {
-            warnings.append("\(unfinished) of \(pages.count) pages have not been read; this reading is incomplete.")
-        }
-        if pages.contains(where: { $0.state == .emptyUnverified }) {
-            warnings.append("No text was read on one or more pages. Check the source; this does not confirm a blank page.")
-        }
+        if unfinished > 0 && !cancelled { warnings.append(.unfinished(unfinished, of: pages.count)) }
+        if pages.contains(where: { $0.state == .emptyUnverified }) { warnings.append(.emptyUnverified) }
         if lines.contains(where: { $0.reviewReasons.contains("no_regions_detected") }) {
-            warnings.append("Text regions were not detected. The whole-page reading needs review against the source.")
+            warnings.append(.noRegionsDetected)
         }
         let failedLines = lines.filter { $0.reviewReasons.contains("tile_failed") }.count
-        if failedLines > 0 { warnings.append("\(failedLines) line(s) could not be read completely. Check the source image.") }
+        if failedLines > 0 { warnings.append(.linesUnread(failedLines)) }
         let uncertainSeams = lines.filter { $0.reviewReasons.contains("empty_tile_between_text") }.count
-        if uncertainSeams > 0 { warnings.append("\(uncertainSeams) line(s) may have missing text around a gap. Check the source image.") }
-        if looksSoft { warnings.append("This photo looks soft. The text may be misread — try again with steadier focus.") }
+        if uncertainSeams > 0 { warnings.append(.uncertainSeams(uncertainSeams)) }
+        if looksSoft { warnings.append(.soft) }
         let blocks = lines.filter { !$0.looksLikeALine }.count
-        if blocks > 0 { warnings.append("\(blocks) block(s) were too tall to be one line. Their text may be invented — try the Sparse or Line mode.") }
-        return warnings.isEmpty ? nil : warnings.joined(separator: "\n")
+        if blocks > 0 { warnings.append(.blocks(blocks)) }
+        return warnings
+    }
+
+    /// The warnings in English, one per line. This is what `HistoryRecord.warningSummary`
+    /// has always stored, so rows saved before the warnings became keys still read
+    /// the same; new rows are shown from `ocrMetadata` in the picked language instead.
+    var warningSummary: String? {
+        let lines = warnings.map(\.english)
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
+    }
+
+    /// The warnings in `language`, one per line.
+    func localizedWarningSummary(in language: AppLanguage = .current, bundle: Bundle = .main) -> String? {
+        let lines = warnings.map { $0.text(in: language, bundle: bundle) }
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
+    }
+
+    static func decoded(from json: String?) -> OcrReviewMetadata? {
+        guard let data = json?.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(OcrReviewMetadata.self, from: data)
     }
 
     func encoded() -> String? {
         guard let data = try? JSONEncoder().encode(self) else { return nil }
         return String(data: data, encoding: .utf8)
+    }
+}
+
+/// One thing to check about a reading. Kept as a case rather than a sentence, so
+/// it is rendered in whichever language is picked when it is shown, history
+/// included. Each `key` is the English sentence and its catalogue key.
+nonisolated enum ReviewWarning: Equatable, Sendable {
+    /// One-based page numbers.
+    case pagesUnread([Int])
+    case cancelled
+    case unfinished(Int, of: Int)
+    case emptyUnverified
+    case noRegionsDetected
+    case linesUnread(Int)
+    case uncertainSeams(Int)
+    case soft
+    case blocks(Int)
+
+    /// One instance of every case, so a test can check each key is in the catalogue.
+    static let examples: [ReviewWarning] = [
+        .pagesUnread([2]), .cancelled, .unfinished(1, of: 2), .emptyUnverified,
+        .noRegionsDetected, .linesUnread(1), .uncertainSeams(1), .soft, .blocks(1),
+    ]
+
+    var key: String {
+        switch self {
+        case .pagesUnread: return "Pages could not be read: %@."
+        case .cancelled: return "Processing was cancelled; this reading is incomplete."
+        case .unfinished: return "%1$lld of %2$lld pages have not been read; this reading is incomplete."
+        case .emptyUnverified:
+            return "No text was read on one or more pages. Check the source; this does not confirm a blank page."
+        case .noRegionsDetected:
+            return "Text regions were not detected. The whole-page reading needs review against the source."
+        case .linesUnread: return "%lld line(s) could not be read completely. Check the source image."
+        case .uncertainSeams: return "%lld line(s) may have missing text around a gap. Check the source image."
+        case .soft: return "This photo looks soft. The text may be misread — try again with steadier focus."
+        case .blocks:
+            return "%lld block(s) were too tall to be one line. Their text may be invented — try the Sparse or Line mode."
+        }
+    }
+
+    var arguments: [CVarArg] {
+        switch self {
+        case .pagesUnread(let pages): return [pages.map(String.init).joined(separator: ", ")]
+        case .unfinished(let count, let total): return [count, total]
+        case .linesUnread(let count), .uncertainSeams(let count), .blocks(let count): return [count]
+        case .cancelled, .emptyUnverified, .noRegionsDetected, .soft: return []
+        }
+    }
+
+    /// The source-language sentence, independent of any bundle.
+    var english: String {
+        arguments.isEmpty ? key : String(format: key, arguments: arguments)
+    }
+
+    func text(in language: AppLanguage = .current, bundle: Bundle = .main) -> String {
+        AppLocalization.format(key, arguments, language: language, bundle: bundle)
     }
 }

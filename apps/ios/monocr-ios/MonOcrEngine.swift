@@ -16,18 +16,18 @@ enum OcrError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notInitialized:
-            return NSLocalizedString("Engine not initialized. Please try restarting the scan.", comment: "")
+            return AppLocalization.string("Engine not initialized. Please try restarting the scan.")
         case .modelNotFound(let name):
-            let format = NSLocalizedString("Model '%@' not found. Ensure .mlpackage is added to the app target in Xcode.", comment: "")
+            let format = AppLocalization.string("Model '%@' not found. Ensure .mlpackage is added to the app target in Xcode.")
             return String(format: format, name)
         case .processingError(let msg):
-            let format = NSLocalizedString("Internal Error: %@", comment: "")
+            let format = AppLocalization.string("Internal Error: %@")
             return String(format: format, msg)
         case .modelContract(let msg):
-            let format = NSLocalizedString("This build cannot use the bundled model: %@", comment: "")
+            let format = AppLocalization.string("This build cannot use the bundled model: %@")
             return String(format: format, msg)
         case .inferenceFailed(let msg):
-            let format = NSLocalizedString("Recognition failed: %@", comment: "")
+            let format = AppLocalization.string("Recognition failed: %@")
             return String(format: format, msg)
         }
     }
@@ -77,7 +77,7 @@ actor MonOcrEngine {
     private func loadCharset() throws {
         guard let path = Bundle.main.path(forResource: "charset", ofType: "txt") else {
             throw OcrError.modelContract(
-                NSLocalizedString("charset.txt is missing from the app bundle.", comment: "")
+                AppLocalization.string("charset.txt is missing from the app bundle.")
             )
         }
 
@@ -87,7 +87,7 @@ actor MonOcrEngine {
         } catch {
             MonLog_e("could not read charset.txt", error: error)
             throw OcrError.modelContract(
-                NSLocalizedString("charset.txt could not be read.", comment: "")
+                AppLocalization.string("charset.txt could not be read.")
             )
         }
 
@@ -103,7 +103,7 @@ actor MonOcrEngine {
         }
         guard !trimmed.isEmpty else {
             throw OcrError.modelContract(
-                NSLocalizedString("charset.txt is empty.", comment: "")
+                AppLocalization.string("charset.txt is empty.")
             )
         }
 
@@ -269,7 +269,7 @@ actor MonOcrEngine {
 
         guard let raw = GreyImage.upright(image) else {
             throw OcrError.processingError(
-                NSLocalizedString("Could not read the image pixels.", comment: "")
+                AppLocalization.string("Could not read the image pixels.")
             )
         }
 
@@ -280,7 +280,7 @@ actor MonOcrEngine {
         let page = PageNormalizer.normalize(raw)
         guard let pageImage = page.makeUIImage() else {
             throw OcrError.processingError(
-                NSLocalizedString("Could not prepare the page for reading.", comment: "")
+                AppLocalization.string("Could not prepare the page for reading.")
             )
         }
 

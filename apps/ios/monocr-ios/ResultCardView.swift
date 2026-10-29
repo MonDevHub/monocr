@@ -4,6 +4,7 @@ struct ResultCardView: View {
     let result: MonOcrResult
     @Binding var showCopyToast: Bool
     var onReport: (() -> Void)? = nil
+    @Environment(\.locale) private var locale
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -26,7 +27,8 @@ struct ResultCardView: View {
 
             Divider()
 
-            if let warning = result.warningSummary {
+            if let warning = result.reviewMetadata.localizedWarningSummary(
+                in: AppLanguage(preference: locale.identifier)) {
                 Label(warning, systemImage: "exclamationmark.triangle")
                     .font(MonTheme.Typography.meta)
                     .foregroundColor(MonTheme.warning)

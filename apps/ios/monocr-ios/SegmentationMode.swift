@@ -42,24 +42,29 @@ nonisolated enum SegmentationMode: String, CaseIterable, Identifiable, Sendable 
         }
     }
 
-    var label: String {
+    /// Catalogue key for the mode's name. A key rather than looked-up text, so
+    /// SwiftUI resolves it against the in-app language through `\.locale`; an
+    /// `NSLocalizedString` here followed the system language instead, and the
+    /// picker stayed English with Mon or Burmese chosen in the app.
+    var labelKey: String {
         switch self {
-        case .page: return NSLocalizedString("Page", comment: "Segmentation mode")
-        case .sparse: return NSLocalizedString("Sparse", comment: "Segmentation mode")
-        case .line: return NSLocalizedString("Line", comment: "Segmentation mode")
+        case .page: return "Page"
+        case .sparse: return "Sparse"
+        case .line: return "Line"
         }
     }
 
-    var detail: String {
+    /// Catalogue key for the one-line description shown under the picker.
+    var detailKey: String {
         switch self {
-        case .page:
-            return NSLocalizedString("Dense text: scans, book pages, PDFs.", comment: "")
-        case .sparse:
-            return NSLocalizedString("Wide gaps: photos, posters, slides.", comment: "")
-        case .line:
-            return NSLocalizedString("The whole image is one line of text.", comment: "")
+        case .page: return "Dense text: scans, book pages, PDFs."
+        case .sparse: return "Wide gaps: photos, posters, slides."
+        case .line: return "The whole image is one line of text."
         }
     }
+
+    var label: String { AppLocalization.string(labelKey) }
+    var detail: String { AppLocalization.string(detailKey) }
 }
 
 /// Where an image came from, which is the only reliable signal about its layout

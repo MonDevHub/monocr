@@ -147,7 +147,18 @@ struct HistoryItemView: View {
 struct HistoryDetailView: View {
     let record: HistoryRecord
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @State private var copied = false
+
+    /// Rendered from the saved metadata in the picked language. Rows saved
+    /// before the metadata existed only have the English summary, so that is
+    /// the fallback, never a reason to drop the warning.
+    private var warning: String? {
+        if let metadata = OcrReviewMetadata.decoded(from: record.ocrMetadata) {
+            return metadata.localizedWarningSummary(in: AppLanguage(preference: locale.identifier))
+        }
+        return record.warningSummary
+    }
     
     var body: some View {
         NavigationStack {
@@ -180,7 +191,7 @@ struct HistoryDetailView: View {
                         }
                     }
                     
-                    if let warning = record.warningSummary {
+                    if let warning {
                         Label(warning, systemImage: "exclamationmark.triangle")
                             .font(MonTheme.Typography.meta)
                             .foregroundColor(MonTheme.warning)

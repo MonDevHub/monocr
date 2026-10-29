@@ -3511,6 +3511,123 @@
           }
         }
       }
+    },
+    "%1$lld of %2$lld pages have not been read; this reading is incomplete.": {
+      "extractionState": "manual"
+    },
+    "%lld block(s) were too tall to be one line. Their text may be invented — try the Sparse or Line mode.": {
+      "extractionState": "manual"
+    },
+    "%lld line(s) could not be read completely. Check the source image.": {
+      "extractionState": "manual"
+    },
+    "%lld line(s) may have missing text around a gap. Check the source image.": {
+      "extractionState": "manual"
+    },
+    "Could not access the PDF file.": {
+      "extractionState": "manual"
+    },
+    "Could not open the file: %@": {
+      "extractionState": "manual"
+    },
+    "Could not prepare the page for reading.": {
+      "extractionState": "manual"
+    },
+    "Could not read the image pixels.": {
+      "extractionState": "manual"
+    },
+    "Dense text: scans, book pages, PDFs.": {
+      "extractionState": "manual"
+    },
+    "Failed to initialize OCR engine: %@": {
+      "extractionState": "manual"
+    },
+    "Line": {
+      "extractionState": "manual"
+    },
+    "No detected line could be read completely.": {
+      "extractionState": "manual"
+    },
+    "No page of this PDF could be read.": {
+      "extractionState": "manual"
+    },
+    "No text could be read.": {
+      "extractionState": "manual"
+    },
+    "No text was read on one or more pages. Check the source; this does not confirm a blank page.": {
+      "extractionState": "manual"
+    },
+    "Page": {
+      "extractionState": "manual"
+    },
+    "Pages could not be read: %@.": {
+      "extractionState": "manual"
+    },
+    "Processing cancelled. Nothing was saved.": {
+      "extractionState": "manual"
+    },
+    "Processing cancelled. The pages read so far are in history.": {
+      "extractionState": "manual"
+    },
+    "Processing was cancelled; this reading is incomplete.": {
+      "extractionState": "manual"
+    },
+    "Recognition failed: %@": {
+      "extractionState": "manual"
+    },
+    "Segmentation": {
+      "extractionState": "manual"
+    },
+    "Sparse": {
+      "extractionState": "manual"
+    },
+    "Text regions were not detected. The whole-page reading needs review against the source.": {
+      "extractionState": "manual"
+    },
+    "The PDF could not be opened. It may be invalid or no longer accessible.": {
+      "extractionState": "manual"
+    },
+    "The page could not be rendered.": {
+      "extractionState": "manual"
+    },
+    "The recognizer returned an invalid tensor shape.": {
+      "extractionState": "manual"
+    },
+    "The recognizer returned nonfinite scores.": {
+      "extractionState": "manual"
+    },
+    "The whole image is one line of text.": {
+      "extractionState": "manual"
+    },
+    "This PDF has no pages to read.": {
+      "extractionState": "manual"
+    },
+    "This PDF is larger than 20 MB. Choose a smaller file, or send a page as an image.": {
+      "extractionState": "manual"
+    },
+    "This PDF is locked. Unlock it before importing it.": {
+      "extractionState": "manual"
+    },
+    "This build cannot use the bundled model: %@": {
+      "extractionState": "manual"
+    },
+    "This image could not be opened. Try another one.": {
+      "extractionState": "manual"
+    },
+    "This photo looks soft. The text may be misread — try again with steadier focus.": {
+      "extractionState": "manual"
+    },
+    "Wide gaps: photos, posters, slides.": {
+      "extractionState": "manual"
+    },
+    "charset.txt could not be read.": {
+      "extractionState": "manual"
+    },
+    "charset.txt is empty.": {
+      "extractionState": "manual"
+    },
+    "charset.txt is missing from the app bundle.": {
+      "extractionState": "manual"
     }
   },
   "version": "1.1"

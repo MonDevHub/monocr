@@ -25,13 +25,13 @@ struct SegmentationModePicker: View {
                 selection: Binding(get: { mode }, set: { onSelect($0) })
             ) {
                 ForEach(SegmentationMode.allCases) { option in
-                    Text(option.label).tag(option)
+                    Text(LocalizedStringKey(option.labelKey)).tag(option)
                 }
             }
             .pickerStyle(.segmented)
             .disabled(!isEnabled)
 
-            Text(mode.detail)
+            Text(LocalizedStringKey(mode.detailKey))
                 .font(MonTheme.Typography.meta)
                 .foregroundColor(.secondary)
         }

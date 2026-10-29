@@ -108,20 +108,20 @@ struct ContentView: View {
                         viewModel.processImage(image, provenance: .photoLibrary, modelContext: modelContext)
                     },
                     onFileTooLarge: {
-                        viewModel.errorMessage = NSLocalizedString("File too large (Max 50MB). Use CLI tools or desktop version for bigger file support.", comment: "")
-                        viewModel.status = .error(NSLocalizedString("File size limit exceeded", comment: ""))
+                        viewModel.errorMessage = .fileTooLarge
+                        viewModel.status = .error(AppLocalization.string("File size limit exceeded"))
                     }
                 )
                 
                 if let errorMessage = viewModel.errorMessage {
                     VStack(spacing: 12) {
-                        Text(errorMessage)
+                        Text(verbatim: errorMessage.text(in: AppLanguage(preference: languagePref)))
                             .font(MonTheme.Typography.meta)
                             .foregroundColor(.red)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                         
-                        if errorMessage.contains("CLI") {
+                        if errorMessage.offersCliHelp {
                             Button {
                                 showDocs = true
                             } label: {
@@ -238,7 +238,6 @@ struct ContentView: View {
                 }
             }
             .background(MonTheme.backgroundColor.ignoresSafeArea())
-            .environment(\.locale, Locale(identifier: languagePref))
             }
             
             SideMenuView(
@@ -250,6 +249,9 @@ struct ContentView: View {
                 showPrivacy: $showPrivacy
             )
         }
+        // On the ZStack, not the NavigationStack, so the side menu follows the
+        // picker too: it sat outside this modifier and never changed language.
+        .environment(\.locale, AppLanguage(preference: languagePref).locale)
     }
     
     private func imagePreview(_ image: UIImage) -> some View {

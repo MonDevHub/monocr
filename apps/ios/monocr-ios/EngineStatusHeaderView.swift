@@ -10,7 +10,7 @@ struct EngineStatusHeaderView: View {
                 .fill(statusColor)
                 .frame(width: 8, height: 8)
                 .opacity(isAnimating ? 0.4 : 1.0)
-            Text(statusText)
+            statusText
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(.secondary)
@@ -35,13 +35,15 @@ struct EngineStatusHeaderView: View {
         }
     }
     
-    private var statusText: String {
+    /// `Text` built from literals, not looked-up `String`s, so SwiftUI resolves
+    /// each one against the in-app language through `\.locale`. This used
+    /// `NSLocalizedString`, which follows the system language, so the bar read
+    /// "Engine ready" with Burmese or Mon picked in the app.
+    private var statusText: Text {
         switch status {
-        case .loading: return NSLocalizedString("Initializing engine...", comment: "")
-        case .ready: return NSLocalizedString("Engine ready", comment: "")
-        case .error(let msg): 
-            let format = NSLocalizedString("Error: %@", comment: "")
-            return String(format: format, msg)
+        case .loading: return Text("Initializing engine...")
+        case .ready: return Text("Engine ready")
+        case .error(let message): return Text("Error: \(message)")
         }
     }
 }

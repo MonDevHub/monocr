@@ -54,12 +54,20 @@ struct SideMenuView: View {
                                 .font(MonTheme.Typography.secondary.bold())
                                 .foregroundColor(.primary)
                             
-                            Picker("Language", selection: $languagePref) {
-                                Text("English").tag("en")
-                                Text("Burmese").tag("my")
-                                Text("Mon").tag("mnw")
+                            // Each language named in its own script, verbatim, so a
+                            // reader who cannot read the current interface language
+                            // can still find theirs. A segmented control truncated
+                            // these names, so it is a list of rows.
+                            VStack(spacing: 4) {
+                                ForEach(AppLanguage.allCases) { language in
+                                    LanguageRow(
+                                        name: language.endonym,
+                                        isSelected: AppLanguage(preference: languagePref) == language
+                                    ) {
+                                        languagePref = language.rawValue
+                                    }
+                                }
                             }
-                            .pickerStyle(.segmented)
                         }
                         
                         Divider()
@@ -118,5 +126,34 @@ struct MenuButton: View {
             .cornerRadius(12)
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+private struct LanguageRow: View {
+    let name: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text(verbatim: name)
+                    .font(MonTheme.Typography.body)
+                    .foregroundColor(.primary)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .foregroundColor(.accentColor)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(.horizontal, 12)
+            .frame(minHeight: 44)
+            .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
+            .cornerRadius(8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
