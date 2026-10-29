@@ -82,7 +82,7 @@ consent gates, error messages, TalkBack semantics, navigation, colour contrast a
 text at twice the font size. The first run downloads one Robolectric Android runtime (SDK 35, set
 in `app/src/test/resources/robolectric.properties`).
 
-CI runs this suite on every push and fails unless at least 125 tests passed. It does not build the
+CI runs this suite on every push and fails unless at least 166 tests passed. It does not build the
 app. The instrumented tests in `app/src/androidTest/` need a device and run in no CI job. Twelve
 of the tests check `LineSegmenter`, `LineTiler` and `PageNormalizer` against the shared fixtures
 in `shared/segmentation-fixtures/`, the only automated check that this port still agrees with web
