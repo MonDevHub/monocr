@@ -257,7 +257,7 @@
 					</div>
 					<div class="flex-1 overflow-y-auto">
 						<p
-							class="font-mon text-fg-primary selection:bg-primary/20 leading-relaxed break-words whitespace-pre-wrap text-[var(--text-body)]"
+							class="font-mon text-fg-primary selection:bg-primary/20 selection:text-fg-primary leading-relaxed break-words whitespace-pre-wrap text-[var(--text-body)]"
 						>
 							{selectedRecord.text}
 						</p>

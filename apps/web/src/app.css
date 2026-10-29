@@ -76,6 +76,11 @@
 		--fg-on-primary: #151517; /* Dark text on light button in dark mode */
 		/* Pure professional neutral in dark */
 		--primary-action: #f4f4f5;
+		/* --primary used to stay #1a1a1a here, so everything drawn in it -- the focus
+		   ring, the docs active link and SDK tab (1.04:1), the history Retry link, the
+		   scrollbar and text selection -- vanished into this canvas. theme-tokens.test.ts
+		   checks the contrast. */
+		--primary: #f4f4f5;
 		--color-border-raw: 39, 39, 42; /* RGB for --bg-border (zinc-800) */
 	}
 }
@@ -137,10 +142,12 @@
 		transition-duration: 150ms;
 	}
 
+	/* 60%, not 40%: at 40% the ring measured 2.5:1 on the light canvas, under the
+	   3:1 WCAG asks of a focus indicator. theme-tokens.test.ts holds both themes to it. */
 	.focus-ring:focus-visible {
 		box-shadow:
 			0 0 0 2px var(--bg-canvas),
-			0 0 0 4px color-mix(in srgb, var(--primary) 40%, transparent);
+			0 0 0 4px color-mix(in srgb, var(--primary) 60%, transparent);
 	}
 
 	.btn-primary {
@@ -176,7 +183,7 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 [role='button']:focus-visible {
-	@apply ring-primary/40 ring-offset-canvas ring-2 ring-offset-2 outline-none;
+	@apply ring-primary/60 ring-offset-canvas ring-2 ring-offset-2 outline-none;
 }
 
 /* Ensure proper affordance */
@@ -269,9 +276,11 @@ body {
 	font-family: 'PyidaungSu', 'Myanmar Text', 'Padauk', 'Noto Sans Myanmar', sans-serif;
 }
 
+/* The text colour is the token paired with --primary, not a literal white: with a
+   light --primary in dark mode, white-on-white made selected text unreadable. */
 ::selection {
 	background-color: var(--primary);
-	color: #ffffff;
+	color: var(--fg-on-primary);
 }
 
 .tap-highlight-none {

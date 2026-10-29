@@ -92,7 +92,7 @@
 
 <SEO title={`${m.docs_title()} - MonOCR`} description={m.docs_hero_desc()} />
 
-<div class="selection:bg-primary-tint/20">
+<div class="selection:bg-primary-tint/20 selection:text-fg-primary">
 	<div class="mx-auto max-w-[1400px] px-6 lg:px-8">
 		<div class="flex flex-col gap-8 lg:flex-row lg:gap-2">
 			<!-- VERCEL STYLE: LEFT NAVIGATION -->

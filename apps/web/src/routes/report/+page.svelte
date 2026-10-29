@@ -189,7 +189,7 @@
 						onclick={() => (selectedType = type)}
 						class="hover:bg-canvas-subtle/60 focus-ring rounded-[var(--radius-lg)] px-5 py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all {selectedType ===
 						type
-							? 'bg-primary text-white shadow-sm hover:brightness-110'
+							? 'bg-primary-action text-fg-on-primary shadow-sm hover:brightness-110'
 							: 'bg-canvas-subtle/30 text-fg-muted'}"
 					>
 						{type}
