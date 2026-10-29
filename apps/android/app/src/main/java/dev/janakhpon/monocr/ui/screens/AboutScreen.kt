@@ -274,9 +274,7 @@ private fun LinksCard(
             // Native Privacy Policy Link
             TextButton(
                 onClick = onPrivacyClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = "Privacy Policy, opens in-app" }
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     stringResource(R.string.privacy_title),
@@ -297,12 +295,13 @@ private fun LinksCard(
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
             
+            val opensInBrowser = stringResource(R.string.opens_in_browser)
             links.forEachIndexed { idx, link ->
                 TextButton(
                     onClick = { onLinkClick(link.url) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .semantics { contentDescription = "${link.label}, opens in browser" }
+                        .semantics { contentDescription = opensInBrowser.format(link.label) }
                 ) {
                     Text(
                         link.label,

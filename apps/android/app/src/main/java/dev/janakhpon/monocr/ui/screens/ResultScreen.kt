@@ -109,7 +109,7 @@ fun ResultView(
                 } else {
                     AsyncImage(
                         model = imageUri,
-                        contentDescription = "Processed image",
+                        contentDescription = stringResource(R.string.selected_image),
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize().padding(8.dp)
                     )

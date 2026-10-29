@@ -60,13 +60,13 @@ fun PrivacyScreen(onMenuClick: () -> Unit) {
                     )
                     Column {
                         Text(
-                            "Privacy by Design",
+                            stringResource(R.string.privacy_banner_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            "100% on-device processing. No data leaves your phone.",
+                            stringResource(R.string.privacy_banner_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )

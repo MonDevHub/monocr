@@ -45,7 +45,7 @@ fun PickerView(onGallery: () -> Unit, onPdf: () -> Unit, onCamera: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(180.dp)
-                .clickable(onClickLabel = "Open gallery") { onGallery() },
+                .clickable(onClickLabel = stringResource(R.string.pick_gallery)) { onGallery() },
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
             border = androidx.compose.foundation.BorderStroke(

@@ -29,6 +29,19 @@ The app uploads it once submitted, so the translation was removed rather than le
 | `error_file_unreadable` | Scan error: the file could not be opened |
 | `error_pdf_no_pages` | Scan error: the PDF has no pages |
 | `error_model_runtime` | Scan error: the model failed on this device |
+| `privacy_banner_title`, `privacy_banner_desc` | Banner on the privacy screen, was hard-coded English and claimed no data leaves the phone |
+| `intro_welcome_title`, `intro_welcome_desc` | First-run intro, slide 1 (was hard-coded English) |
+| `intro_home_title`, `intro_home_desc` | Intro slide 2 |
+| `intro_docs_title`, `intro_docs_desc` | Intro slide 3 |
+| `intro_community_title`, `intro_community_desc` | Intro slide 4 |
+| `intro_get_started`, `intro_continue` | Intro buttons |
+| `nav_back` | Back button label for TalkBack |
+| `history_original_scan` | TalkBack label of the image in a history entry |
+| `page_number` | TalkBack label of a PDF page, "Page %1$d" |
+| `pdf_preview_unavailable` | |
+| `drawer_version` | "Version %1$s" under the drawer title |
+| `docs_contributors` | Docs section title |
+| `opens_in_browser` | TalkBack suffix on About links, "%1$s, opens in browser" |
 
 ## Already missing before this change
 

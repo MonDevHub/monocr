@@ -32,6 +32,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.res.stringResource
+import dev.janakhpon.monocr.R
 import dev.janakhpon.monocr.data.HistoryRecord
 import dev.janakhpon.monocr.ui.theme.monScriptStyle
 import java.text.SimpleDateFormat
@@ -90,7 +92,7 @@ fun HistoryResultDialog(
                         )
                     }
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Outlined.Close, contentDescription = "Close")
+                        Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close))
                     }
                 }
 
@@ -112,7 +114,7 @@ fun HistoryResultDialog(
                             if (isImage) {
                                 AsyncImage(
                                     model = record.fileUri,
-                                    contentDescription = "Original scan",
+                                    contentDescription = stringResource(R.string.history_original_scan),
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
@@ -189,7 +191,7 @@ fun HistoryResultDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (copied) "Copied" else "Copy to Clipboard", fontWeight = FontWeight.Bold)
+                        Text(stringResource(if (copied) R.string.copied else R.string.copy_text), fontWeight = FontWeight.Bold)
                     }
                 }
 

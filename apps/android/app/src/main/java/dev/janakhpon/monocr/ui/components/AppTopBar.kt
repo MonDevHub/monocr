@@ -44,7 +44,7 @@ fun MonTopAppBar(
                 }) {
                     Icon(
                         Icons.Outlined.Menu, 
-                        contentDescription = "Menu",
+                        contentDescription = stringResource(R.string.drawer_open),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -55,7 +55,7 @@ fun MonTopAppBar(
                 }) {
                     Icon(
                         Icons.AutoMirrored.Outlined.ArrowBack, 
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.nav_back),
                         modifier = Modifier.size(22.dp)
                     )
                 }

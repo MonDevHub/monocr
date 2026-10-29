@@ -180,7 +180,7 @@ fun DocsScreen(onMenuClick: () -> Unit) {
             // ── Contributors ─────────────────
             DocSection(
                 number = "6",
-                title = "Contributors",
+                title = stringResource(R.string.docs_contributors),
                 icon = Icons.Outlined.Group
             ) {
                 val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current

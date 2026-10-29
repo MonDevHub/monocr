@@ -61,7 +61,7 @@ fun AppDrawer(
                 }
             }
             Text(
-                "Production Suite · v$versionName",
+                stringResource(R.string.drawer_version, versionName),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)

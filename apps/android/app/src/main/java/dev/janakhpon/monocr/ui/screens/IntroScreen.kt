@@ -13,9 +13,14 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material.icons.outlined.GroupWork
 import androidx.compose.material.icons.outlined.SettingsSuggest
+import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,6 +29,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import dev.janakhpon.monocr.R
+import dev.janakhpon.monocr.ui.components.LanguagePickerDialog
 import kotlinx.coroutines.launch
 
 @Composable
@@ -33,27 +41,27 @@ fun IntroScreen(
     val slides = listOf(
         IntroSlide(
             icon = Icons.Outlined.AutoAwesome,
-            title = "Welcome to MonOCR",
-            description = "An offline, privacy-first character recognition engine for the Mon language."
+            title = stringResource(R.string.intro_welcome_title),
+            description = stringResource(R.string.intro_welcome_desc)
         ),
         IntroSlide(
             icon = Icons.Outlined.DocumentScanner,
-            title = "Home & History",
-            description = "Extract text from photos or PDFs. Your scans are automatically saved locally for quick review."
+            title = stringResource(R.string.intro_home_title),
+            description = stringResource(R.string.intro_home_desc)
         ),
         IntroSlide(
             icon = Icons.Outlined.SettingsSuggest,
-            title = "Precision & Docs",
+            title = stringResource(R.string.intro_docs_title),
             // No percentage here. This read "97.5%+ accuracy" until 2026-08-16;
             // that figure traces to no run, and the project's own README states
             // the model has no held-out evaluation on photographed pages.
             // AboutScreen.kt retracted the same class of claim already.
-            description = "Check the Docs for guidelines on lighting and resolution that help the model read a page."
+            description = stringResource(R.string.intro_docs_desc)
         ),
         IntroSlide(
             icon = Icons.Outlined.GroupWork,
-            title = "Open & Evolving",
-            description = "Use the Contribute tab to submit Mon documents, or Feedback to correct OCR mistakes."
+            title = stringResource(R.string.intro_community_title),
+            description = stringResource(R.string.intro_community_desc)
         )
     )
 
@@ -66,7 +74,29 @@ fun IntroScreen(
         }
     }
 
+    // The intro is the first thing a new user sees, before the drawer is reachable, so
+    // the language can be changed from here.
+    var showLanguagePicker by remember { mutableStateOf(false) }
+    if (showLanguagePicker) {
+        LanguagePickerDialog(onDismiss = { showLanguagePicker = false })
+    }
+
     Scaffold(
+        topBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = { showLanguagePicker = true }) {
+                    Icon(Icons.Outlined.Translate, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.nav_language))
+                }
+            }
+        },
         bottomBar = {
             Column(
                 modifier = Modifier
@@ -114,7 +144,7 @@ fun IntroScreen(
                                     containerColor = MaterialTheme.colorScheme.primary
                                 )
                             ) {
-                                Text("Get Started", style = MaterialTheme.typography.labelLarge)
+                                Text(stringResource(R.string.intro_get_started), style = MaterialTheme.typography.labelLarge)
                             }
                         } else {
                             Button(
@@ -126,7 +156,7 @@ fun IntroScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp)
                             ) {
-                                Text("Continue", style = MaterialTheme.typography.labelLarge)
+                                Text(stringResource(R.string.intro_continue), style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     }
