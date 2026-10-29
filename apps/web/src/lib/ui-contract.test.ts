@@ -80,3 +80,15 @@ describe('the result area is reachable and announced', () => {
 		expect(css).toMatch(/\.dropzone-active\s*\{/);
 	});
 });
+
+describe('rotate and crop', () => {
+	it('is offered after a read, for images only, and the one-tap path is unchanged', () => {
+		expect(page).toMatch(/const canAdjust = \$derived\(file !== null && !isPdf && !reading/);
+		// Choosing a file still starts the read at once.
+		expect(page).toMatch(/startRead\(newFile\);\s*\}\s*function startRead/);
+		// Applying an adjustment reads the adjusted file as a new run.
+		expect(page).toMatch(
+			/onapply=\{\(adjusted\) => \{\s*adjusting = false;\s*startRead\(adjusted\);/
+		);
+	});
+});

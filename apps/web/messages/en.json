@@ -145,5 +145,11 @@
 	"contribute_submitting": "Submitting...",
 	"contribute_history": "Contributions",
 	"contribute_received_title": "Contribution Received",
-	"contribute_received_msg": "Thank you for contributing to the Mon language community! Your submission has been saved."
+	"contribute_received_msg": "Thank you for contributing to the Mon language community! Your submission has been saved.",
+	"adjust_open": "Adjust",
+	"adjust_hint": "Rotate the image or drag on it to choose the part to read, then read it again.",
+	"adjust_rotate": "Rotate 90°",
+	"adjust_clear_crop": "Clear crop",
+	"adjust_apply": "Read again",
+	"adjust_canvas_label": "Image to rotate or crop"
 }

@@ -6,7 +6,7 @@
 	import { CONFIG } from '$lib/config';
 	import { renderPdfPage, loadPdf } from '$lib/utils/pdf-util';
 	import { feedbackStore } from '$lib/stores/feedback';
-	import { HistorySection, Icon } from '$lib/components';
+	import { CropRotate, HistorySection, Icon } from '$lib/components';
 	import { getRecord, saveRecord } from '$lib/storage/db';
 	import { combinePages, isTimeout, pageWarnings, readPdfPages } from '$lib/reading';
 	import { createRunToken } from '$lib/run-token';
@@ -54,6 +54,8 @@
 	let totalPages = $state(0);
 	let currentPage = $state(0);
 	let dragging = $state(false);
+	// The rotate-and-crop panel is open. Images only: a PDF page is not adjustable.
+	let adjusting = $state(false);
 	let fileInput = $state<HTMLInputElement>();
 	let copyButton = $state<HTMLButtonElement>();
 	let resultCard = $state<HTMLElement>();
@@ -66,6 +68,7 @@
 	const view = $derived(resultView({ loading: reading, error: error !== null, text: resultText }));
 	const status = $derived(statusKind({ engine: engineState, reading, pdf: isPdf, view }));
 	const dropDisabled = $derived(engineState === 'failed');
+	const canAdjust = $derived(file !== null && !isPdf && !reading && !adjusting);
 
 	// History reference for refreshing
 	let historySection: ReturnType<typeof HistorySection>;
@@ -189,6 +192,7 @@
 		file = newFile;
 		isPdf = newFile.type === 'application/pdf';
 		queuedFile = null;
+		adjusting = false;
 		resultText = null;
 		warnings = [];
 		error = null;
@@ -361,6 +365,7 @@
 		file = null;
 		lastFile = null;
 		queuedFile = null;
+		adjusting = false;
 		revokePreview();
 		previewFailed = false;
 		resultText = null;
@@ -624,8 +629,17 @@
 			</div>
 		{:else}
 			<div class="mx-auto flex w-full max-w-2xl flex-col gap-6" in:fly={{ y: 20, duration: 400 }}>
-				<!-- Image Preview -->
-				{#if previewUrl && !previewFailed}
+				<!-- Image Preview, or the rotate-and-crop panel in its place -->
+				{#if adjusting && file && !isPdf}
+					<CropRotate
+						{file}
+						oncancel={() => (adjusting = false)}
+						onapply={(adjusted) => {
+							adjusting = false;
+							startRead(adjusted);
+						}}
+					/>
+				{:else if previewUrl && !previewFailed}
 					<div
 						class="bg-canvas-subtle/30 relative flex min-h-[120px] items-center justify-center overflow-hidden rounded-lg p-3"
 					>
@@ -739,10 +753,21 @@
 									{m.main_no_text()}
 								</p>
 								<p class="text-fg-secondary max-w-xs text-[13px]">{m.main_no_text_hint()}</p>
-								<button type="button" class="btn-primary mt-2 min-h-11" onclick={reset}>
-									<Icon name="add" size={16} class="mr-1.5" />
-									{m.main_process_another()}
-								</button>
+								<div class="mt-2 flex flex-wrap justify-center gap-2">
+									{#if canAdjust}
+										<button
+											type="button"
+											class="btn-secondary min-h-11"
+											onclick={() => (adjusting = true)}
+										>
+											{m.adjust_open()}
+										</button>
+									{/if}
+									<button type="button" class="btn-primary min-h-11" onclick={reset}>
+										<Icon name="add" size={16} class="mr-1.5" />
+										{m.main_process_another()}
+									</button>
+								</div>
 							</div>
 						{:else if view === 'text'}
 							<div class="prose max-w-none dark:prose-invert">
@@ -782,7 +807,16 @@
 									{m.main_process_another()}
 								</button>
 							</div>
-							<div class="flex items-center sm:justify-end">
+							<div class="flex items-center gap-2 sm:justify-end">
+								{#if canAdjust}
+									<button
+										type="button"
+										class="btn-secondary min-h-11"
+										onclick={() => (adjusting = true)}
+									>
+										{m.adjust_open()}
+									</button>
+								{/if}
 								<button
 									class="text-fg-secondary hover:text-fg-primary focus-ring group flex min-h-11 items-center gap-2 px-1 text-[11px] font-bold tracking-widest uppercase transition-all"
 									onclick={reportError}

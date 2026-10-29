@@ -10,6 +10,7 @@ export { default as Footer } from './layout/Footer.svelte';
 
 // Main Components
 export { default as HistorySection } from './HistorySection.svelte';
+export { default as CropRotate } from './CropRotate.svelte';
 
 // Feedback & Validation
 export { default as SuccessModal } from './ui/SuccessModal.svelte';
