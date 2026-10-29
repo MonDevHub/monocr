@@ -26,6 +26,9 @@ The app uploads it once submitted, so the translation was removed rather than le
 | Key | Note |
 | --- | --- |
 | `contribute_consent_desc` | Under the consent box on Contribute |
+| `error_file_unreadable` | Scan error: the file could not be opened |
+| `error_pdf_no_pages` | Scan error: the PDF has no pages |
+| `error_model_runtime` | Scan error: the model failed on this device |
 
 ## Already missing before this change
 

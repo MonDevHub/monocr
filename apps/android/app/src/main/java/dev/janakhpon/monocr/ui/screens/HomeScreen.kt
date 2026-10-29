@@ -65,7 +65,9 @@ import dev.janakhpon.monocr.R
 import dev.janakhpon.monocr.data.HistoryRecord
 import dev.janakhpon.monocr.engine.ImagePreprocessor
 import dev.janakhpon.monocr.engine.SegmentationMode
+import dev.janakhpon.monocr.engine.UnreadableImageException
 import dev.janakhpon.monocr.ui.MainViewModel
+import dev.janakhpon.monocr.ui.OcrFailure
 import dev.janakhpon.monocr.ui.UiState
 import dev.janakhpon.monocr.ui.components.HeroHeader
 import dev.janakhpon.monocr.ui.components.HistoryResultDialog
@@ -81,6 +83,7 @@ import dev.janakhpon.monocr.util.PdfUtil
 import dev.janakhpon.monocr.util.orientBitmap
 import kotlinx.coroutines.CancellationException
 import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -230,7 +233,7 @@ fun HomeScreen(
                         )
                         is UiState.OcrError     -> OcrErrorView(
                             imageUri = state.imageUri,
-                            message  = state.message,
+                            failure  = state.failure,
                             onReset  = viewModel::reset,
                             onViewDocs = onNavigateToDocs
                         )
@@ -470,6 +473,9 @@ private val defaultImportPreparationOps = ImportPreparationOps(
     }
 )
 
+/** Imports above this size are refused; monocr-cli takes larger files. */
+internal const val IMPORT_LIMIT_MB = 50
+
 internal suspend fun loadAndProcess(
     context: Context,
     uri: Uri,
@@ -482,8 +488,8 @@ internal suspend fun loadAndProcess(
     try {
         val fileSize = preparation.fileSize(context, uri)
 
-        if (fileSize > 50 * 1024 * 1024L) {
-            viewModel.onError(uri, context.getString(R.string.error_file_large, 50), token)
+        if (fileSize > IMPORT_LIMIT_MB * 1024 * 1024L) {
+            viewModel.onError(uri, OcrFailure.FileTooLarge(IMPORT_LIMIT_MB), token)
             return
         }
 
@@ -494,15 +500,22 @@ internal suspend fun loadAndProcess(
             return
         }
 
-        val bitmap = preparation.decodeImage(context, uri, resources)
-            ?: throw IllegalArgumentException("This image could not be decoded.")
+        val bitmap = try {
+            preparation.decodeImage(context, uri, resources)
+        } catch (e: CancellationException) { throw e
+        } catch (e: IOException) { throw e
+        } catch (e: SecurityException) { throw e
+        } catch (e: Exception) { throw UnreadableImageException(e)
+        } ?: throw UnreadableImageException()
         viewModel.onImageSelected(uri, bitmap, chooseMode(bitmap), token)
         resources.bitmap = null // The job (or stale-import rejection) now owns recycling.
     } catch (e: CancellationException) {
         viewModel.cancelImport(token)
         throw e
     } catch (e: Exception) {
-        viewModel.onError(uri, e.message ?: "The selected file could not be opened.", token)
+        viewModel.onError(uri, OcrFailure.of(e), token)
+    } catch (e: OutOfMemoryError) {
+        viewModel.onError(uri, OcrFailure.OutOfMemory, token)
     } finally {
         resources.bitmap?.let { if (!it.isRecycled) it.recycle() }
         resources.previewFile?.delete()

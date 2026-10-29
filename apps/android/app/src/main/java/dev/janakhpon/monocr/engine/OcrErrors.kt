@@ -20,3 +20,15 @@ class ModelContractException(message: String) : IllegalStateException(message)
  */
 class LineInferenceException(message: String, cause: Throwable? = null) :
     RuntimeException(message, cause)
+
+/** The selected image could not be decoded into a bitmap. */
+class UnreadableImageException(cause: Throwable? = null) :
+    IllegalArgumentException("This image could not be decoded.", cause)
+
+/**
+ * The PDF opened but has no page to read.
+ *
+ * An [IllegalArgumentException] still, because that is what callers of
+ * `readDocumentPages` have always been told about a zero-page document.
+ */
+class EmptyPdfException : IllegalArgumentException("The PDF has no readable pages.")

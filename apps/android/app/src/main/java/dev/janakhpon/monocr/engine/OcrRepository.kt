@@ -26,7 +26,7 @@ import kotlinx.coroutines.sync.withLock
 
 class OcrRepository(
     context: Context
-) {
+) : OcrPipeline {
     private val historyDao: HistoryDao by lazy {
         HistoryDatabase.getDatabase(context).historyDao()
     }
@@ -34,9 +34,9 @@ class OcrRepository(
     private val engine = MonOcrEngine(context)
     private val pageMutex = Mutex()
 
-    val isEngineReady: Boolean get() = engine.isInitialized
+    override val isEngineReady: Boolean get() = engine.isInitialized
 
-    suspend fun initialize() {
+    override suspend fun initialize() {
         engine.initialize()
     }
 
@@ -49,9 +49,9 @@ class OcrRepository(
      *
      * Returns an [OcrResult] with extracted text, line count, and wall-clock duration.
      */
-    suspend fun performOcr(
+    override suspend fun performOcr(
         bitmap: Bitmap,
-        mode: SegmentationMode = SegmentationMode.PAGE
+        mode: SegmentationMode
     ): OcrResult = withContext(Dispatchers.Default) {
         pageMutex.withLock {
             currentCoroutineContext().ensureActive()
@@ -165,16 +165,16 @@ class OcrRepository(
     /**
      * Save a result to the local history.
      */
-    suspend fun saveToHistory(
+    override suspend fun saveToHistory(
         fileName: String,
         fileType: String,
         text: String,
         durationMs: Long,
-        category: String = "ocr-scan",
-        fileUri: String? = null,
-        rawText: String? = null,
-        warningSummary: String? = null
-    ) = withContext(Dispatchers.IO) {
+        category: String,
+        fileUri: String?,
+        rawText: String?,
+        warningSummary: String?
+    ): Unit = withContext(Dispatchers.IO) {
         historyDao.insert(
             HistoryRecord(
                 fileName = fileName,
@@ -195,7 +195,7 @@ class OcrRepository(
      * A PDF render is a page of dense text by construction, so it gets
      * [SegmentationMode.PAGE] and the mode is not offered per page.
      */
-    suspend fun performMultiPageOcr(context: Context, uri: android.net.Uri): OcrResult = withContext(Dispatchers.Default) {
+    override suspend fun performMultiPageOcr(context: Context, uri: android.net.Uri): OcrResult = withContext(Dispatchers.Default) {
         val startMs = System.currentTimeMillis()
         val pageCount = PdfUtil.getPageCount(context, uri)
         val pages = readDocumentPages(
@@ -207,21 +207,21 @@ class OcrRepository(
         combinePageResults(pages, System.currentTimeMillis() - startMs)
     }
 
-    fun getScanHistory() = historyDao.getRecordsByCategory("ocr-scan")
+    override fun getScanHistory() = historyDao.getRecordsByCategory("ocr-scan")
 
     fun getContributionHistory() = historyDao.getRecordsByCategory("contribution")
 
     fun getFeedbackHistory() = historyDao.getRecordsByCategory("feedback")
 
-    suspend fun deleteHistoryRecord(id: Long) = withContext(Dispatchers.IO) {
+    override suspend fun deleteHistoryRecord(id: Long): Unit = withContext(Dispatchers.IO) {
         historyDao.deleteById(id)
     }
 
-    suspend fun clearHistory(category: String) = withContext(Dispatchers.IO) {
+    override suspend fun clearHistory(category: String): Unit = withContext(Dispatchers.IO) {
         historyDao.clearCategory(category)
     }
 
-    fun dispose() {
+    override fun dispose() {
         engine.dispose()
     }
 }

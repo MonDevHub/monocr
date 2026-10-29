@@ -3,7 +3,7 @@ package dev.janakhpon.monocr.ui
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dev.janakhpon.monocr.engine.OcrRepository
+import dev.janakhpon.monocr.engine.OcrPipeline
 import dev.janakhpon.monocr.engine.OcrResult
 import dev.janakhpon.monocr.engine.SegmentationMode
 import dev.janakhpon.monocr.data.HistoryRecord
@@ -25,7 +25,7 @@ sealed class UiState {
     data object Ready : UiState()
     data class Processing(val imageUri: Uri) : UiState()
     data class Success(val imageUri: Uri, val result: OcrResult, val originalUri: Uri? = null, val fileType: String = "image/jpeg") : UiState()
-    data class OcrError(val imageUri: Uri, val message: String) : UiState()
+    data class OcrError(val imageUri: Uri, val failure: OcrFailure) : UiState()
 }
 
 /**
@@ -33,7 +33,7 @@ sealed class UiState {
  * Owns only: engine init state, scan history, and active scan/pdf processing.
  * Contribution and feedback state live in their own dedicated ViewModels.
  */
-class MainViewModel(private val repository: OcrRepository) : ViewModel() {
+class MainViewModel(private val repository: OcrPipeline) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Initializing)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -142,7 +142,12 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 if (generations.isCurrent(token))
-                    _uiState.value = UiState.OcrError(uri, e.message ?: "OCR processing failed")
+                    _uiState.value = UiState.OcrError(uri, OcrFailure.of(e))
+            } catch (e: OutOfMemoryError) {
+                // A page-sized buffer that did not fit. The failed allocation is
+                // released with it, so the app can carry on and say why.
+                if (generations.isCurrent(token))
+                    _uiState.value = UiState.OcrError(uri, OcrFailure.OutOfMemory)
             }
         }.also { job -> job.invokeOnCompletion { bitmap.recycle() } }
     }
@@ -176,14 +181,17 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 if (generations.isCurrent(token))
-                    _uiState.value = UiState.OcrError(previewUri ?: uri, e.message ?: "PDF processing failed")
+                    _uiState.value = UiState.OcrError(previewUri ?: uri, OcrFailure.of(e))
+            } catch (e: OutOfMemoryError) {
+                if (generations.isCurrent(token))
+                    _uiState.value = UiState.OcrError(previewUri ?: uri, OcrFailure.OutOfMemory)
             }
         }
     }
 
-    fun onError(uri: Uri, message: String, token: Long = beginImport(uri)) {
+    fun onError(uri: Uri, failure: OcrFailure, token: Long = beginImport(uri)) {
         if (!generations.isCurrent(token)) return
-        _uiState.value = UiState.OcrError(uri, message)
+        _uiState.value = UiState.OcrError(uri, failure)
     }
 
     fun deleteHistoryRecord(id: Long) {

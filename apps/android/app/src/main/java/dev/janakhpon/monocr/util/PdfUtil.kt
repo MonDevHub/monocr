@@ -56,7 +56,7 @@ object PdfUtil {
             ?: throw IllegalArgumentException("The PDF could not be opened.")
         fd.use {
             PdfRenderer(it).use { renderer ->
-                require(renderer.pageCount > 0) { "The PDF has no readable pages." }
+                if (renderer.pageCount <= 0) throw dev.janakhpon.monocr.engine.EmptyPdfException()
                 renderer.pageCount
             }
         }

@@ -81,7 +81,7 @@ fun PickerView(onGallery: () -> Unit, onPdf: () -> Unit, onCamera: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    stringResource(R.string.file_formats_limit, 50),
+                    stringResource(R.string.file_formats_limit, dev.janakhpon.monocr.ui.screens.IMPORT_LIMIT_MB),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

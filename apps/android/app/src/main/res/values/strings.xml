@@ -48,6 +48,9 @@
     <string name="error_timeout">The request timed out. Try a smaller or clearer image.</string>
     <string name="error_memory">Not enough memory. Close other apps and try again.</string>
     <string name="error_corrupt">Could not read the image file. Try a different format.</string>
+    <string name="error_file_unreadable">The selected file could not be opened. It may have been moved, or the app may no longer have access to it.</string>
+    <string name="error_pdf_no_pages">This PDF has no pages to read.</string>
+    <string name="error_model_runtime">The recognition model failed on this device, so no text was read. If it keeps failing, use monocr-cli on a computer.</string>
     <string name="error_generic_ocr">Could not extract text. Try a clearer or higher-contrast image.</string>
     <string name="history_title">Recent History</string>
     <string name="history_empty">No recent scans</string>
