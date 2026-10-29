@@ -23,7 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -85,6 +85,7 @@ fun HistorySection(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = title,
+                    modifier = Modifier.semantics { heading() },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -166,10 +167,9 @@ fun HistoryItem(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-            }
-            .semantics(mergeDescendants = true) {
-                contentDescription = record.fileName + ": " + date
             },
+        // No contentDescription override: the merged row reads its name, date, time and
+        // sync state, where the override replaced all of that with name and date.
         interactionSource = interactionSource
     ) {
         Row(

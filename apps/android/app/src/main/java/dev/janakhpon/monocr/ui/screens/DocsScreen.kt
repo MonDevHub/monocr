@@ -24,6 +24,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.janakhpon.monocr.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -244,7 +249,12 @@ fun DocSection(
             Spacer(modifier = Modifier.width(12.dp))
             Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                title,
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
         }
         content()
     }
@@ -294,14 +304,14 @@ fun SdkSwitcher() {
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.fillMaxWidth().padding(1.dp)
         ) {
-            Row(modifier = Modifier.padding(4.dp)) {
+            Row(modifier = Modifier.padding(4.dp).selectableGroup()) {
                 sdks.forEach { sdk ->
                     val isSelected = selectedSdk == sdk
                     Surface(
                         modifier = Modifier
                             .weight(1f)
-                            .height(36.dp)
-                            .clickable { selectedSdk = sdk },
+                            .heightIn(min = 48.dp)
+                            .selectable(selected = isSelected, role = Role.Tab) { selectedSdk = sdk },
                         shape = RoundedCornerShape(12.dp),
                         color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
                         shadowElevation = if (isSelected) 1.dp else 0.dp

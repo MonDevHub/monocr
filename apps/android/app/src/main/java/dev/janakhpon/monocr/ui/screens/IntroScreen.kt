@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import dev.janakhpon.monocr.R
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import dev.janakhpon.monocr.ui.components.LanguagePickerDialog
 import kotlinx.coroutines.launch
 
@@ -105,10 +107,14 @@ fun IntroScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Page Indicator
+                val pageState = stringResource(
+                    R.string.intro_page_state, pagerState.currentPage + 1, slides.size
+                )
                 Row(
                     Modifier
                         .height(32.dp)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .semantics(mergeDescendants = true) { stateDescription = pageState },
                     horizontalArrangement = Arrangement.Center
                 ) {
                     repeat(slides.size) { iteration ->

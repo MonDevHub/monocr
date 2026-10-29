@@ -22,6 +22,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.janakhpon.monocr.R
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import dev.janakhpon.monocr.ui.OcrFailure
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
@@ -98,6 +101,7 @@ fun OcrErrorView(imageUri: Uri, failure: OcrFailure, onReset: () -> Unit, onView
                 )
                 Text(
                     ocrFailureMessage(failure),
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )

@@ -194,6 +194,7 @@ internal fun ContributeContent(
                     value = transcription,
                     onValueChange = { transcription = it },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+                    label = { Text(stringResource(R.string.contribute_type_title)) },
                     placeholder = { Text(stringResource(R.string.contribute_type_placeholder), fontSize = 13.sp) },
                     textStyle = monScriptStyle,
                     shape = RoundedCornerShape(12.dp)

@@ -63,6 +63,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import dev.janakhpon.monocr.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -153,8 +157,14 @@ fun ResultView(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Announced when the result appears: until now a finished scan said
+                    // nothing to TalkBack, only a haptic fired.
                     Text(
                         stringResource(R.string.extracted_text),
+                        modifier = Modifier.semantics {
+                            heading()
+                            liveRegion = LiveRegionMode.Polite
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.2.sp
