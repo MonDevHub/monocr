@@ -1,9 +1,7 @@
 package dev.janakhpon.monocr.ui.screens
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -61,7 +59,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import dev.janakhpon.monocr.R
@@ -151,14 +148,16 @@ fun HomeScreen(
         }
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            val uri = createCameraUri(context)
-            cameraUri = uri
-            cameraLauncher.launch(uri)
-        }
+    // An image shared from another app is read like a gallery pick, once the engine
+    // can take it. Waiting on Initializing is what lets a cold-start share work.
+    val pendingShare by viewModel.pendingSharedImage.collectAsState()
+    val engineReady = uiState !is UiState.Initializing && uiState !is UiState.InitError
+    LaunchedEffect(pendingShare, engineReady) {
+        if (pendingShare == null || !engineReady) return@LaunchedEffect
+        val uri = viewModel.takeSharedImage() ?: return@LaunchedEffect
+        // In the screen's scope, not this effect's: taking the share changes this
+        // effect's key, and a restart would cancel the scan it had just started.
+        scope.launch { loadAndProcess(context, uri, viewModel, chooseMode = ::galleryModeFor) }
     }
 
     val scanHistory by viewModel.scanHistory.collectAsState()
@@ -209,13 +208,11 @@ fun HomeScreen(
                             onGallery = { galleryLauncher.launch(arrayOf("image/*")) },
                             onPdf = { pdfLauncher.launch(arrayOf("application/pdf")) },
                             onCamera = {
-                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                                    val uri = createCameraUri(context)
-                                    cameraUri = uri
-                                    cameraLauncher.launch(uri)
-                                } else {
-                                    permissionLauncher.launch(Manifest.permission.CAMERA)
-                                }
+                                // The system camera app takes the picture, so no runtime
+                                // permission is involved.
+                                val uri = createCameraUri(context)
+                                cameraUri = uri
+                                cameraLauncher.launch(uri)
                             }
                         )
                         is UiState.Processing   -> {

@@ -2,7 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- No CAMERA permission. Capture goes through the system camera app
+         (ActivityResultContracts.TakePicture), which needs none; declaring it is what
+         made ACTION_IMAGE_CAPTURE throw until the user granted it, and a denial left
+         the Camera button doing nothing. -->
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -26,6 +29,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.App.Starting"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

@@ -57,6 +57,19 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
     private val _rerunnableImage = MutableStateFlow<Uri?>(null)
     val rerunnableImage: StateFlow<Uri?> = _rerunnableImage.asStateFlow()
 
+    /**
+     * An image shared from another app, waiting for the engine to be ready. Held here
+     * rather than in the activity so it survives a configuration change, and so a share
+     * that arrives during the first-run intro is read once the intro is finished.
+     */
+    private val _pendingSharedImage = MutableStateFlow<Uri?>(null)
+    val pendingSharedImage: StateFlow<Uri?> = _pendingSharedImage.asStateFlow()
+
+    fun offerSharedImage(uri: Uri) { _pendingSharedImage.value = uri }
+
+    /** Hands the pending share to exactly one caller. */
+    fun takeSharedImage(): Uri? = _pendingSharedImage.value.also { _pendingSharedImage.value = null }
+
     private val generations = ScanGeneration()
     private var scanJob: Job? = null
     private var currentPreviewFile: File? = null

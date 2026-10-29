@@ -1,5 +1,6 @@
 package dev.janakhpon.monocr
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -8,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -34,14 +36,23 @@ import dev.janakhpon.monocr.ui.screens.IntroScreen
 import dev.janakhpon.monocr.ui.screens.PrivacyScreen
 import dev.janakhpon.monocr.ui.theme.MonOCRTheme
 import dev.janakhpon.monocr.util.PreferenceManager
+import dev.janakhpon.monocr.util.sharedImageUri
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+
+    /** An image shared to the app, handed to MainViewModel by the composition. */
+    private val incomingShare = MutableStateFlow<Uri?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Only on a fresh launch: a recreated activity is handed the same intent again,
+        // and reading it twice would start the same scan twice.
+        if (savedInstanceState == null) incomingShare.value = sharedImageUri(intent)
         
         dev.janakhpon.monocr.util.MonLogger.applicationContext = applicationContext
 
@@ -79,6 +90,23 @@ class MainActivity : AppCompatActivity() {
                 val currentRoute = navBackStackEntry?.destination?.route
                 val startDestination = remember {
                     if (prefManager.isOnboardingCompleted) "home" else "intro"
+                }
+
+                // A share is queued on the ViewModel, which HomeScreen reads once the
+                // engine is ready. Bring Home forward unless the intro is still showing;
+                // finishing the intro lands on Home, which then reads it.
+                val share by incomingShare.collectAsState()
+                LaunchedEffect(share) {
+                    val uri = share ?: return@LaunchedEffect
+                    vm.offerSharedImage(uri)
+                    incomingShare.value = null
+                    val route = navController.currentDestination?.route
+                    if (route != null && route != "home" && route != "intro") {
+                        navController.navigate("home") {
+                            popUpTo("home")
+                            launchSingleTop = true
+                        }
+                    }
                 }
 
                 androidx.compose.material3.ModalNavigationDrawer(
@@ -181,5 +209,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-}
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        sharedImageUri(intent)?.let { incomingShare.value = it }
+    }
+}
