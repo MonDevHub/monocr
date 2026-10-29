@@ -36,7 +36,6 @@
     <string name="error_file_type">ဖိုင်အမျိုးအစား မှားယွင်းနေသည်။ JPG, PNG, WEBP, PDF သာ အသုံးပြုပါ။</string>
     <string name="error_ocr_failed">OCR လုပ်ဆောင်မှု မအောင်မြင်ပါ</string>
     <string name="error_engine_load">OCR အင်ဂျင် အလုပ်မလုပ်ပါ</string>
-    <string name="error_timeout">အချိန်ကြာမြင့်သွားပြီ။ ပိုမိုသေးငယ်သော သို့မဟုတ် ပိုမိုကြည်လင်သော ပုံကို စမ်းကြည့်ပါ။</string>
     <string name="error_memory">မှတ်ဉာဏ် (Memory) မလုံလောက်ပါ။ အခြား App များကို ပိတ်ပြီး ပြန်စမ်းကြည့်ပါ။</string>
     <string name="error_corrupt">ပုံဖိုင်ကို ဖတ်၍မရပါ။ အခြားအမျိုးအစားကို စမ်းကြည့်ပါ။</string>
     <string name="error_generic_ocr">စာသား ထုတ်ယူ၍မရပါ။ ပိုမိုကြည်လင်သော ပုံကို စမ်းကြည့်ပါ။</string>

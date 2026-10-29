@@ -64,6 +64,7 @@ internal fun ocrFailureMessage(failure: OcrFailure): String = when (failure) {
     is OcrFailure.FileTooLarge -> stringResource(R.string.error_file_large, failure.limitMb)
     OcrFailure.UnreadableFile -> stringResource(R.string.error_file_unreadable)
     OcrFailure.UnreadableImage -> stringResource(R.string.error_corrupt)
+    OcrFailure.UnreadablePdf -> stringResource(R.string.error_pdf_unreadable)
     OcrFailure.PdfNoPages -> stringResource(R.string.error_pdf_no_pages)
     OcrFailure.OutOfMemory -> stringResource(R.string.error_memory)
     OcrFailure.ModelRuntime -> stringResource(R.string.error_model_runtime)

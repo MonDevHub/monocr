@@ -72,7 +72,7 @@ NNAPI; it is not available on every device or emulator, and the app falls back t
 ./gradlew testDebugUnitTest
 ```
 
-163 tests across 25 classes. Without `JAVA_HOME` set as above, Gradle fails at configuration
+166 tests across 26 classes. Without `JAVA_HOME` set as above, Gradle fails at configuration
 time with "Unable to download toolchain": that is a lookup failure, not a missing runtime. Another
 JDK works as `JAVA_HOME` if Gradle is told where the JetBrains runtime is:
 `./gradlew -Porg.gradle.java.installations.paths="/Applications/Android Studio.app/Contents/jbr/Contents/Home" testDebugUnitTest`.

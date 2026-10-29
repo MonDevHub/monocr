@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import dev.janakhpon.monocr.engine.UnreadablePdfException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,11 +54,18 @@ object PdfUtil {
      */
     suspend fun getPageCount(context: Context, uri: Uri): Int = withContext(Dispatchers.IO) {
         val fd = context.contentResolver.openFileDescriptor(uri, "r")
-            ?: throw IllegalArgumentException("The PDF could not be opened.")
+            ?: throw UnreadablePdfException("The PDF could not be opened: no file descriptor.")
         fd.use {
-            PdfRenderer(it).use { renderer ->
-                if (renderer.pageCount <= 0) throw dev.janakhpon.monocr.engine.EmptyPdfException()
-                renderer.pageCount
+            val renderer = try {
+                PdfRenderer(it)
+            } catch (e: SecurityException) {
+                throw UnreadablePdfException("The PDF is password-protected.", e)
+            } catch (e: java.io.IOException) {
+                throw UnreadablePdfException("The PDF is corrupt or not a PDF.", e)
+            }
+            renderer.use { r ->
+                if (r.pageCount <= 0) throw dev.janakhpon.monocr.engine.EmptyPdfException()
+                r.pageCount
             }
         }
     }

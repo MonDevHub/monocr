@@ -26,6 +26,13 @@ class UnreadableImageException(cause: Throwable? = null) :
     IllegalArgumentException("This image could not be decoded.", cause)
 
 /**
+ * The PDF could not be opened: corrupt, password-protected, or its descriptor was
+ * unavailable. [reason] is the specific cause for logs.
+ */
+class UnreadablePdfException(reason: String = "The PDF could not be opened.", cause: Throwable? = null) :
+    IllegalArgumentException(reason, cause)
+
+/**
  * The PDF opened but has no page to read.
  *
  * An [IllegalArgumentException] still, because that is what callers of

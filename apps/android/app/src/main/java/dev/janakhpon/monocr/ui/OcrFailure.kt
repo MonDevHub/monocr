@@ -3,6 +3,7 @@ package dev.janakhpon.monocr.ui
 import dev.janakhpon.monocr.engine.EmptyPdfException
 import dev.janakhpon.monocr.engine.LineInferenceException
 import dev.janakhpon.monocr.engine.UnreadableImageException
+import dev.janakhpon.monocr.engine.UnreadablePdfException
 import java.io.IOException
 
 /**
@@ -18,6 +19,8 @@ sealed interface OcrFailure {
     data object UnreadableFile : OcrFailure
     /** The file opened but is not an image this device can decode. */
     data object UnreadableImage : OcrFailure
+    /** The PDF is corrupt or password-protected. */
+    data object UnreadablePdf : OcrFailure
     data object PdfNoPages : OcrFailure
     data object OutOfMemory : OcrFailure
     /** Every line failed in the model runtime, so nothing was read. */
@@ -28,6 +31,7 @@ sealed interface OcrFailure {
     companion object {
         fun of(error: Throwable): OcrFailure = when (error) {
             is UnreadableImageException -> UnreadableImage
+            is UnreadablePdfException -> UnreadablePdf
             is EmptyPdfException -> PdfNoPages
             is LineInferenceException -> ModelRuntime
             is OutOfMemoryError -> OutOfMemory

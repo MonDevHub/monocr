@@ -2,6 +2,9 @@
 <lint>
     <!-- Room's KSP output calls Room's own restricted APIs by design. Lint flags
          it as RestrictedApi on every generated DAO; the hand-written code stays checked. -->
+    <!-- Burmese and Mon strings wait for native speakers and are not machine-translated.
+         The missing keys are listed in TRANSLATIONS_TODO.md, so this stays a warning. -->
+    <issue id="MissingTranslation" severity="warning" />
     <issue id="RestrictedApi">
         <ignore path="**/build/generated/**" />
     </issue>

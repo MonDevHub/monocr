@@ -4,6 +4,12 @@ These keys in `app/src/main/res/values/strings.xml` have no entry in `values-my/
 `values-mnw/`, so Burmese and Mon users see the English until a native speaker adds one.
 They were not machine-translated on purpose. Add both translations, then delete the row.
 
+## New keys
+
+| Key | English |
+| --- | --- |
+| `error_pdf_unreadable` | This PDF could not be opened. It may be damaged or password-protected. |
+
 ## Changed meaning: the old translation was removed because it was no longer true
 
 The old Burmese and Mon text said that Feedback and Contribute data never leaves the device.

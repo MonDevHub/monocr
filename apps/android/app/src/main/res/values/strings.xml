@@ -49,10 +49,10 @@
     <string name="error_file_type">Invalid file type. Use JPG, PNG, WEBP, or PDF.</string>
     <string name="error_ocr_failed">OCR failed</string>
     <string name="error_engine_load">OCR Engine failed to load</string>
-    <string name="error_timeout">The request timed out. Try a smaller or clearer image.</string>
     <string name="error_memory">Not enough memory. Close other apps and try again.</string>
     <string name="error_corrupt">Could not read the image file. Try a different format.</string>
     <string name="error_file_unreadable">The selected file could not be opened. It may have been moved, or the app may no longer have access to it.</string>
+    <string name="error_pdf_unreadable">This PDF could not be opened. It may be damaged or password-protected.</string>
     <string name="error_pdf_no_pages">This PDF has no pages to read.</string>
     <string name="error_model_runtime">The recognition model failed on this device, so no text was read. If it keeps failing, use monocr-cli on a computer.</string>
     <string name="error_generic_ocr">Could not extract text. Try a clearer or higher-contrast image.</string>
@@ -94,7 +94,7 @@
     <string name="docs_lighting_desc">Diffuse lighting, no glares.</string>
     <string name="docs_privacy_title">Privacy-First OCR</string>
     <string name="docs_privacy_desc">Recognition runs on your device. A file is uploaded only when you submit it through Feedback or Contribute.</string>
-    <string name="docs_privacy_stat">On-device recognition • Scans stay on your device</string>
+    <string name="docs_privacy_stat">On-device recognition • Scans are not sent unless you submit them</string>
     <string name="docs_model_hub">Model Hub</string>
     <string name="docs_model_hub_desc">Our production weights and multi-format exports are hosted on Hugging Face.</string>
     <string name="docs_visit_hf">Visit Hugging Face</string>
@@ -131,7 +131,7 @@
     <string name="privacy_title">Privacy Policy</string>
     <string name="privacy_effective_date">Effective Date: March 21, 2026</string>
     <string name="privacy_s1_title">1. What Stays on Your Device</string>
-    <string name="privacy_s1_desc">Text recognition (OCR) runs entirely on your device. The images and PDFs you scan, and the text read from them, are not sent anywhere.\n\nMonOCR has no account, no analytics and no advertising. The only data it sends is what you submit through Feedback or Contribute, described in section 3.</string>
+    <string name="privacy_s1_desc">Text recognition (OCR) runs entirely on your device. The images and PDFs you scan, and the text read from them, are not sent anywhere unless you submit them through Feedback or Contribute (section 3).\n\nMonOCR has no account, no analytics and no advertising. The only data it sends is what you submit through Feedback or Contribute.</string>
     <string name="privacy_s2_title">2. Processing of Images</string>
     <string name="privacy_s2_desc">Images you pick or capture are read on your device by the bundled model, using the device\'s neural network API (NNAPI) where it is available and the CPU otherwise. The original image and the extracted text stay on your device, in the app\'s scan history.</string>
     <string name="privacy_s3_title">3. Voluntary Feedback and Contributions</string>

@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import dev.janakhpon.monocr.R
 import dev.janakhpon.monocr.engine.EmptyPdfException
 import dev.janakhpon.monocr.engine.LineInferenceException
+import dev.janakhpon.monocr.engine.UnreadablePdfException
 import dev.janakhpon.monocr.ui.components.OcrErrorView
 import dev.janakhpon.monocr.ui.screens.ImportPreparationOps
 import dev.janakhpon.monocr.ui.screens.PreparedPdfPreview
@@ -79,6 +80,18 @@ class OcrFailureTest {
 
         pipeline.image = { _, _ -> throw OutOfMemoryError() }
         assertEquals(UiState.OcrError(uri, OcrFailure.OutOfMemory), import(ops()))
+    }
+
+    @Test fun `a pdf that cannot be opened has its own type and message`() {
+        assertEquals(OcrFailure.UnreadablePdf, OcrFailure.of(UnreadablePdfException("password-protected")))
+        pipeline.document = { _, _, _ -> throw UnreadablePdfException("corrupt") }
+        assertEquals(UiState.OcrError(uri, OcrFailure.UnreadablePdf), import(ops(pdf = true)))
+        compose.setContent {
+            MonOCRTheme(darkTheme = false) {
+                OcrErrorView(uri, OcrFailure.UnreadablePdf, onReset = {}, onViewDocs = {})
+            }
+        }
+        compose.onNodeWithText(str(R.string.error_pdf_unreadable)).assertExists()
     }
 
     @Test fun `too large shows its own message and the CLI guide`() {

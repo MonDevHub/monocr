@@ -35,7 +35,6 @@
     <string name="error_file_type">ဖိုင်ဟွံဒး။ စကာ JPG, PNG, WEBP, PDF ညိ။</string>
     <string name="error_ocr_failed">OCR ကၠောန်ဟွံဂွံ</string>
     <string name="error_engine_load">အေန်ဂျေၚ် OCR စကာဟွံဂွံ</string>
-    <string name="error_timeout">အခိင်လောန်အာယျ။ စကာ ဗီုဍောတ်တ် ညိ။</string>
     <string name="error_memory">memory ဟွံရုမ်ဂပ်။ ကၟာတ် app တၞဟ်တအ်ညိ။</string>
     <string name="error_corrupt">ဗှ်ဗီုရုပ်ဖိုၚ်ဟွံဂွံ။ စကာဖိုင်တၞဟ်ညိ။</string>
     <string name="error_generic_ocr">ဗှ်လိခ်ဟွံဂွံ။ စကာ ဗီုမကၠးဂှ်ညိ။</string>
