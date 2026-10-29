@@ -157,13 +157,13 @@ fun FeedbackScreen(
                                 Icons.Outlined.Info,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 stringResource(R.string.feedback_help_desc),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -181,7 +181,7 @@ fun FeedbackScreen(
                     Text(
                         stringResource(R.string.feedback_human_verified),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         letterSpacing = 1.sp
                     )
                 }
@@ -222,7 +222,7 @@ fun FeedbackScreen(
 
             // ── Consent & Submit Section ──────────────────
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 
                 Row(verticalAlignment = Alignment.Top) {
                     Checkbox(
@@ -239,7 +239,7 @@ fun FeedbackScreen(
                         Text(
                             stringResource(R.string.feedback_consent_desc),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -301,5 +301,5 @@ fun FeedbackScreen(
 
 @Composable
 private fun borderStroke() = androidx.compose.foundation.BorderStroke(
-    0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    0.5.dp, MaterialTheme.colorScheme.outlineVariant
 )

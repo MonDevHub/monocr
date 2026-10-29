@@ -101,7 +101,7 @@ private fun PdfPageItem(uri: Uri, pageIndex: Int) {
             .wrapContentHeight()
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(16.dp)),
+            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
         shadowElevation = 0.dp
     ) {
         Box(

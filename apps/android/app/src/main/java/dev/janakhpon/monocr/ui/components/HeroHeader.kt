@@ -58,7 +58,7 @@ fun HeroHeader(uiState: UiState) {
         Text(
             text = stringResource(R.string.hero_subtitle),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 2.dp)
         )

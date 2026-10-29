@@ -57,7 +57,7 @@ fun SkeletonResultCard() {
                 .height(200.dp)
                 .border(
                     width = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    color = MaterialTheme.colorScheme.outlineVariant,
                     shape = RoundedCornerShape(16.dp)
                 )
                 .background(

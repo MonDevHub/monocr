@@ -63,7 +63,7 @@ fun AppDrawer(
             Text(
                 "Production Suite · v$versionName",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
@@ -94,7 +94,7 @@ fun AppDrawer(
 
         HorizontalDivider(
             modifier = Modifier.padding(vertical = 12.dp, horizontal = 28.dp),
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+            color = MaterialTheme.colorScheme.outlineVariant
         )
 
         // -- RESOURCES & COMMUNITY --
@@ -130,7 +130,7 @@ fun AppDrawer(
 
         HorizontalDivider(
             modifier = Modifier.padding(vertical = 12.dp, horizontal = 28.dp),
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+            color = MaterialTheme.colorScheme.outlineVariant
         )
 
         // -- APP INFO --
@@ -170,7 +170,7 @@ fun AppDrawer(
         Text(
             "© 2026 Janakhpon · MIT License",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(28.dp)
         )
     }

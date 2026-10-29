@@ -27,7 +27,7 @@ fun SectionHeader(title: String) {
         text = title.uppercase(),
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         letterSpacing = 1.sp
     )
 }
@@ -38,7 +38,7 @@ fun DashedUploadBox(
     subtitle: String,
     onClick: () -> Unit
 ) {
-    val borderColor = MaterialTheme.colorScheme.outline
+    val borderColor = MaterialTheme.colorScheme.outlineVariant
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -52,7 +52,7 @@ fun DashedUploadBox(
                 .fillMaxSize()
                 .border(
                     width = 0.5.dp,
-                    color = borderColor.copy(alpha = 0.3f), // Softened for premium feel
+                    color = borderColor,
                     shape = RoundedCornerShape(16.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -82,7 +82,7 @@ fun DashedUploadBox(
                 Text(
                     subtitle.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp, // Raised to constitutional minimum
                     letterSpacing = 0.5.sp
                 )

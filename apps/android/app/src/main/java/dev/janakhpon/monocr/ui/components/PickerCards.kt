@@ -50,7 +50,7 @@ fun PickerView(onGallery: () -> Unit, onPdf: () -> Unit, onCamera: () -> Unit) {
             color = MaterialTheme.colorScheme.surface,
             border = androidx.compose.foundation.BorderStroke(
                 0.5.dp, 
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                MaterialTheme.colorScheme.outlineVariant
             )
         ) {
             Column(
@@ -83,7 +83,7 @@ fun PickerView(onGallery: () -> Unit, onPdf: () -> Unit, onCamera: () -> Unit) {
                 Text(
                     stringResource(R.string.file_formats_limit, 50),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -124,7 +124,7 @@ private fun SecondaryPickerButton(
         color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
             0.5.dp, 
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            MaterialTheme.colorScheme.outlineVariant
         )
     ) {
         Row(

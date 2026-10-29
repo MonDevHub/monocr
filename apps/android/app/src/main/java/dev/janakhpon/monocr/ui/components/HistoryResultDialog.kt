@@ -86,7 +86,7 @@ fun HistoryResultDialog(
                         Text(
                             text = date,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
@@ -140,7 +140,7 @@ fun HistoryResultDialog(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                     border = androidx.compose.foundation.BorderStroke(
-                        0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+                        0.5.dp, MaterialTheme.colorScheme.outlineVariant
                     )
                 ) {
                     Column(

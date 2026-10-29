@@ -46,7 +46,7 @@ fun InitErrorView(message: String) {
             Text(
                 message,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onErrorContainer,
                 textAlign = TextAlign.Center
             )
         }
@@ -95,7 +95,7 @@ fun OcrErrorView(imageUri: Uri, message: String, onReset: () -> Unit, onViewDocs
                 Text(
                     friendlyMsg,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onErrorContainer
                 )
 
                 if (isCliError) {
