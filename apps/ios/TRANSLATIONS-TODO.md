@@ -13,7 +13,7 @@ The check (`Scripts/check-strings.py`, run by `Scripts/swift-test.sh`) fails on 
 new untranslated key that is not listed here, and on a listed key that has since
 been translated or is no longer used.
 
-## Needs Burmese (my): 87
+## Needs Burmese (my): 94
 
 - "%1$lld of %2$lld pages have not been read; this reading is incomplete." (OcrOutcomes.swift)
 - "%lld block(s) were too tall to be one line. Their text may be invented — try the Sparse or Line mode." (OcrOutcomes.swift)
@@ -24,7 +24,12 @@ been translated or is no longer used.
 - "2. Scan history" (PrivacyView.swift)
 - "3. Feedback and contributions are uploaded" (PrivacyView.swift)
 - "5. Changes to Policy" (PrivacyView.swift)
-- "Cancel" (ContentView.swift)
+- "Allow camera access for MonOCR in Settings to photograph pages." (CameraPermission.swift)
+- "Camera access is off" (CameraPermission.swift)
+- "Camera access is restricted" (CameraPermission.swift)
+- "Camera not available" (CameraPermission.swift)
+- "Camera use is restricted on this device, so MonOCR cannot open it." (CameraPermission.swift)
+- "Cancel" (CameraPermission.swift, ContentView.swift)
 - "Changes to this policy will be published in the project's open-source repository and on this screen." (PrivacyView.swift)
 - "Contributors" (DocsView.swift)
 - "Could not access the PDF file." (UserMessage.swift)
@@ -58,8 +63,9 @@ been translated or is no longer used.
 - "No page of this PDF could be read." (UserMessage.swift)
 - "No text could be read." (UserMessage.swift)
 - "No text was read on one or more pages. Check the source; this does not confirm a blank page." (OcrOutcomes.swift)
-- "OK" (CommonViews.swift)
+- "OK" (CameraPermission.swift, CommonViews.swift)
 - "On-device OCR for the Mon language. Recognition runs locally with Apple Core ML, and your scans never leave your device." (AboutView.swift)
+- "Open Settings" (CameraPermission.swift)
 - "PDF or Images" (ContributeView.swift)
 - "Page" (SegmentationMode.swift)
 - "Pages could not be read: %@." (OcrOutcomes.swift)
@@ -90,6 +96,7 @@ been translated or is no longer used.
 - "This PDF is larger than 20 MB. Choose a smaller file, or send a page as an image." (UserMessage.swift)
 - "This PDF is locked. Unlock it before importing it." (PdfUtil.swift)
 - "This build cannot use the bundled model: %@" (MonOcrEngine.swift)
+- "This device has no camera. Choose a photo or a PDF instead." (CameraPermission.swift)
 - "This image could not be opened. Try another one." (UserMessage.swift)
 - "This photo looks soft. The text may be misread — try again with steadier focus." (OcrOutcomes.swift)
 - "To maintain privacy compliance, we do not use third-party cloud crash reporters. Diagnostic logs are written locally. You are in full control and can export them voluntarily if you encounter bugs." (PrivacyView.swift)
@@ -103,7 +110,7 @@ been translated or is no longer used.
 - "monocr (GitHub)" (AboutView.swift)
 - "© 2026 Janakhpon · MIT License" (AboutView.swift)
 
-## Needs Mon (mnw): 107
+## Needs Mon (mnw): 114
 
 - "%1$lld of %2$lld pages have not been read; this reading is incomplete." (OcrOutcomes.swift)
 - "%lld block(s) were too tall to be one line. Their text may be invented — try the Sparse or Line mode." (OcrOutcomes.swift)
@@ -114,8 +121,13 @@ been translated or is no longer used.
 - "2. Scan history" (PrivacyView.swift)
 - "3. Feedback and contributions are uploaded" (PrivacyView.swift)
 - "5. Changes to Policy" (PrivacyView.swift)
+- "Allow camera access for MonOCR in Settings to photograph pages." (CameraPermission.swift)
 - "Application" (AboutView.swift)
-- "Cancel" (ContentView.swift)
+- "Camera access is off" (CameraPermission.swift)
+- "Camera access is restricted" (CameraPermission.swift)
+- "Camera not available" (CameraPermission.swift)
+- "Camera use is restricted on this device, so MonOCR cannot open it." (CameraPermission.swift)
+- "Cancel" (CameraPermission.swift, ContentView.swift)
 - "Changes to this policy will be published in the project's open-source repository and on this screen." (PrivacyView.swift)
 - "Contributors" (DocsView.swift)
 - "Could not access the PDF file." (UserMessage.swift)
@@ -156,9 +168,10 @@ been translated or is no longer used.
 - "No page of this PDF could be read." (UserMessage.swift)
 - "No text could be read." (UserMessage.swift)
 - "No text was read on one or more pages. Check the source; this does not confirm a blank page." (OcrOutcomes.swift)
-- "OK" (CommonViews.swift)
+- "OK" (CameraPermission.swift, CommonViews.swift)
 - "On-device OCR for printed Mon text. Works offline." (DocsView.swift)
 - "On-device OCR for the Mon language. Recognition runs locally with Apple Core ML, and your scans never leave your device." (AboutView.swift)
+- "Open Settings" (CameraPermission.swift)
 - "Original Output" (FeedbackView.swift)
 - "Our production weights and multi-format exports are hosted on Hugging Face." (DocsView.swift)
 - "PDF" (ActionButtonsView.swift)
@@ -198,6 +211,7 @@ been translated or is no longer used.
 - "This PDF is larger than 20 MB. Choose a smaller file, or send a page as an image." (UserMessage.swift)
 - "This PDF is locked. Unlock it before importing it." (PdfUtil.swift)
 - "This build cannot use the bundled model: %@" (MonOcrEngine.swift)
+- "This device has no camera. Choose a photo or a PDF instead." (CameraPermission.swift)
 - "This image could not be opened. Try another one." (UserMessage.swift)
 - "This photo looks soft. The text may be misread — try again with steadier focus." (OcrOutcomes.swift)
 - "This will permanently delete all scans in this category." (HistoryViews.swift)
@@ -253,7 +267,27 @@ been translated or is no longer used.
     "my",
     "mnw"
   ],
+  "Allow camera access for MonOCR in Settings to photograph pages.": [
+    "my",
+    "mnw"
+  ],
   "Application": [
+    "mnw"
+  ],
+  "Camera access is off": [
+    "my",
+    "mnw"
+  ],
+  "Camera access is restricted": [
+    "my",
+    "mnw"
+  ],
+  "Camera not available": [
+    "my",
+    "mnw"
+  ],
+  "Camera use is restricted on this device, so MonOCR cannot open it.": [
+    "my",
     "mnw"
   ],
   "Cancel": [
@@ -424,6 +458,10 @@ been translated or is no longer used.
     "my",
     "mnw"
   ],
+  "Open Settings": [
+    "my",
+    "mnw"
+  ],
   "Original Output": [
     "mnw"
   ],
@@ -568,6 +606,10 @@ been translated or is no longer used.
     "mnw"
   ],
   "This build cannot use the bundled model: %@": [
+    "my",
+    "mnw"
+  ],
+  "This device has no camera. Choose a photo or a PDF instead.": [
     "my",
     "mnw"
   ],

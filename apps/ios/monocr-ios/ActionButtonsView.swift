@@ -12,6 +12,7 @@ struct ActionButtonsView: View {
     let onFileTooLarge: () -> Void
     
     @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var cameraProblem: CameraAccess.Decision?
 
     /// Side by side normally; stacked at accessibility sizes, where three
     /// columns broke the captions mid-word ("Galler/y", "Cam-era").
@@ -57,13 +58,33 @@ struct ActionButtonsView: View {
             Button {
                 let generator = UIImpactFeedbackGenerator(style: .medium)
                 generator.impactOccurred()
-                showCamera = true
                 selectedItem = nil
+                openCamera()
             } label: {
                 ActionLabel(title: "Camera", systemImage: "camera", prominent: true)
             }
         }
         .padding()
+        .modifier(CameraAccessAlert(decision: $cameraProblem))
+    }
+
+    /// Checks before presenting. The picker used to open unconditionally: an
+    /// exception or a blank sheet with no camera, a black picker with access off.
+    private func openCamera() {
+        switch CameraPermission.decide() {
+        case .present:
+            showCamera = true
+        case .requestThenPresent:
+            Task {
+                if await CameraPermission.request() {
+                    showCamera = true
+                } else {
+                    cameraProblem = .explainDenied
+                }
+            }
+        case let problem:
+            cameraProblem = problem
+        }
     }
 }
 

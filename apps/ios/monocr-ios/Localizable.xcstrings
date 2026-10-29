@@ -3709,6 +3709,27 @@
     },
     "Your submission is saved on this device. This build is not set up to upload submissions.": {
       "extractionState": "manual"
+    },
+    "Allow camera access for MonOCR in Settings to photograph pages.": {
+      "extractionState": "manual"
+    },
+    "Camera use is restricted on this device, so MonOCR cannot open it.": {
+      "extractionState": "manual"
+    },
+    "Open Settings": {
+      "extractionState": "manual"
+    },
+    "This device has no camera. Choose a photo or a PDF instead.": {
+      "extractionState": "manual"
+    },
+    "Camera access is off": {
+      "extractionState": "manual"
+    },
+    "Camera access is restricted": {
+      "extractionState": "manual"
+    },
+    "Camera not available": {
+      "extractionState": "manual"
     }
   },
   "version": "1.1"

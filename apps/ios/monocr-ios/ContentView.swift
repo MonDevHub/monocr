@@ -179,7 +179,8 @@ struct ContentView: View {
                     FullScreenImageView(image: image, isPresented: $showFullImage)
                 }
             }
-            .sheet(isPresented: $viewModel.showCamera) {
+            // Full screen, as the camera expects; it was a sheet.
+            .fullScreenCover(isPresented: $viewModel.showCamera) {
                 CameraPicker(image: Binding(
                     get: { viewModel.selectedImage },
                     set: {
@@ -188,6 +189,7 @@ struct ContentView: View {
                         }
                     }
                 ))
+                .ignoresSafeArea()
             }
             .fileImporter(
                 isPresented: $showFileImporter,
