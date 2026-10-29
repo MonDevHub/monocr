@@ -3691,6 +3691,24 @@
     },
     "PDF or Images": {
       "extractionState": "manual"
+    },
+    "Reading: %lld of %lld pages done": {
+      "extractionState": "manual"
+    },
+    "Cancel": {
+      "extractionState": "manual"
+    },
+    "OK": {
+      "extractionState": "manual"
+    },
+    "Thank you": {
+      "extractionState": "manual"
+    },
+    "Your submission is saved and will be uploaded when you are online. The history below shows when it has been.": {
+      "extractionState": "manual"
+    },
+    "Your submission is saved on this device. This build is not set up to upload submissions.": {
+      "extractionState": "manual"
     }
   },
   "version": "1.1"

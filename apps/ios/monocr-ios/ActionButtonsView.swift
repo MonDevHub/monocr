@@ -6,6 +6,9 @@ struct ActionButtonsView: View {
     @Binding var showFileImporter: Bool
     @Binding var showCamera: Bool
     let onImageSelected: (UIImage) -> Void
+    /// The library returned nothing, or bytes that are not an image. This
+    /// used to end silently, so the button looked broken.
+    let onImageUnreadable: () -> Void
     let onFileTooLarge: () -> Void
     
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -25,15 +28,20 @@ struct ActionButtonsView: View {
                 guard let newItem = selectedItem else { return }
                 let generator = UIImpactFeedbackGenerator(style: .medium)
                 generator.impactOccurred()
-                if let data = try? await newItem.loadTransferable(type: Data.self) {
-                    guard !Task.isCancelled else { return }
-                    if data.count > 50 * 1024 * 1024 {
-                        onFileTooLarge()
-                        return
-                    }
-                    if let image = UIImage(data: data) {
-                        onImageSelected(image)
-                    }
+                let data = try? await newItem.loadTransferable(type: Data.self)
+                guard !Task.isCancelled else { return }
+                guard let data else {
+                    onImageUnreadable()
+                    return
+                }
+                if SubmissionRules.importTooLarge(byteCount: Int64(data.count)) {
+                    onFileTooLarge()
+                    return
+                }
+                if let image = UIImage(data: data) {
+                    onImageSelected(image)
+                } else {
+                    onImageUnreadable()
                 }
             }
             

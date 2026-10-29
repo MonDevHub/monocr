@@ -162,14 +162,18 @@ struct FeedbackView: View {
                 }
             }
             .onChange(of: selectedItem) { _, newItem in
+                guard let newItem else { return }
                 Task {
-                    if let data = try? await newItem?.loadTransferable(type: Data.self),
+                    if let data = try? await newItem.loadTransferable(type: Data.self),
                        let image = UIImage(data: data) {
                         viewModel.sourceImage = image
                         viewModel.originalPdfData = nil
+                    } else {
+                        viewModel.message = .imageUnreadable
                     }
                 }
             }
+            .submissionAlerts(message: $viewModel.message, submitted: $viewModel.submitted)
             .sheet(isPresented: $showingDocumentPicker) {
                 DocumentPicker(types: [.pdf]) { url in
                     viewModel.handleSelectedPDF(at: url)

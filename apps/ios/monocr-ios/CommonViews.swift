@@ -117,4 +117,40 @@ struct UploadConsentToggle: View {
     }
 }
 
+extension View {
+    /// The two alerts Feedback and Contribute share: a problem with the chosen
+    /// file, and what happened to a submission. Submitting used to clear the form
+    /// with no word, and a rejected file did nothing visible at all.
+    func submissionAlerts(message: Binding<UserMessage?>, submitted: Binding<Bool>) -> some View {
+        modifier(SubmissionAlerts(message: message, submitted: submitted))
+    }
+}
+
+private struct SubmissionAlerts: ViewModifier {
+    @Binding var message: UserMessage?
+    @Binding var submitted: Bool
+    @Environment(\.locale) private var locale
+
+    func body(content: Content) -> some View {
+        content
+            .alert(
+                Text(verbatim: message?.text(in: AppLanguage(preference: locale.identifier)) ?? ""),
+                isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })
+            ) {
+                Button("OK") { message = nil }
+            }
+            .alert("Thank you", isPresented: $submitted) {
+                Button("OK") {}
+            } message: {
+                // Says what this build will actually do with it: a build without a
+                // sync key never uploads, and must not promise to.
+                if SyncService.isConfigured {
+                    Text("Your submission is saved and will be uploaded when you are online. The history below shows when it has been.")
+                } else {
+                    Text("Your submission is saved on this device. This build is not set up to upload submissions.")
+                }
+            }
+    }
+}
+
 typealias Unit = () -> Void

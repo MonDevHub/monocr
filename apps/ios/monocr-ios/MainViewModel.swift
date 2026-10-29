@@ -93,6 +93,7 @@ class MainViewModel: ObservableObject {
         debugImage = nil
         selectedImage = nil
         isProcessing = true
+        status = .processing(nil)
         errorMessage = nil
         return generation
     }
@@ -232,6 +233,7 @@ class MainViewModel: ObservableObject {
                 return
             }
             guard canPublish(generation) else { return }
+            status = .processing(PageProgress(done: 0, total: totalPages))
             selectedImage = PdfUtil.renderPdfPageToImage(at: url, pageIndex: 0)
             let startTime = Date()
             var results = [Int: MonOcrResult]()
@@ -254,6 +256,7 @@ class MainViewModel: ObservableObject {
                         looksSoft: combined.looksSoft, rawText: combined.rawText, pages: outcomes)
                     ocrResult = reading
                     debugImage = reading.debugImage
+                    status = .processing(PageProgress(outcomes: outcomes))
                     // Upsert one history row after each page. Interruption keeps
                     // completed pages and explicit not-attempted/failed indices.
                     saveHistory(result: reading, fileName: activeFileName, context: modelContext)

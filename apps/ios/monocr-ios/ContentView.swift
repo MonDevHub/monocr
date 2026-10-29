@@ -54,8 +54,20 @@ struct ContentView: View {
 
                             if viewModel.isProcessing {
                                 processingOverlay
-                                SkeletonResultCard()
-                                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                                progressAndCancel
+                                // A PDF publishes its reading after every page, so
+                                // show it as it grows instead of a shimmer that hid
+                                // every page already read until the last one.
+                                if let partial = viewModel.ocrResult {
+                                    ResultCardView(
+                                        result: partial,
+                                        showCopyToast: $showCopyToast,
+                                        onReport: { showFeedback = true }
+                                    )
+                                } else {
+                                    SkeletonResultCard()
+                                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                                }
                             } else if let result = viewModel.ocrResult {
                                 ResultCardView(
                                     result: result,
@@ -189,6 +201,7 @@ struct ContentView: View {
                     }
                 case .failure(let error):
                     MonLogger.e("File picker failed: \(error.localizedDescription)")
+                    viewModel.errorMessage = .fileOpenFailed(error.localizedDescription)
                 }
             }
             .overlay {
@@ -203,7 +216,8 @@ struct ContentView: View {
                 }
             }
             .onChange(of: viewModel.status) { _, status in
-                if case .ready = status, viewModel.ocrResult != nil {
+                // Not for a cancelled reading, which also returns to ready.
+                if case .ready = status, let result = viewModel.ocrResult, !result.cancelled {
                     let generator = UINotificationFeedbackGenerator()
                     generator.notificationOccurred(.success)
                 }
@@ -242,6 +256,9 @@ struct ContentView: View {
                 showCamera: $viewModel.showCamera,
                 onImageSelected: { image in
                     viewModel.processImage(image, provenance: .photoLibrary, modelContext: modelContext)
+                },
+                onImageUnreadable: {
+                    viewModel.errorMessage = .imageUnreadable
                 },
                 onFileTooLarge: {
                     viewModel.errorMessage = .fileTooLarge
@@ -287,6 +304,29 @@ struct ContentView: View {
             .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
     }
     
+    /// How far the read has got, and a labelled way out. The only way to stop a
+    /// long PDF was the unlabelled new-scan button, and nothing said how long
+    /// was left. Cancelling keeps the pages read so far.
+    private var progressAndCancel: some View {
+        VStack(spacing: 8) {
+            if case .processing(let progress?) = viewModel.status {
+                ProgressView(value: progress.fraction) {
+                    Text("Reading: \(progress.done) of \(progress.total) pages done")
+                        .font(MonTheme.Typography.secondary)
+                }
+            }
+
+            Button(role: .cancel) {
+                withAnimation { viewModel.cancelProcessing(modelContext: modelContext) }
+            } label: {
+                Label("Cancel", systemImage: "xmark.circle")
+                    .font(MonTheme.Typography.secondary.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
     private var processingOverlay: some View {
         ZStack {
             if let image = viewModel.selectedImage {

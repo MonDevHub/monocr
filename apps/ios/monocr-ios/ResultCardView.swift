@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ResultCardView: View {
     let result: MonOcrResult
@@ -48,12 +49,14 @@ struct ResultCardView: View {
             // Footer Actions: Save / Share / Copy — matches Android toolbar
             HStack(spacing: 0) {
                 Spacer()
-                // Save
-                Button {
-                    saveTextToFile(result.text)
-                } label: {
-                        Label("Save", systemImage: "arrow.down.circle")
-                            .font(MonTheme.Typography.meta)
+                // Save: hands a .txt file to the share sheet, where "Save to
+                // Files" lives. It wrote the file itself and presented the sheet
+                // from `windows.first?.rootViewController`, which fails from a
+                // sheet, and a write error only reached the log.
+                let export = TextFileExport(text: result.text)
+                ShareLink(item: export, preview: SharePreview(export.fileName)) {
+                    Label("Save", systemImage: "arrow.down.circle")
+                        .font(MonTheme.Typography.meta)
                         .fontWeight(.medium)
                         .frame(minHeight: 44)
                         .contentShape(Rectangle())
@@ -132,22 +135,26 @@ struct ResultCardView: View {
             .cornerRadius(4) // Reduced from 10
             .foregroundColor(.secondary)
     }
-    
-    private func saveTextToFile(_ text: String) {
+}
+
+/// Recognised text as a `.txt` file, written only when the share sheet asks for it.
+nonisolated struct TextFileExport: Transferable {
+    let text: String
+    let fileName: String
+
+    init(text: String, date: Date = Date()) {
+        self.text = text
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HH_mm_ss"
-        let filename = "monocr-\(formatter.string(from: Date())).txt"
-        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent(filename)
-        do {
-            try text.write(to: url, atomically: true, encoding: .utf8)
-            let av = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-            if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let root = scene.windows.first?.rootViewController {
-                root.present(av, animated: true)
-            }
-        } catch {
-            MonLogger.e("Failed to save text file: \(error)")
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        self.fileName = "monocr-\(formatter.string(from: date)).txt"
+    }
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .plainText) { export in
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(export.fileName)
+            try export.text.write(to: url, atomically: true, encoding: .utf8)
+            return SentTransferredFile(url)
         }
     }
 }

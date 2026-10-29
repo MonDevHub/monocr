@@ -31,6 +31,7 @@ struct EngineStatusHeaderView: View {
         switch status {
         case .loading: return MonTheme.warning
         case .ready: return MonTheme.success
+        case .processing: return .accentColor
         case .error: return MonTheme.error
         }
     }
@@ -43,6 +44,9 @@ struct EngineStatusHeaderView: View {
         switch status {
         case .loading: return Text("Initializing engine...")
         case .ready: return Text("Engine ready")
+        case .processing(let progress?):
+            return Text("Reading: \(progress.done) of \(progress.total) pages done")
+        case .processing(nil): return Text("main_scanning")
         case .error(let message): return Text("Error: \(message)")
         }
     }

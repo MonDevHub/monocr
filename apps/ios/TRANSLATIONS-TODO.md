@@ -13,7 +13,7 @@ The check (`Scripts/check-strings.py`, run by `Scripts/swift-test.sh`) fails on 
 new untranslated key that is not listed here, and on a listed key that has since
 been translated or is no longer used.
 
-## Needs Burmese (my): 81
+## Needs Burmese (my): 87
 
 - "%1$lld of %2$lld pages have not been read; this reading is incomplete." (OcrOutcomes.swift)
 - "%lld block(s) were too tall to be one line. Their text may be invented — try the Sparse or Line mode." (OcrOutcomes.swift)
@@ -24,6 +24,7 @@ been translated or is no longer used.
 - "2. Scan history" (PrivacyView.swift)
 - "3. Feedback and contributions are uploaded" (PrivacyView.swift)
 - "5. Changes to Policy" (PrivacyView.swift)
+- "Cancel" (ContentView.swift)
 - "Changes to this policy will be published in the project's open-source repository and on this screen." (PrivacyView.swift)
 - "Contributors" (DocsView.swift)
 - "Could not access the PDF file." (UserMessage.swift)
@@ -57,6 +58,7 @@ been translated or is no longer used.
 - "No page of this PDF could be read." (UserMessage.swift)
 - "No text could be read." (UserMessage.swift)
 - "No text was read on one or more pages. Check the source; this does not confirm a blank page." (OcrOutcomes.swift)
+- "OK" (CommonViews.swift)
 - "On-device OCR for the Mon language. Recognition runs locally with Apple Core ML, and your scans never leave your device." (AboutView.swift)
 - "PDF or Images" (ContributeView.swift)
 - "Page" (SegmentationMode.swift)
@@ -66,6 +68,7 @@ been translated or is no longer used.
 - "Processing cancelled. The pages read so far are in history." (UserMessage.swift)
 - "Processing was cancelled; this reading is incomplete." (OcrOutcomes.swift)
 - "PyPI Package" (AboutView.swift)
+- "Reading: %lld of %lld pages done" (ContentView.swift, EngineStatusHeaderView.swift)
 - "Recognition failed: %@" (MonOcrEngine.swift, UserMessage.swift)
 - "Recognition runs entirely on your device. Scans are never uploaded; only Feedback and Contributions you choose to submit are." (DocsView.swift)
 - "Rendering PDF..." (HistoryViews.swift)
@@ -77,6 +80,7 @@ been translated or is no longer used.
 - "Sparse" (SegmentationMode.swift)
 - "Submitting uploads the text and any attached image or PDF to the MonDevHub feedback service, where they are used to check and improve the model." (CommonViews.swift)
 - "Text regions were not detected. The whole-page reading needs review against the source." (OcrOutcomes.swift)
+- "Thank you" (CommonViews.swift)
 - "The PDF could not be opened. It may be invalid or no longer accessible." (PdfUtil.swift)
 - "The page could not be rendered." (OcrOutcomes.swift)
 - "The recognizer returned an invalid tensor shape." (CtcDecoder.swift)
@@ -91,13 +95,15 @@ been translated or is no longer used.
 - "To maintain privacy compliance, we do not use third-party cloud crash reporters. Diagnostic logs are written locally. You are in full control and can export them voluntarily if you encounter bugs." (PrivacyView.swift)
 - "Upload failed" (HistoryViews.swift)
 - "Wide gaps: photos, posters, slides." (SegmentationMode.swift)
+- "Your submission is saved and will be uploaded when you are online. The history below shows when it has been." (CommonViews.swift)
+- "Your submission is saved on this device. This build is not set up to upload submissions." (CommonViews.swift)
 - "charset.txt could not be read." (MonOcrEngine.swift)
 - "charset.txt is empty." (MonOcrEngine.swift)
 - "charset.txt is missing from the app bundle." (MonOcrEngine.swift)
 - "monocr (GitHub)" (AboutView.swift)
 - "© 2026 Janakhpon · MIT License" (AboutView.swift)
 
-## Needs Mon (mnw): 101
+## Needs Mon (mnw): 107
 
 - "%1$lld of %2$lld pages have not been read; this reading is incomplete." (OcrOutcomes.swift)
 - "%lld block(s) were too tall to be one line. Their text may be invented — try the Sparse or Line mode." (OcrOutcomes.swift)
@@ -109,6 +115,7 @@ been translated or is no longer used.
 - "3. Feedback and contributions are uploaded" (PrivacyView.swift)
 - "5. Changes to Policy" (PrivacyView.swift)
 - "Application" (AboutView.swift)
+- "Cancel" (ContentView.swift)
 - "Changes to this policy will be published in the project's open-source repository and on this screen." (PrivacyView.swift)
 - "Contributors" (DocsView.swift)
 - "Could not access the PDF file." (UserMessage.swift)
@@ -149,6 +156,7 @@ been translated or is no longer used.
 - "No page of this PDF could be read." (UserMessage.swift)
 - "No text could be read." (UserMessage.swift)
 - "No text was read on one or more pages. Check the source; this does not confirm a blank page." (OcrOutcomes.swift)
+- "OK" (CommonViews.swift)
 - "On-device OCR for printed Mon text. Works offline." (DocsView.swift)
 - "On-device OCR for the Mon language. Recognition runs locally with Apple Core ML, and your scans never leave your device." (AboutView.swift)
 - "Original Output" (FeedbackView.swift)
@@ -163,6 +171,7 @@ been translated or is no longer used.
 - "Processing cancelled. The pages read so far are in history." (UserMessage.swift)
 - "Processing was cancelled; this reading is incomplete." (OcrOutcomes.swift)
 - "PyPI Package" (AboutView.swift)
+- "Reading: %lld of %lld pages done" (ContentView.swift, EngineStatusHeaderView.swift)
 - "Recognition failed: %@" (MonOcrEngine.swift, UserMessage.swift)
 - "Recognition runs entirely on your device. Scans are never uploaded; only Feedback and Contributions you choose to submit are." (DocsView.swift)
 - "Rendering PDF..." (HistoryViews.swift)
@@ -179,6 +188,7 @@ been translated or is no longer used.
 - "Submitting uploads the text and any attached image or PDF to the MonDevHub feedback service, where they are used to check and improve the model." (CommonViews.swift)
 - "Text Content" (HistoryViews.swift)
 - "Text regions were not detected. The whole-page reading needs review against the source." (OcrOutcomes.swift)
+- "Thank you" (CommonViews.swift)
 - "The PDF could not be opened. It may be invalid or no longer accessible." (PdfUtil.swift)
 - "The page could not be rendered." (OcrOutcomes.swift)
 - "The recognizer returned an invalid tensor shape." (CtcDecoder.swift)
@@ -195,6 +205,8 @@ been translated or is no longer used.
 - "Upload failed" (HistoryViews.swift)
 - "Visit Hugging Face" (DocsView.swift)
 - "Wide gaps: photos, posters, slides." (SegmentationMode.swift)
+- "Your submission is saved and will be uploaded when you are online. The history below shows when it has been." (CommonViews.swift)
+- "Your submission is saved on this device. This build is not set up to upload submissions." (CommonViews.swift)
 - "charset.txt could not be read." (MonOcrEngine.swift)
 - "charset.txt is empty." (MonOcrEngine.swift)
 - "charset.txt is missing from the app bundle." (MonOcrEngine.swift)
@@ -242,6 +254,10 @@ been translated or is no longer used.
     "mnw"
   ],
   "Application": [
+    "mnw"
+  ],
+  "Cancel": [
+    "my",
     "mnw"
   ],
   "Changes to this policy will be published in the project's open-source repository and on this screen.": [
@@ -397,6 +413,10 @@ been translated or is no longer used.
     "my",
     "mnw"
   ],
+  "OK": [
+    "my",
+    "mnw"
+  ],
   "On-device OCR for printed Mon text. Works offline.": [
     "mnw"
   ],
@@ -445,6 +465,10 @@ been translated or is no longer used.
     "mnw"
   ],
   "PyPI Package": [
+    "my",
+    "mnw"
+  ],
+  "Reading: %lld of %lld pages done": [
     "my",
     "mnw"
   ],
@@ -507,6 +531,10 @@ been translated or is no longer used.
     "my",
     "mnw"
   ],
+  "Thank you": [
+    "my",
+    "mnw"
+  ],
   "The PDF could not be opened. It may be invalid or no longer accessible.": [
     "my",
     "mnw"
@@ -566,6 +594,14 @@ been translated or is no longer used.
     "mnw"
   ],
   "Wide gaps: photos, posters, slides.": [
+    "my",
+    "mnw"
+  ],
+  "Your submission is saved and will be uploaded when you are online. The history below shows when it has been.": [
+    "my",
+    "mnw"
+  ],
+  "Your submission is saved on this device. This build is not set up to upload submissions.": [
     "my",
     "mnw"
   ],
