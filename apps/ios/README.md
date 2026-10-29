@@ -62,8 +62,7 @@ Requires Xcode 26.2 or later, and a device on iOS 26.2 or later: `project.pbxpro
 2. Signing is Automatic with no team set, so choose your own team under Signing & Capabilities.
 3. Build and run the `monocr-ios` scheme on a physical device.
 
-The project resolves `onnxruntime-swift-package-manager` over an SSH URL
-(`git@github.com:microsoft/...`), so Xcode needs GitHub SSH access to resolve packages.
+The app has no Swift package dependencies; it runs the model through Core ML and Vision.
 
 The command-line build, with the `DEVELOPER_DIR` it needs on a machine whose active developer
 directory is the Command Line Tools, is in
