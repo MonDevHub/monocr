@@ -1,10 +1,14 @@
 import SwiftUI
 
+/// Every title on these views is a `LocalizedStringKey`. They were `String`s,
+/// which `Text` shows verbatim, so these headings and placeholders stayed English
+/// in every language even where the catalogue had a translation.
 struct SectionHeader: View {
-    let title: String
+    let title: LocalizedStringKey
     
     var body: some View {
-        Text(title.uppercased())
+        Text(title)
+            .textCase(.uppercase)
             .font(MonTheme.Typography.meta) // Raised from caption2 to constitutional meta (12pt)
             .fontWeight(.bold)
             .foregroundColor(.secondary)
@@ -14,8 +18,8 @@ struct SectionHeader: View {
 }
 
 struct DashedBox: View {
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
     let systemImage: String
     let action: () -> Void
     
@@ -35,7 +39,8 @@ struct DashedBox: View {
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
                     
-                    Text(subtitle.uppercased())
+                    Text(subtitle)
+                        .textCase(.uppercase)
                         .font(MonTheme.Typography.meta.bold()) // Raised from 10pt to 12pt
                         .foregroundColor(.secondary)
                         .kerning(0.5)
@@ -58,7 +63,7 @@ struct DashedBox: View {
 
 struct MonTextEditor: View {
     @Binding var text: String
-    let placeholder: String
+    let placeholder: LocalizedStringKey
     
     var body: some View {
         ZStack(alignment: .topLeading) {

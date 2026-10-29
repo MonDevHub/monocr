@@ -64,7 +64,7 @@ struct FeedbackView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             SectionHeader(title: "Original Output")
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("\"\(viewModel.originalText)\"")
+                                Text(verbatim: "\"\(viewModel.originalText)\"")
                                     .font(MonTheme.Typography.monBody(size: 14))
                                     .foregroundColor(.secondary)
                                 

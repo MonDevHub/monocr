@@ -3679,6 +3679,18 @@
     },
     "%lld words, %lld characters, %@ seconds": {
       "extractionState": "manual"
+    },
+    "Contributors": {
+      "extractionState": "manual"
+    },
+    "Follow these standards to give the model the best chance of reading a page.": {
+      "extractionState": "manual"
+    },
+    "History is temporarily unavailable. New scans will not be kept after closing the app.": {
+      "extractionState": "manual"
+    },
+    "PDF or Images": {
+      "extractionState": "manual"
     }
   },
   "version": "1.1"

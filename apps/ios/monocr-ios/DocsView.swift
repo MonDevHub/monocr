@@ -128,7 +128,7 @@ struct DocsView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Link(destination: URL(string: "https://github.com/janakhpon")!) {
                             HStack {
-                                Text("Janakh Pon")
+                                Text(verbatim: "Janakh Pon")
                                     .fontWeight(.medium)
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
@@ -138,7 +138,7 @@ struct DocsView: View {
                         Divider()
                         Link(destination: URL(string: "https://github.com/Oungseik")!) {
                             HStack {
-                                Text("Oung Seik Nyan")
+                                Text(verbatim: "Oung Seik Nyan")
                                     .fontWeight(.medium)
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
@@ -148,7 +148,7 @@ struct DocsView: View {
                         Divider()
                         Link(destination: URL(string: "https://www.facebook.com/RJOMDK10")!) {
                             HStack {
-                                Text("Rajel Da Key")
+                                Text(verbatim: "Rajel Da Key")
                                     .fontWeight(.medium)
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
@@ -186,14 +186,14 @@ struct DocsView: View {
 
 struct DocRow<Content: View>: View {
     let number: String
-    let title: String
+    let title: LocalizedStringKey
     let systemImage: String
     let content: () -> Content
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                Text(number)
+                Text(verbatim: number)
                     .font(.caption2.weight(.bold))
                     .frame(width: 20, height: 20)
                     .background(Color(.systemGray5))
@@ -231,8 +231,8 @@ struct CodeBlockView: View {
 }
 
 struct QualityItem: View {
-    let title: String
-    let description: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
     let systemImage: String
     
     var body: some View {
