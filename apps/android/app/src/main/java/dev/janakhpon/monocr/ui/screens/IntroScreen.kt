@@ -136,7 +136,7 @@ fun IntroScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Action Button
-                Box(modifier = Modifier.height(56.dp).fillMaxWidth()) {
+                Box(modifier = Modifier.heightIn(min = 56.dp).fillMaxWidth()) {
                     Crossfade(
                         targetState = pagerState.currentPage == slides.size - 1,
                         label = "ButtonTransition"
@@ -221,8 +221,7 @@ private fun SlideContent(slide: IntroSlide) {
             text = slide.description,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            lineHeight = 24.sp
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

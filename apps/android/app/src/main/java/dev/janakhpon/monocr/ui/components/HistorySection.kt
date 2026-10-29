@@ -104,7 +104,7 @@ fun HistorySection(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
+                    .heightIn(min = 120.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)),

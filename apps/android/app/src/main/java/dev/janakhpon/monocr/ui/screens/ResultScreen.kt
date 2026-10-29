@@ -252,7 +252,7 @@ private fun ResultActionButton(
 ) {
     TextButton(
         onClick = onClick,
-        modifier = Modifier.height(40.dp)
+        modifier = Modifier.heightIn(min = 48.dp)
     ) {
         // The Text beside it labels the button; a description here too made TalkBack
         // read every action twice.

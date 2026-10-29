@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -125,7 +126,7 @@ fun OcrErrorView(imageUri: Uri, failure: OcrFailure, onReset: () -> Unit, onView
             onClick = onReset,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(40.dp),
+                .heightIn(min = 48.dp),
             shape = RoundedCornerShape(12.dp),
             content = {
                 Text(stringResource(R.string.process_another))

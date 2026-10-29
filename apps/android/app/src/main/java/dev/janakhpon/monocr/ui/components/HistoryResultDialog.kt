@@ -91,7 +91,7 @@ fun HistoryResultDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+                    IconButton(onClick = onDismiss) {
                         Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close))
                     }
                 }
@@ -152,10 +152,9 @@ fun HistoryResultDialog(
                     ) {
                         Text(
                             text = record.text,
-                            style = monScriptStyle.copy(
-                                fontSize = 16.sp,
-                                lineHeight = 24.sp
-                            ),
+                            // The same 28sp line as the result screen: 24sp clipped
+                            // stacked Mon marks.
+                            style = monScriptStyle,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -182,7 +181,7 @@ fun HistoryResultDialog(
                                  else ButtonDefaults.buttonColors(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp),
+                            .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Icon(

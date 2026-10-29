@@ -9,7 +9,10 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.os.ConfigurationCompat
 import androidx.compose.ui.unit.dp
 
 // ─── MonOCR Palette (mirrors monocr-web CSS vars) ──────────────────────────
@@ -118,9 +121,14 @@ fun MonOCRTheme(
         else      -> MonLightScheme
     }
 
+    val language = ConfigurationCompat.getLocales(LocalConfiguration.current)[0]?.language
+    val typography = remember(language) {
+        if (usesMyanmarScript(language)) MonTypography.forMyanmarScript() else MonTypography
+    }
+
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = MonTypography,
+        typography = typography,
         shapes = androidx.compose.material3.Shapes(
             small = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
             medium = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),

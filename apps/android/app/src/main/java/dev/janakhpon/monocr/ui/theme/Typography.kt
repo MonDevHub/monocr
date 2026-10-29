@@ -63,3 +63,36 @@ val monScriptStyle = TextStyle(
     lineHeight = 28.sp,
     letterSpacing = 0.sp
 )
+
+/**
+ * Myanmar script stacks marks above and below the line, so it needs about 1.6-1.8x the
+ * font size where Latin text is set at 1.3-1.4x. The chrome used the Latin line heights in
+ * the system font for Mon and Burmese too, which clips stacked marks.
+ */
+internal const val MYANMAR_SCRIPT_LINE_HEIGHT = 1.7f
+
+/** Languages whose UI text is in Myanmar script. */
+internal fun usesMyanmarScript(language: String?): Boolean = language == "my" || language == "mnw"
+
+private fun TextStyle.forMyanmarScript(): TextStyle =
+    if (!fontSize.isSp) copy(fontFamily = PyidaungSuFamily)
+    else copy(fontFamily = PyidaungSuFamily, lineHeight = (fontSize.value * MYANMAR_SCRIPT_LINE_HEIGHT).sp)
+
+/** [this] with PyidaungSu and Myanmar-script line heights in every style. */
+internal fun Typography.forMyanmarScript(): Typography = Typography(
+    displayLarge = displayLarge.forMyanmarScript(),
+    displayMedium = displayMedium.forMyanmarScript(),
+    displaySmall = displaySmall.forMyanmarScript(),
+    headlineLarge = headlineLarge.forMyanmarScript(),
+    headlineMedium = headlineMedium.forMyanmarScript(),
+    headlineSmall = headlineSmall.forMyanmarScript(),
+    titleLarge = titleLarge.forMyanmarScript(),
+    titleMedium = titleMedium.forMyanmarScript(),
+    titleSmall = titleSmall.forMyanmarScript(),
+    bodyLarge = bodyLarge.forMyanmarScript(),
+    bodyMedium = bodyMedium.forMyanmarScript(),
+    bodySmall = bodySmall.forMyanmarScript(),
+    labelLarge = labelLarge.forMyanmarScript(),
+    labelMedium = labelMedium.forMyanmarScript(),
+    labelSmall = labelSmall.forMyanmarScript()
+)

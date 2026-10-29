@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -130,7 +131,13 @@ class MainActivity : AppCompatActivity() {
                         )
                     }
                 ) {
-                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    // No insets here: every screen has its own Scaffold, whose top bar
+                    // and content padding already apply the system bars. Padding for
+                    // them here as well put a second status-bar gap above each top bar.
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize(),
+                        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+                    ) { innerPadding ->
                         NavHost(
                             navController = navController,
                             startDestination = startDestination,

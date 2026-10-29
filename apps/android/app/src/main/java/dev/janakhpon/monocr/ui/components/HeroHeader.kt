@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -112,11 +113,13 @@ fun EngineStatusChip(uiState: UiState) {
     Surface(
         shape = RoundedCornerShape(50),
         color = chipBg,
-        modifier = Modifier.height(30.dp)
+        modifier = Modifier.heightIn(min = 30.dp)
     ) {
+        // Grows with the text: a fixed 30dp with one line clipped the longer Mon and
+        // Burmese labels at large font sizes.
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
         ) {
             Box(
                 modifier = Modifier
@@ -129,7 +132,6 @@ fun EngineStatusChip(uiState: UiState) {
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
                 color = textColor,
-                maxLines = 1,
                 fontSize = 12.sp
             )
         }

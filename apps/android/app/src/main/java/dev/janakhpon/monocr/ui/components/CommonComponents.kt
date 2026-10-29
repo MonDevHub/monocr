@@ -45,14 +45,15 @@ fun DashedUploadBox(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp) // Adjusted to 120dp to match iOS DashboardBox height
+            .heightIn(min = 120.dp) // 120dp matches iOS DashboardBox; grows with large text
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp), // Synchronized with iOS 16pt radius
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
     ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .heightIn(min = 120.dp)
                 .border(
                     width = 0.5.dp,
                     color = borderColor,
