@@ -5,6 +5,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -61,6 +63,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import dev.janakhpon.monocr.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -74,9 +80,18 @@ fun ResultView(
     result: OcrResult,
     originalUri: Uri? = null,
     fileType: String = "image/jpeg",
-    onNavigateToFeedback: (String, Uri?) -> Unit = { _, _ -> }
+    onNavigateToFeedback: (String, Uri?) -> Unit = { _, _ -> },
+    onSaved: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
+    // Save goes where the user chooses, through the system file picker. It used to
+    // write to the app's private external folder, which file managers on Android 11+
+    // do not show and an uninstall deletes, and it swallowed every failure.
+    val saveLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri != null) onSaved(writeTextTo(context, uri, result.text))
+    }
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     var copied by remember { mutableStateOf(false) }
@@ -97,7 +112,7 @@ fun ResultView(
             color = MaterialTheme.colorScheme.surface,
             border = androidx.compose.foundation.BorderStroke(
                 0.5.dp, 
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                MaterialTheme.colorScheme.outlineVariant
             )
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -109,7 +124,7 @@ fun ResultView(
                 } else {
                     AsyncImage(
                         model = imageUri,
-                        contentDescription = "Processed image",
+                        contentDescription = stringResource(R.string.selected_image),
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize().padding(8.dp)
                     )
@@ -130,7 +145,7 @@ fun ResultView(
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
-            border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+            border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
@@ -142,8 +157,14 @@ fun ResultView(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Announced when the result appears: until now a finished scan said
+                    // nothing to TalkBack, only a haptic fired.
                     Text(
                         stringResource(R.string.extracted_text),
+                        modifier = Modifier.semantics {
+                            heading()
+                            liveRegion = LiveRegionMode.Polite
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.2.sp
@@ -158,7 +179,7 @@ fun ResultView(
                     }
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 // Mon text content area — Scrollable with constrained height
                 Box(modifier = Modifier
@@ -171,7 +192,7 @@ fun ResultView(
                         Text(
                             stringResource(R.string.no_text_extracted),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
                         Text(
@@ -184,7 +205,7 @@ fun ResultView(
 
                 // Action toolbar
                 if (result.text.isNotBlank()) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -192,7 +213,7 @@ fun ResultView(
                         horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
                     ) {
                         ResultActionButton(
-                            onClick = { saveTextToFile(context, result.text) },
+                            onClick = { saveLauncher.launch(suggestedFileName()) },
                             icon = Icons.Outlined.Download,
                             label = stringResource(R.string.save_text)
                         )
@@ -231,11 +252,13 @@ private fun ResultActionButton(
 ) {
     TextButton(
         onClick = onClick,
-        modifier = Modifier.height(40.dp)
+        modifier = Modifier.heightIn(min = 48.dp)
     ) {
+        // The Text beside it labels the button; a description here too made TalkBack
+        // read every action twice.
         Icon(
             icon,
-            contentDescription = label,
+            contentDescription = null,
             modifier = Modifier.size(16.dp),
             tint = tint
         )
@@ -254,7 +277,7 @@ private fun StatChip(text: String) {
     Surface(
         shape = RoundedCornerShape(50),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Text(
             text = text,
@@ -281,23 +304,18 @@ private fun shareText(context: Context, text: String) {
     context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_chooser_title)))
 }
 
-private fun saveTextToFile(context: Context, text: String) {
-    try {
-        val sdf = SimpleDateFormat("yyyyMMdd_HH_mm_ss", Locale.getDefault())
-        val filename = "monocr-${sdf.format(Date())}.txt"
-        val file = File(context.getExternalFilesDir(null), filename)
-        file.writeText(text, Charsets.UTF_8)
+private fun suggestedFileName(): String =
+    "monocr-${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.txt"
 
-        @Suppress("SpellCheckingInspection")
-        val uri = androidx.core.content.FileProvider.getUriForFile(
-            context, "${context.packageName}.fileprovider", file
-        )
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "text/plain")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        context.startActivity(Intent.createChooser(intent, context.getString(R.string.open_file_chooser_title)))
-    } catch (_: Exception) { /* ignore */ }
+/** Writes [text] as UTF-8 to [uri]; false when the destination could not be written. */
+internal fun writeTextTo(context: Context, uri: Uri, text: String): Boolean = try {
+    context.contentResolver.openOutputStream(uri, "wt")?.use {
+        it.write(text.toByteArray(Charsets.UTF_8))
+        true
+    } ?: false
+} catch (e: Exception) {
+    dev.janakhpon.monocr.util.MonLogger.e("saving the result failed", e)
+    false
 }
 
 @Composable

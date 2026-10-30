@@ -89,12 +89,12 @@ struct DocsView: View {
                             .font(MonTheme.Typography.section)
                         }
                         
-                        Text("Documents are processed entirely on your local machine. No data is uploaded to our servers.")
+                        Text("Recognition runs entirely on your device. Scans are never uploaded; only Feedback and Contributions you choose to submit are.")
                             .font(MonTheme.Typography.meta)
                             .foregroundColor(.secondary)
                         
                         Label("100% Local Processing", systemImage: "lock.shield")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.caption2.weight(.bold))
                             .foregroundColor(.accentColor)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -128,7 +128,7 @@ struct DocsView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Link(destination: URL(string: "https://github.com/janakhpon")!) {
                             HStack {
-                                Text("Janakh Pon")
+                                Text(verbatim: "Janakh Pon")
                                     .fontWeight(.medium)
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
@@ -138,7 +138,7 @@ struct DocsView: View {
                         Divider()
                         Link(destination: URL(string: "https://github.com/Oungseik")!) {
                             HStack {
-                                Text("Oung Seik Nyan")
+                                Text(verbatim: "Oung Seik Nyan")
                                     .fontWeight(.medium)
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
@@ -148,7 +148,7 @@ struct DocsView: View {
                         Divider()
                         Link(destination: URL(string: "https://www.facebook.com/RJOMDK10")!) {
                             HStack {
-                                Text("Rajel Da Key")
+                                Text(verbatim: "Rajel Da Key")
                                     .fontWeight(.medium)
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
@@ -186,21 +186,21 @@ struct DocsView: View {
 
 struct DocRow<Content: View>: View {
     let number: String
-    let title: String
+    let title: LocalizedStringKey
     let systemImage: String
     let content: () -> Content
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                Text(number)
-                    .font(.system(size: 10, weight: .bold))
+                Text(verbatim: number)
+                    .font(.caption2.weight(.bold))
                     .frame(width: 20, height: 20)
                     .background(Color(.systemGray5))
                     .cornerRadius(4)
                 
                 Image(systemName: systemImage)
-                    .font(.system(size: 14))
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                 
                 Text(title)
@@ -218,7 +218,7 @@ struct CodeBlockView: View {
     
     var body: some View {
         Text(code)
-            .font(.system(size: 12, weight: .regular, design: .monospaced))
+            .font(.system(.caption, design: .monospaced))
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(.secondarySystemBackground))
@@ -231,8 +231,8 @@ struct CodeBlockView: View {
 }
 
 struct QualityItem: View {
-    let title: String
-    let description: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
     let systemImage: String
     
     var body: some View {
@@ -246,7 +246,7 @@ struct QualityItem: View {
                 .fontWeight(.bold)
             
             Text(description)
-                .font(.system(size: 10))
+                .font(.caption2)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
         }

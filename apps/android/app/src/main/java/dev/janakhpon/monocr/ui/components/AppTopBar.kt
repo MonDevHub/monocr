@@ -14,6 +14,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import dev.janakhpon.monocr.R
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
 
@@ -31,6 +33,7 @@ fun MonTopAppBar(
         title = {
             Text(
                 title,
+                modifier = Modifier.semantics { heading() },
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.5.sp
@@ -44,7 +47,7 @@ fun MonTopAppBar(
                 }) {
                     Icon(
                         Icons.Outlined.Menu, 
-                        contentDescription = "Menu",
+                        contentDescription = stringResource(R.string.drawer_open),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -55,7 +58,7 @@ fun MonTopAppBar(
                 }) {
                     Icon(
                         Icons.AutoMirrored.Outlined.ArrowBack, 
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.nav_back),
                         modifier = Modifier.size(22.dp)
                     )
                 }

@@ -18,13 +18,17 @@ actor SyncService {
     /// Info.plist through `GENERATE_INFOPLIST_FILE`), or export
     /// `MONOCR_SYNC_API_KEY` when running from Xcode. Empty is a supported
     /// state: sync is skipped and everything else in the app works.
-    private static let API_KEY: String = {
+    nonisolated private static let API_KEY: String = {
         if let key = Bundle.main.object(forInfoDictionaryKey: "SYNC_API_KEY") as? String,
            !key.isEmpty {
             return key
         }
         return ProcessInfo.processInfo.environment["MONOCR_SYNC_API_KEY"] ?? ""
     }()
+
+    /// Whether this build can upload at all. A build without `SYNC_API_KEY`
+    /// keeps submissions on the device, and the screens say so.
+    nonisolated static var isConfigured: Bool { !API_KEY.isEmpty }
 
     /// How long between retry passes, and how many attempts a record gets.
     ///
@@ -33,7 +37,7 @@ actor SyncService {
     /// decides whether polling keeps running. Two literal `5`s that must agree is
     /// how the poll loop ends up either spinning forever or stopping early.
     private static let pollIntervalSeconds: UInt64 = 300
-    private static let maxSyncAttempts = 5
+    private static let maxSyncAttempts = SyncPolicy.maxAttempts
     
     private var isSyncing = false
     private var modelContainer: ModelContainer?
@@ -181,8 +185,7 @@ actor SyncService {
             
             var pendingAfter = 0
             for record in records {
-                let isAllowed = record.category == "contribution" || record.category == "feedback" || record.category == "contribute"
-                guard isAllowed, record.syncAttempts < Self.maxSyncAttempts else {
+                guard SyncPolicy.uploads(category: record.category), record.syncAttempts < Self.maxSyncAttempts else {
                     // Wrong category or out of attempts: not pending, because no
                     // amount of retrying will pick it up.
                     continue

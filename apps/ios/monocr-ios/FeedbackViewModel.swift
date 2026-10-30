@@ -12,6 +12,10 @@ final class FeedbackViewModel: ObservableObject {
     @Published var sourceImage: UIImage? = nil
     @Published var originalPdfData: Data? = nil
     @Published var selectedFileName: String? = nil
+    /// A problem to show; these failures used to reach the log only.
+    @Published var message: UserMessage? = nil
+    /// Set after a submit, so the screen can say what happened to it.
+    @Published var submitted = false
     
     let errorTypes = ["Spelling", "Layout", "Formatting", "Other"]
     
@@ -22,17 +26,21 @@ final class FeedbackViewModel: ObservableObject {
     }
     
     var isSubmitDisabled: Bool {
-        correctedText.isEmpty || !consent
+        !SubmissionRules.canSubmitFeedback(correctedText: correctedText, consent: consent)
     }
 
     func handleSelectedPDF(at url: URL) {
-        guard url.startAccessingSecurityScopedResource() else { return }
+        guard url.startAccessingSecurityScopedResource() else {
+            message = .pdfUnreadable
+            return
+        }
         defer { url.stopAccessingSecurityScopedResource() }
         
         do {
             let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
-            if let fileSize = attributes[.size] as? Int64, fileSize > 20 * 1024 * 1024 {
+            if let fileSize = attributes[.size] as? Int64, SubmissionRules.attachmentTooLarge(byteCount: fileSize) {
                 MonLog_w("PDF file too large for this version (max 20MB): \(url.lastPathComponent)")
+                message = .attachmentTooLarge
                 return
             }
             
@@ -47,6 +55,7 @@ final class FeedbackViewModel: ObservableObject {
             MonLog_i("Loaded PDF for feedback: \(url.lastPathComponent) (\(data.count) bytes)")
         } catch {
             MonLog_e("Failed to load PDF for feedback", error: error)
+            message = .pdfUnreadable
         }
     }
 
@@ -70,6 +79,7 @@ final class FeedbackViewModel: ObservableObject {
         
         // Trigger immediate sync on background actor
         Task { await SyncService.shared.syncAll() }
+        submitted = true
         
         // Reset form
         correctedText = ""

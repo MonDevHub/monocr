@@ -60,15 +60,15 @@ fun PrivacyScreen(onMenuClick: () -> Unit) {
                     )
                     Column {
                         Text(
-                            "Privacy by Design",
+                            stringResource(R.string.privacy_banner_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            "100% on-device processing. No data leaves your phone.",
+                            stringResource(R.string.privacy_banner_desc),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
@@ -144,7 +144,7 @@ private fun PrivacySectionCard(icon: ImageVector, title: String, content: String
             Text(
                 content,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.3f
             )
         }
@@ -162,7 +162,7 @@ private fun PrivacySection(title: String, content: String) {
         Text(
             content,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            color = MaterialTheme.colorScheme.onSurface,
             lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.2f
         )
     }

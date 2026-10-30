@@ -8,6 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import dev.janakhpon.monocr.engine.OcrRepository
 import dev.janakhpon.monocr.engine.SegmentationMode
 import dev.janakhpon.monocr.ui.MainViewModel
+import dev.janakhpon.monocr.ui.OcrFailure
 import dev.janakhpon.monocr.ui.UiState
 import dev.janakhpon.monocr.ui.screens.ImportPreparationOps
 import dev.janakhpon.monocr.ui.screens.ImportPreparationResources
@@ -132,7 +133,7 @@ class ImportRecoveryInstrumentedTest {
             loadAndProcess(context, uri, viewModel,
                 imagePreparation { _, _, _ -> error("decode failed") }) { SegmentationMode.LINE }
 
-            assertEquals(UiState.OcrError(uri, "decode failed"), viewModel.uiState.value)
+            assertEquals(UiState.OcrError(uri, OcrFailure.UnreadableImage), viewModel.uiState.value)
         }
     }
 

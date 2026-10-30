@@ -52,7 +52,7 @@ struct monocr_iosApp: App {
                     if !persistentHistoryAvailable {
                         Text("History is temporarily unavailable. New scans will not be kept after closing the app.")
                             .font(.caption)
-                            .foregroundColor(.orange)
+                            .foregroundColor(MonTheme.warning)
                             .padding(8)
                     }
                 }

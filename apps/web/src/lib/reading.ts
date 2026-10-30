@@ -26,6 +26,13 @@ export interface PageReading {
 	/** Lines the page was divided into, including any that failed. */
 	lineCount: number;
 	failedLineCount: number;
+	/**
+	 * Capture-quality problems the engine measured before reading (soft image,
+	 * small text, no lines found). Absent on a reading from an older worker.
+	 */
+	captureWarnings?: string[];
+	/** Bands that are not line-shaped, so may be several lines fused into one. */
+	fusedBandCount?: number;
 }
 
 /** One page of a PDF. */
@@ -48,7 +55,10 @@ export interface DocumentReading {
  * that read nothing adds nothing. A failed line also adds nothing, but is
  * counted, so the page can say its text is incomplete.
  */
-export function assemblePage(lines: LineReading[]): PageReading {
+export function assemblePage(
+	lines: LineReading[],
+	capture: { captureWarnings?: string[]; fusedBandCount?: number } = {}
+): PageReading {
 	const texts: string[] = [];
 	let failed = 0;
 	let firstError: string | null = null;
@@ -65,16 +75,42 @@ export function assemblePage(lines: LineReading[]): PageReading {
 			`No line could be read: all ${failed} line(s) failed. First error: ${firstError}`
 		);
 	}
-	return { text: texts.join('\n'), lineCount: lines.length, failedLineCount: failed };
+	const reading: PageReading = {
+		text: texts.join('\n'),
+		lineCount: lines.length,
+		failedLineCount: failed
+	};
+	if (capture.captureWarnings?.length) reading.captureWarnings = capture.captureWarnings;
+	if (capture.fusedBandCount) reading.fusedBandCount = capture.fusedBandCount;
+	return reading;
 }
 
-/** Warnings for one image's reading. None for a complete one. */
+/**
+ * What the engine measured about the capture itself, as warnings. These are
+ * reported even when every line was read: a soft or tiny capture produces text
+ * that is wrong without any line failing.
+ */
+function captureNotes(reading: PageReading): string[] {
+	const notes = [...(reading.captureWarnings ?? [])];
+	if (reading.fusedBandCount) {
+		notes.push(
+			`${reading.fusedBandCount} block(s) on this page may be several lines read as one, ` +
+				`so their text can be wrong. Check it against the image.`
+		);
+	}
+	return notes;
+}
+
+/** Warnings for one image's reading. None for a clean one. */
 export function pageWarnings(reading: PageReading): string[] {
-	if (reading.failedLineCount === 0) return [];
-	return [
-		`${reading.failedLineCount} of ${reading.lineCount} line(s) could not be read. ` +
-			`The text is incomplete; check it against the image.`
-	];
+	const warnings: string[] = [];
+	if (reading.failedLineCount > 0) {
+		warnings.push(
+			`${reading.failedLineCount} of ${reading.lineCount} line(s) could not be read. ` +
+				`The text is incomplete; check it against the image.`
+		);
+	}
+	return [...warnings, ...captureNotes(reading)];
 }
 
 /**
@@ -111,6 +147,16 @@ export function combinePages(pages: PageOutcome[]): DocumentReading {
 				`could not be read. The text is incomplete; check it against the source.`
 		);
 	}
+	// Capture problems are per page; say them once, naming the pages they apply to.
+	const noted = new Map<string, number[]>();
+	for (const p of read) {
+		for (const note of captureNotes(p.reading)) {
+			noted.set(note, [...(noted.get(note) ?? []), p.pageNumber]);
+		}
+	}
+	for (const [note, pageNumbers] of noted) {
+		warnings.push(`Page(s) ${pageNumbers.join(', ')}: ${note}`);
+	}
 	return { text, warnings };
 }
 
@@ -132,6 +178,16 @@ function message(err: unknown): string {
 	return err instanceof Error ? err.message : String(err);
 }
 
+export interface PdfReadOptions {
+	/** Called as each page starts, with its 1-based number and the page count. */
+	onPage?: (pageNumber: number, pageCount: number) => void;
+	/**
+	 * True once the person has cleared the file or chosen another. The loop stops
+	 * and returns the pages read so far; the caller must discard them.
+	 */
+	isCancelled?: () => boolean;
+}
+
 /**
  * Read every page of a PDF, one at a time, giving each an outcome.
  *
@@ -149,11 +205,16 @@ export async function readPdfPages<T>(
 	pageCount: number,
 	render: (pageNumber: number) => Promise<T>,
 	recognize: (page: T) => Promise<PageReading>,
-	onTimeout: () => void
+	onTimeout: () => void,
+	options: PdfReadOptions = {}
 ): Promise<PageOutcome[]> {
 	const pages: PageOutcome[] = [];
 	let timeouts = 0;
 	for (let i = 1; i <= pageCount; i++) {
+		// Checked before each page and again after the render, so a cancelled read
+		// stops within one page rather than running a 14-page PDF to the end.
+		if (options.isCancelled?.()) break;
+		options.onPage?.(i, pageCount);
 		if (timeouts >= MAX_PDF_TIMEOUTS) {
 			pages.push({
 				pageNumber: i,
@@ -171,6 +232,7 @@ export async function readPdfPages<T>(
 			pages.push({ pageNumber: i, status: 'render_failed', error: message(err) });
 			continue;
 		}
+		if (options.isCancelled?.()) break;
 
 		try {
 			pages.push({ pageNumber: i, status: 'read', reading: await recognize(page) });

@@ -324,13 +324,12 @@ destination, or pass `CODE_SIGNING_ALLOWED=NO`.
 The `[` and `]` in `platform=macOS,variant=Designed for [iPad,iPhone]` break
 `-destination` parsing. Use a simulator destination instead.
 
-**A clean build hangs or fails fetching dependencies**
+**A clean build needs no network or GitHub auth**
 
-The xcodeproj pins `onnxruntime` 1.24.2 via **SSH**
-(`git@github.com:microsoft/onnxruntime-swift-package-manager.git`) in
-`monocr-ios.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`, so
-a truly clean build needs working GitHub SSH auth. `MonOcrCore` itself has no
-dependencies and is unaffected.
+The iOS project has no Swift package dependencies: the `onnxruntime` package reference
+(which was pinned over SSH) was removed from the xcodeproj, and `MonOcrCore` has no
+dependencies either. If a build still tries to fetch packages, a stale checkout of the
+old project file is the cause, so reset the file rather than adding SSH auth.
 
 ---
 

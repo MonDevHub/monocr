@@ -3,7 +3,7 @@ package dev.janakhpon.monocr.ui
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dev.janakhpon.monocr.engine.OcrRepository
+import dev.janakhpon.monocr.engine.OcrPipeline
 import dev.janakhpon.monocr.engine.OcrResult
 import dev.janakhpon.monocr.engine.SegmentationMode
 import dev.janakhpon.monocr.data.HistoryRecord
@@ -19,13 +19,17 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import java.io.File
 
+/** Page [page] of [total] is being read. */
+data class ScanProgress(val page: Int, val total: Int)
+
 sealed class UiState {
     data object Initializing : UiState()
     data class InitError(val message: String) : UiState()
     data object Ready : UiState()
-    data class Processing(val imageUri: Uri) : UiState()
+    /** [progress] is set while a multi-page document is read, page by page. */
+    data class Processing(val imageUri: Uri, val progress: ScanProgress? = null) : UiState()
     data class Success(val imageUri: Uri, val result: OcrResult, val originalUri: Uri? = null, val fileType: String = "image/jpeg") : UiState()
-    data class OcrError(val imageUri: Uri, val message: String) : UiState()
+    data class OcrError(val imageUri: Uri, val failure: OcrFailure) : UiState()
 }
 
 /**
@@ -33,7 +37,7 @@ sealed class UiState {
  * Owns only: engine init state, scan history, and active scan/pdf processing.
  * Contribution and feedback state live in their own dedicated ViewModels.
  */
-class MainViewModel(private val repository: OcrRepository) : ViewModel() {
+class MainViewModel(private val repository: OcrPipeline) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Initializing)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -56,6 +60,19 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
      */
     private val _rerunnableImage = MutableStateFlow<Uri?>(null)
     val rerunnableImage: StateFlow<Uri?> = _rerunnableImage.asStateFlow()
+
+    /**
+     * An image shared from another app, waiting for the engine to be ready. Held here
+     * rather than in the activity so it survives a configuration change, and so a share
+     * that arrives during the first-run intro is read once the intro is finished.
+     */
+    private val _pendingSharedImage = MutableStateFlow<Uri?>(null)
+    val pendingSharedImage: StateFlow<Uri?> = _pendingSharedImage.asStateFlow()
+
+    fun offerSharedImage(uri: Uri) { _pendingSharedImage.value = uri }
+
+    /** Hands the pending share to exactly one caller. */
+    fun takeSharedImage(): Uri? = _pendingSharedImage.value.also { _pendingSharedImage.value = null }
 
     private val generations = ScanGeneration()
     private var scanJob: Job? = null
@@ -102,7 +119,13 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
         }
     }
 
-    fun onImageSelected(uri: Uri, bitmap: android.graphics.Bitmap, mode: SegmentationMode, token: Long = beginImport(uri)) {
+    fun onImageSelected(
+        uri: Uri,
+        bitmap: android.graphics.Bitmap,
+        mode: SegmentationMode,
+        token: Long = beginImport(uri),
+        fileName: String? = null
+    ) {
         if (!generations.isCurrent(token)) { bitmap.recycle(); return }
         scanJob = viewModelScope.launch {
             _uiState.value = UiState.Processing(uri)
@@ -116,7 +139,7 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
                 // that must not also drop the history row for a scan the user saw.
                 withContext(NonCancellable) {
                     repository.saveToHistory(
-                        fileName = uri.lastPathSegment ?: "scan",
+                        fileName = fileName ?: "scan",
                         fileType = "image/jpeg",
                         text = result.text,
                         durationMs = result.durationMs,
@@ -129,12 +152,24 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 if (generations.isCurrent(token))
-                    _uiState.value = UiState.OcrError(uri, e.message ?: "OCR processing failed")
+                    _uiState.value = UiState.OcrError(uri, OcrFailure.of(e))
+            } catch (e: OutOfMemoryError) {
+                // A page-sized buffer that did not fit. The failed allocation is
+                // released with it, so the app can carry on and say why.
+                if (generations.isCurrent(token))
+                    _uiState.value = UiState.OcrError(uri, OcrFailure.OutOfMemory)
             }
         }.also { job -> job.invokeOnCompletion { bitmap.recycle() } }
     }
 
-    fun onPdfSelected(context: android.content.Context, uri: Uri, previewUri: Uri?, token: Long = beginImport(uri), previewFile: File? = null) {
+    fun onPdfSelected(
+        context: android.content.Context,
+        uri: Uri,
+        previewUri: Uri?,
+        token: Long = beginImport(uri),
+        previewFile: File? = null,
+        fileName: String? = null
+    ) {
         if (!generations.isCurrent(token)) { previewFile?.delete(); return }
         currentPreviewFile = previewFile
         scanJob = viewModelScope.launch {
@@ -144,13 +179,22 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
             _segmentationMode.value = SegmentationMode.PAGE
             _rerunnableImage.value = null
             try {
-                val result = repository.performMultiPageOcr(context, uri)
+                val shown = previewUri ?: uri
+                val result = repository.performMultiPageOcr(context, uri) { page, total ->
+                    // Called on the worker thread. Published on the main thread, and only
+                    // while this same scan is still the one in progress, so a page that
+                    // reports late cannot overwrite a reset or the finished result.
+                    viewModelScope.launch {
+                        if (generations.isCurrent(token) && _uiState.value is UiState.Processing)
+                            _uiState.value = UiState.Processing(shown, ScanProgress(page, total))
+                    }
+                }
                 if (!generations.isCurrent(token)) return@launch
                 _uiState.value = UiState.Success(previewUri ?: uri, result, uri, "application/pdf")
                 // As for images: a later import must not cancel this insert.
                 withContext(NonCancellable) {
                     repository.saveToHistory(
-                        fileName = uri.lastPathSegment ?: "document.pdf",
+                        fileName = fileName ?: "document.pdf",
                         fileType = "application/pdf",
                         text = result.text,
                         durationMs = result.durationMs,
@@ -163,14 +207,17 @@ class MainViewModel(private val repository: OcrRepository) : ViewModel() {
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 if (generations.isCurrent(token))
-                    _uiState.value = UiState.OcrError(previewUri ?: uri, e.message ?: "PDF processing failed")
+                    _uiState.value = UiState.OcrError(previewUri ?: uri, OcrFailure.of(e))
+            } catch (e: OutOfMemoryError) {
+                if (generations.isCurrent(token))
+                    _uiState.value = UiState.OcrError(previewUri ?: uri, OcrFailure.OutOfMemory)
             }
         }
     }
 
-    fun onError(uri: Uri, message: String, token: Long = beginImport(uri)) {
+    fun onError(uri: Uri, failure: OcrFailure, token: Long = beginImport(uri)) {
         if (!generations.isCurrent(token)) return
-        _uiState.value = UiState.OcrError(uri, message)
+        _uiState.value = UiState.OcrError(uri, failure)
     }
 
     fun deleteHistoryRecord(id: Long) {

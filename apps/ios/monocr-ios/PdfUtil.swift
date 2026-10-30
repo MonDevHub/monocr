@@ -53,9 +53,9 @@ nonisolated enum PdfReadError: LocalizedError {
     case unreadable, locked, empty
     var errorDescription: String? {
         switch self {
-        case .unreadable: return "The PDF could not be opened. It may be invalid or no longer accessible."
-        case .locked: return "This PDF is locked. Unlock it before importing it."
-        case .empty: return "This PDF has no pages to read."
+        case .unreadable: return AppLocalization.string("The PDF could not be opened. It may be invalid or no longer accessible.")
+        case .locked: return AppLocalization.string("This PDF is locked. Unlock it before importing it.")
+        case .empty: return AppLocalization.string("This PDF has no pages to read.")
         }
     }
 }

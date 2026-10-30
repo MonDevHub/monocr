@@ -32,6 +32,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.res.stringResource
+import dev.janakhpon.monocr.R
 import dev.janakhpon.monocr.data.HistoryRecord
 import dev.janakhpon.monocr.ui.theme.monScriptStyle
 import java.text.SimpleDateFormat
@@ -86,11 +88,11 @@ fun HistoryResultDialog(
                         Text(
                             text = date,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Outlined.Close, contentDescription = "Close")
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close))
                     }
                 }
 
@@ -112,7 +114,7 @@ fun HistoryResultDialog(
                             if (isImage) {
                                 AsyncImage(
                                     model = record.fileUri,
-                                    contentDescription = "Original scan",
+                                    contentDescription = stringResource(R.string.history_original_scan),
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
@@ -140,7 +142,7 @@ fun HistoryResultDialog(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                     border = androidx.compose.foundation.BorderStroke(
-                        0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+                        0.5.dp, MaterialTheme.colorScheme.outlineVariant
                     )
                 ) {
                     Column(
@@ -150,10 +152,9 @@ fun HistoryResultDialog(
                     ) {
                         Text(
                             text = record.text,
-                            style = monScriptStyle.copy(
-                                fontSize = 16.sp,
-                                lineHeight = 24.sp
-                            ),
+                            // The same 28sp line as the result screen: 24sp clipped
+                            // stacked Mon marks.
+                            style = monScriptStyle,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -180,7 +181,7 @@ fun HistoryResultDialog(
                                  else ButtonDefaults.buttonColors(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp),
+                            .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Icon(
@@ -189,7 +190,7 @@ fun HistoryResultDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (copied) "Copied" else "Copy to Clipboard", fontWeight = FontWeight.Bold)
+                        Text(stringResource(if (copied) R.string.copied else R.string.copy_text), fontWeight = FontWeight.Bold)
                     }
                 }
 

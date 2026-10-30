@@ -66,7 +66,7 @@ struct AboutView: View {
                 .listRowBackground(Color.clear)
                 
                 Section("Overview") {
-                    Text("Privacy-first on-device OCR for the Mon language. No images leave your device — all recognition runs locally using native Apple Core ML.")
+                    Text("On-device OCR for the Mon language. Recognition runs locally with Apple Core ML, and your scans never leave your device.")
                         .font(MonTheme.Typography.body)
                         .foregroundColor(.secondary)
                         .lineSpacing(4)

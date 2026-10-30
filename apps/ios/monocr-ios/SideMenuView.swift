@@ -25,6 +25,7 @@ struct SideMenuView: View {
                 // Dimmed background
                 Color.black.opacity(0.25)
                     .ignoresSafeArea()
+                    .accessibilityHidden(true)
                     .onTapGesture {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                             isShowing = false
@@ -54,12 +55,20 @@ struct SideMenuView: View {
                                 .font(MonTheme.Typography.secondary.bold())
                                 .foregroundColor(.primary)
                             
-                            Picker("Language", selection: $languagePref) {
-                                Text("English").tag("en")
-                                Text("Burmese").tag("my")
-                                Text("Mon").tag("mnw")
+                            // Each language named in its own script, verbatim, so a
+                            // reader who cannot read the current interface language
+                            // can still find theirs. A segmented control truncated
+                            // these names, so it is a list of rows.
+                            VStack(spacing: 4) {
+                                ForEach(AppLanguage.allCases) { language in
+                                    LanguageRow(
+                                        name: language.endonym,
+                                        isSelected: AppLanguage(preference: languagePref) == language
+                                    ) {
+                                        languagePref = language.rawValue
+                                    }
+                                }
                             }
-                            .pickerStyle(.segmented)
                         }
                         
                         Divider()
@@ -86,6 +95,14 @@ struct SideMenuView: View {
                         }
                     )
                     .ignoresSafeArea()
+                    // Keep VoiceOver inside the open menu, and let the escape
+                    // gesture (two-finger scrub) close it like the dimmed area does.
+                    .accessibilityAddTraits(.isModal)
+                    .accessibilityAction(.escape) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            isShowing = false
+                        }
+                    }
                     .transition(.move(edge: .leading))
                     
                     Spacer()
@@ -104,7 +121,7 @@ struct MenuButton: View {
         Button(action: action) {
             HStack(spacing: 16) {
                 Image(systemName: icon)
-                    .font(.system(size: 18))
+                    .font(.body)
                     .frame(width: 24)
                     .foregroundColor(.accentColor)
                 Text(title)
@@ -118,5 +135,34 @@ struct MenuButton: View {
             .cornerRadius(12)
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+private struct LanguageRow: View {
+    let name: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text(verbatim: name)
+                    .font(MonTheme.Typography.body)
+                    .foregroundColor(.primary)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .foregroundColor(.accentColor)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(.horizontal, 12)
+            .frame(minHeight: 44)
+            .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
+            .cornerRadius(8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }

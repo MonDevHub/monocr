@@ -1,9 +1,8 @@
 package dev.janakhpon.monocr.ui.screens
 
-import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -43,6 +42,8 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,14 +62,15 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import dev.janakhpon.monocr.R
 import dev.janakhpon.monocr.data.HistoryRecord
 import dev.janakhpon.monocr.engine.ImagePreprocessor
 import dev.janakhpon.monocr.engine.SegmentationMode
+import dev.janakhpon.monocr.engine.UnreadableImageException
 import dev.janakhpon.monocr.ui.MainViewModel
+import dev.janakhpon.monocr.ui.OcrFailure
 import dev.janakhpon.monocr.ui.UiState
 import dev.janakhpon.monocr.ui.components.HeroHeader
 import dev.janakhpon.monocr.ui.components.HistoryResultDialog
@@ -80,10 +82,12 @@ import dev.janakhpon.monocr.ui.components.OcrErrorView
 import dev.janakhpon.monocr.ui.components.PickerView
 import dev.janakhpon.monocr.ui.components.ProcessingView
 import dev.janakhpon.monocr.ui.components.SkeletonResultCard
+import dev.janakhpon.monocr.util.FileUtil
 import dev.janakhpon.monocr.util.PdfUtil
 import dev.janakhpon.monocr.util.orientBitmap
 import kotlinx.coroutines.CancellationException
 import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -151,15 +155,22 @@ fun HomeScreen(
         }
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            val uri = createCameraUri(context)
-            cameraUri = uri
-            cameraLauncher.launch(uri)
-        }
+    // An image shared from another app is read like a gallery pick, once the engine
+    // can take it. Waiting on Initializing is what lets a cold-start share work.
+    val pendingShare by viewModel.pendingSharedImage.collectAsState()
+    val engineReady = uiState !is UiState.Initializing && uiState !is UiState.InitError
+    LaunchedEffect(pendingShare, engineReady) {
+        if (pendingShare == null || !engineReady) return@LaunchedEffect
+        val uri = viewModel.takeSharedImage() ?: return@LaunchedEffect
+        // In the screen's scope, not this effect's: taking the share changes this
+        // effect's key, and a restart would cancel the scan it had just started.
+        scope.launch { loadAndProcess(context, uri, viewModel, chooseMode = ::galleryModeFor) }
     }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val savedMessage = stringResource(R.string.save_done)
+    val saveFailedMessage = stringResource(R.string.save_failed)
+    val noCameraMessage = stringResource(R.string.camera_unavailable)
 
     val scanHistory by viewModel.scanHistory.collectAsState()
     val segmentationMode by viewModel.segmentationMode.collectAsState()
@@ -173,7 +184,8 @@ fun HomeScreen(
                 title = "MonOCR",
                 onMenuClick = onMenuClick
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Box(modifier = Modifier
             .fillMaxSize()
@@ -200,6 +212,9 @@ fun HomeScreen(
                                 fadeOut(tween(180))
                     },
                     label = "main_content",
+                    // Animate between kinds of state only: a page-progress update is a new
+                    // Processing value, and must not fade the whole view out and back in.
+                    contentKey = { it::class },
                     modifier = Modifier.fillMaxWidth()
                 ) { state ->
                     when (state) {
@@ -209,18 +224,26 @@ fun HomeScreen(
                             onGallery = { galleryLauncher.launch(arrayOf("image/*")) },
                             onPdf = { pdfLauncher.launch(arrayOf("application/pdf")) },
                             onCamera = {
-                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                                    val uri = createCameraUri(context)
-                                    cameraUri = uri
+                                // The system camera app takes the picture, so no runtime
+                                // permission is involved.
+                                val uri = createCameraUri(context)
+                                cameraUri = uri
+                                try {
                                     cameraLauncher.launch(uri)
-                                } else {
-                                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                                } catch (_: ActivityNotFoundException) {
+                                    scope.launch { snackbarHostState.showSnackbar(noCameraMessage) }
                                 }
                             }
                         )
                         is UiState.Processing   -> {
                             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                                ProcessingView(imageUri = state.imageUri)
+                                // reset() cancels the scan job and invalidates its
+                                // generation, so a late result is never published.
+                                ProcessingView(
+                                    imageUri = state.imageUri,
+                                    progress = state.progress,
+                                    onCancel = viewModel::reset
+                                )
                                 SkeletonResultCard()
                             }
                         }
@@ -229,11 +252,16 @@ fun HomeScreen(
                             result    = state.result,
                             originalUri = state.originalUri,
                             fileType = state.fileType,
-                            onNavigateToFeedback = onNavigateToFeedback
+                            onNavigateToFeedback = onNavigateToFeedback,
+                            onSaved = { ok ->
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(if (ok) savedMessage else saveFailedMessage)
+                                }
+                            }
                         )
                         is UiState.OcrError     -> OcrErrorView(
                             imageUri = state.imageUri,
-                            message  = state.message,
+                            failure  = state.failure,
                             onReset  = viewModel::reset,
                             onViewDocs = onNavigateToDocs
                         )
@@ -347,7 +375,7 @@ private fun SegmentationModeControl(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -408,7 +436,11 @@ internal data class ImportPreparationOps(
     val fileSize: suspend (Context, Uri) -> Long,
     val isPdf: suspend (Context, Uri) -> Boolean,
     val preparePdfPreview: suspend (Context, Uri, ImportPreparationResources) -> PreparedPdfPreview,
-    val decodeImage: suspend (Context, Uri, ImportPreparationResources) -> Bitmap?
+    val decodeImage: suspend (Context, Uri, ImportPreparationResources) -> Bitmap?,
+    /** The name the history shows: the provider's display name, not a URI segment. */
+    val displayName: suspend (Context, Uri) -> String? = { context, uri ->
+        withContext(Dispatchers.IO) { runCatching { FileUtil.getFileName(context, uri) }.getOrNull() }
+    }
 )
 
 private val defaultImportPreparationOps = ImportPreparationOps(
@@ -473,6 +505,9 @@ private val defaultImportPreparationOps = ImportPreparationOps(
     }
 )
 
+/** Imports above this size are refused; monocr-cli takes larger files. */
+internal const val IMPORT_LIMIT_MB = 50
+
 internal suspend fun loadAndProcess(
     context: Context,
     uri: Uri,
@@ -485,27 +520,36 @@ internal suspend fun loadAndProcess(
     try {
         val fileSize = preparation.fileSize(context, uri)
 
-        if (fileSize > 50 * 1024 * 1024L) {
-            viewModel.onError(uri, context.getString(R.string.error_file_large, 50), token)
+        if (fileSize > IMPORT_LIMIT_MB * 1024 * 1024L) {
+            viewModel.onError(uri, OcrFailure.FileTooLarge(IMPORT_LIMIT_MB), token)
             return
         }
 
+        val fileName = preparation.displayName(context, uri)
+
         if (preparation.isPdf(context, uri)) {
             val preview = preparation.preparePdfPreview(context, uri, resources)
-            viewModel.onPdfSelected(context, uri, preview.uri, token, resources.previewFile)
+            viewModel.onPdfSelected(context, uri, preview.uri, token, resources.previewFile, fileName)
             resources.previewFile = null
             return
         }
 
-        val bitmap = preparation.decodeImage(context, uri, resources)
-            ?: throw IllegalArgumentException("This image could not be decoded.")
-        viewModel.onImageSelected(uri, bitmap, chooseMode(bitmap), token)
+        val bitmap = try {
+            preparation.decodeImage(context, uri, resources)
+        } catch (e: CancellationException) { throw e
+        } catch (e: IOException) { throw e
+        } catch (e: SecurityException) { throw e
+        } catch (e: Exception) { throw UnreadableImageException(e)
+        } ?: throw UnreadableImageException()
+        viewModel.onImageSelected(uri, bitmap, chooseMode(bitmap), token, fileName)
         resources.bitmap = null // The job (or stale-import rejection) now owns recycling.
     } catch (e: CancellationException) {
         viewModel.cancelImport(token)
         throw e
     } catch (e: Exception) {
-        viewModel.onError(uri, e.message ?: "The selected file could not be opened.", token)
+        viewModel.onError(uri, OcrFailure.of(e), token)
+    } catch (e: OutOfMemoryError) {
+        viewModel.onError(uri, OcrFailure.OutOfMemory, token)
     } finally {
         resources.bitmap?.let { if (!it.isRecycled) it.recycle() }
         resources.previewFile?.delete()

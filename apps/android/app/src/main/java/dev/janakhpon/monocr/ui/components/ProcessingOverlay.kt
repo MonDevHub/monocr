@@ -12,7 +12,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.width
+import dev.janakhpon.monocr.ui.ScanProgress
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +56,7 @@ fun InitializingView() {
 }
 
 @Composable
-fun ProcessingView(imageUri: Uri) {
+fun ProcessingView(imageUri: Uri, progress: ScanProgress? = null, onCancel: (() -> Unit)? = null) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -82,11 +86,23 @@ fun ProcessingView(imageUri: Uri) {
                     modifier = Modifier.size(32.dp)
                 )
                 Text(
-                    stringResource(R.string.scanning),
+                    if (progress == null) stringResource(R.string.scanning)
+                    else stringResource(R.string.scan_progress, progress.page, progress.total),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
+                if (progress != null) {
+                    LinearProgressIndicator(
+                        progress = { progress.page.toFloat() / progress.total.coerceAtLeast(1) },
+                        modifier = Modifier.width(160.dp)
+                    )
+                }
+                if (onCancel != null) {
+                    TextButton(onClick = onCancel) {
+                        Text(stringResource(R.string.btn_cancel))
+                    }
+                }
             }
         }
     }

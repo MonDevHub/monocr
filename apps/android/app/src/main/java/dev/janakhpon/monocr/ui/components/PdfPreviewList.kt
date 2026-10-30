@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import dev.janakhpon.monocr.R
 import dev.janakhpon.monocr.util.PdfUtil
 import kotlinx.coroutines.CancellationException
 
@@ -31,14 +33,14 @@ fun PdfPreviewList(
     val context = LocalContext.current
     var pageCount by remember { mutableIntStateOf(0) }
 
-    var error by remember(uri) { mutableStateOf<String?>(null) }
+    var failed by remember(uri) { mutableStateOf(false) }
     LaunchedEffect(uri) {
         try { pageCount = PdfUtil.getPageCount(context, uri)
         } catch (e: CancellationException) { throw e
-        } catch (e: Exception) { error = "PDF preview unavailable" }
+        } catch (e: Exception) { failed = true }
     }
-    if (error != null) {
-        Text(error!!, modifier = modifier, color = MaterialTheme.colorScheme.error)
+    if (failed) {
+        Text(stringResource(R.string.pdf_preview_unavailable), modifier = modifier, color = MaterialTheme.colorScheme.error)
         return
     }
 
@@ -101,7 +103,7 @@ private fun PdfPageItem(uri: Uri, pageIndex: Int) {
             .wrapContentHeight()
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(16.dp)),
+            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
         shadowElevation = 0.dp
     ) {
         Box(
@@ -111,7 +113,7 @@ private fun PdfPageItem(uri: Uri, pageIndex: Int) {
             bitmap?.let { b ->
                 Image(
                     bitmap = b.asImageBitmap(),
-                    contentDescription = "Page ${pageIndex + 1}",
+                    contentDescription = stringResource(R.string.page_number, pageIndex + 1),
                     modifier = Modifier.fillMaxWidth(),
                     contentScale = ContentScale.FillWidth
                 )

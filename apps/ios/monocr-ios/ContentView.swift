@@ -7,6 +7,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = MainViewModel()
 
+    @Environment(\.dynamicTypeSize) private var typeSize
     @AppStorage("language_pref") private var languagePref: String = "en"
     
     @State private var selectedItem: PhotosPickerItem?
@@ -31,6 +32,10 @@ struct ContentView: View {
                 ZStack(alignment: .bottomTrailing) {
                     ScrollView {
                         VStack(spacing: 12) { // Tighter spacing
+                            if typeSize.isAccessibilitySize {
+                                controls
+                            }
+
                             if let image = viewModel.selectedImage {
                                 Button {
                                     showFullImage = true
@@ -49,8 +54,20 @@ struct ContentView: View {
 
                             if viewModel.isProcessing {
                                 processingOverlay
-                                SkeletonResultCard()
-                                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                                progressAndCancel
+                                // A PDF publishes its reading after every page, so
+                                // show it as it grows instead of a shimmer that hid
+                                // every page already read until the last one.
+                                if let partial = viewModel.ocrResult {
+                                    ResultCardView(
+                                        result: partial,
+                                        showCopyToast: $showCopyToast,
+                                        onReport: { showFeedback = true }
+                                    )
+                                } else {
+                                    SkeletonResultCard()
+                                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                                }
                             } else if let result = viewModel.ocrResult {
                                 ResultCardView(
                                     result: result,
@@ -73,70 +90,30 @@ struct ContentView: View {
                         Button {
                             withAnimation { viewModel.clearResult(modelContext: modelContext); selectedItem = nil }
                         } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 18, weight: .semibold)) // Smaller icon
-                                .frame(width: 44, height: 44) // 44x44 standard but compact
+                            // `plus`, not `arrow.clockwise`: this clears the result for
+                            // a new scan, it does not re-read the current one.
+                            Image(systemName: "plus")
+                                .font(.body.weight(.semibold))
+                                .frame(width: 44, height: 44)
                                 .background(Color.accentColor)
                                 .foregroundColor(.white)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .shadow(color: Color.accentColor.opacity(0.2), radius: 4, x: 0, y: 2) // Lighter shadow
                         }
+                        .accessibilityLabel("New scan")
                         .padding(24)
                         .transition(.scale.combined(with: .opacity))
                     }
                 }
                 .animation(.spring(response: 0.4, dampingFraction: 0.7), value: viewModel.ocrResult != nil)
                 .animation(.spring(response: 0.4, dampingFraction: 0.7), value: viewModel.selectedImage != nil)
-                
-                Spacer()
-                
-                Spacer()
-                
-                SegmentationModePicker(
-                    mode: viewModel.segmentationMode,
-                    isEnabled: !viewModel.isProcessing,
-                    onSelect: { mode in
-                        viewModel.selectSegmentationMode(mode, modelContext: modelContext)
-                    }
-                )
 
-                ActionButtonsView(
-                    selectedItem: $selectedItem,
-                    showFileImporter: $showFileImporter,
-                    showCamera: $viewModel.showCamera,
-                    onImageSelected: { image in
-                        viewModel.processImage(image, provenance: .photoLibrary, modelContext: modelContext)
-                    },
-                    onFileTooLarge: {
-                        viewModel.errorMessage = NSLocalizedString("File too large (Max 50MB). Use CLI tools or desktop version for bigger file support.", comment: "")
-                        viewModel.status = .error(NSLocalizedString("File size limit exceeded", comment: ""))
-                    }
-                )
-                
-                if let errorMessage = viewModel.errorMessage {
-                    VStack(spacing: 12) {
-                        Text(errorMessage)
-                            .font(MonTheme.Typography.meta)
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
-                        if errorMessage.contains("CLI") {
-                            Button {
-                                showDocs = true
-                            } label: {
-                                Label("Learn more about CLI", systemImage: "terminal")
-                                    .font(MonTheme.Typography.meta.bold())
-                                    .foregroundColor(.accentColor)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(Color.accentColor.opacity(0.1))
-                                    .clipShape(Capsule())
-                            }
-                        }
-                    }
-                    .padding(.top, 8)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+
+                // Pinned under the results normally. At accessibility sizes they
+                // move into the scroll view: pinned, they took most of the screen
+                // and left about a fifth of it for the content.
+                if !typeSize.isAccessibilitySize {
+                    controls
                 }
             }
             .navigationTitle("Mon OCR")
@@ -149,8 +126,11 @@ struct ContentView: View {
                         }
                     } label: {
                         Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.body.weight(.semibold))
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("Menu")
                 }
                 ToolbarItem(placement: .principal) {
                     if viewModel.selectedImage != nil {
@@ -166,7 +146,10 @@ struct ContentView: View {
                         showAbout = true
                     } label: {
                         Image(systemName: "info.circle")
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("About")
                 }
             }
             .sheet(isPresented: $showAbout) {
@@ -196,7 +179,8 @@ struct ContentView: View {
                     FullScreenImageView(image: image, isPresented: $showFullImage)
                 }
             }
-            .sheet(isPresented: $viewModel.showCamera) {
+            // Full screen, as the camera expects; it was a sheet.
+            .fullScreenCover(isPresented: $viewModel.showCamera) {
                 CameraPicker(image: Binding(
                     get: { viewModel.selectedImage },
                     set: {
@@ -205,6 +189,7 @@ struct ContentView: View {
                         }
                     }
                 ))
+                .ignoresSafeArea()
             }
             .fileImporter(
                 isPresented: $showFileImporter,
@@ -218,6 +203,7 @@ struct ContentView: View {
                     }
                 case .failure(let error):
                     MonLogger.e("File picker failed: \(error.localizedDescription)")
+                    viewModel.errorMessage = .fileOpenFailed(error.localizedDescription)
                 }
             }
             .overlay {
@@ -232,13 +218,13 @@ struct ContentView: View {
                 }
             }
             .onChange(of: viewModel.status) { _, status in
-                if case .ready = status, viewModel.ocrResult != nil {
+                // Not for a cancelled reading, which also returns to ready.
+                if case .ready = status, let result = viewModel.ocrResult, !result.cancelled {
                     let generator = UINotificationFeedbackGenerator()
                     generator.notificationOccurred(.success)
                 }
             }
             .background(MonTheme.backgroundColor.ignoresSafeArea())
-            .environment(\.locale, Locale(identifier: languagePref))
             }
             
             SideMenuView(
@@ -250,8 +236,67 @@ struct ContentView: View {
                 showPrivacy: $showPrivacy
             )
         }
+        // On the ZStack, not the NavigationStack, so the side menu follows the
+        // picker too: it sat outside this modifier and never changed language.
+        .environment(\.locale, AppLanguage(preference: languagePref).locale)
     }
     
+    /// The segmentation picker, the three source buttons and any error.
+    private var controls: some View {
+        VStack(spacing: 0) {
+            SegmentationModePicker(
+                mode: viewModel.segmentationMode,
+                isEnabled: !viewModel.isProcessing,
+                onSelect: { mode in
+                    viewModel.selectSegmentationMode(mode, modelContext: modelContext)
+                }
+            )
+
+            ActionButtonsView(
+                selectedItem: $selectedItem,
+                showFileImporter: $showFileImporter,
+                showCamera: $viewModel.showCamera,
+                onImageSelected: { image in
+                    viewModel.processImage(image, provenance: .photoLibrary, modelContext: modelContext)
+                },
+                onImageUnreadable: {
+                    viewModel.errorMessage = .imageUnreadable
+                },
+                onFileTooLarge: {
+                    viewModel.errorMessage = .fileTooLarge
+                    viewModel.status = .error(AppLocalization.string("File size limit exceeded"))
+                }
+            )
+
+            if let errorMessage = viewModel.errorMessage {
+                VStack(spacing: 12) {
+                    Text(verbatim: errorMessage.text(in: AppLanguage(preference: languagePref)))
+                        .font(MonTheme.Typography.meta)
+                        .foregroundColor(MonTheme.error)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+
+                    if errorMessage.offersCliHelp {
+                        Button {
+                            showDocs = true
+                        } label: {
+                            Label("Learn more about CLI", systemImage: "terminal")
+                                .font(MonTheme.Typography.meta.bold())
+                                .foregroundColor(.accentColor)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .frame(minHeight: 44)
+                                .background(Color.accentColor.opacity(0.1))
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+                .padding(.top, 8)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+    }
+
     private func imagePreview(_ image: UIImage) -> some View {
         Image(uiImage: image)
             .resizable()
@@ -261,6 +306,29 @@ struct ContentView: View {
             .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
     }
     
+    /// How far the read has got, and a labelled way out. The only way to stop a
+    /// long PDF was the unlabelled new-scan button, and nothing said how long
+    /// was left. Cancelling keeps the pages read so far.
+    private var progressAndCancel: some View {
+        VStack(spacing: 8) {
+            if case .processing(let progress?) = viewModel.status {
+                ProgressView(value: progress.fraction) {
+                    Text("Reading: \(progress.done) of \(progress.total) pages done")
+                        .font(MonTheme.Typography.secondary)
+                }
+            }
+
+            Button(role: .cancel) {
+                withAnimation { viewModel.cancelProcessing(modelContext: modelContext) }
+            } label: {
+                Label("Cancel", systemImage: "xmark.circle")
+                    .font(MonTheme.Typography.secondary.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
     private var processingOverlay: some View {
         ZStack {
             if let image = viewModel.selectedImage {

@@ -1,13 +1,16 @@
 package dev.janakhpon.monocr
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -25,6 +28,8 @@ import dev.janakhpon.monocr.engine.OcrRepository
 import dev.janakhpon.monocr.ui.ContributeViewModel
 import dev.janakhpon.monocr.ui.FeedbackViewModel
 import dev.janakhpon.monocr.ui.MainViewModel
+import dev.janakhpon.monocr.ui.baseRoute
+import dev.janakhpon.monocr.ui.finishIntro
 import dev.janakhpon.monocr.ui.screens.AboutScreen
 import dev.janakhpon.monocr.ui.screens.ContributeScreen
 import dev.janakhpon.monocr.ui.screens.DocsScreen
@@ -34,14 +39,23 @@ import dev.janakhpon.monocr.ui.screens.IntroScreen
 import dev.janakhpon.monocr.ui.screens.PrivacyScreen
 import dev.janakhpon.monocr.ui.theme.MonOCRTheme
 import dev.janakhpon.monocr.util.PreferenceManager
+import dev.janakhpon.monocr.util.sharedImageUri
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+
+    /** An image shared to the app, handed to MainViewModel by the composition. */
+    private val incomingShare = MutableStateFlow<Uri?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Only on a fresh launch: a recreated activity is handed the same intent again,
+        // and reading it twice would start the same scan twice.
+        if (savedInstanceState == null) incomingShare.value = sharedImageUri(intent)
         
         dev.janakhpon.monocr.util.MonLogger.applicationContext = applicationContext
 
@@ -76,9 +90,26 @@ class MainActivity : AppCompatActivity() {
                 val drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
                 val scope = androidx.compose.runtime.rememberCoroutineScope()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
+                val currentRoute = baseRoute(navBackStackEntry?.destination?.route)
                 val startDestination = remember {
                     if (prefManager.isOnboardingCompleted) "home" else "intro"
+                }
+
+                // A share is queued on the ViewModel, which HomeScreen reads once the
+                // engine is ready. Bring Home forward unless the intro is still showing;
+                // finishing the intro lands on Home, which then reads it.
+                val share by incomingShare.collectAsState()
+                LaunchedEffect(share) {
+                    val uri = share ?: return@LaunchedEffect
+                    vm.offerSharedImage(uri)
+                    incomingShare.value = null
+                    val route = baseRoute(navController.currentDestination?.route)
+                    if (route != null && route != "home" && route != "intro") {
+                        navController.navigate("home") {
+                            popUpTo("home")
+                            launchSingleTop = true
+                        }
+                    }
                 }
 
                 androidx.compose.material3.ModalNavigationDrawer(
@@ -100,7 +131,13 @@ class MainActivity : AppCompatActivity() {
                         )
                     }
                 ) {
-                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    // No insets here: every screen has its own Scaffold, whose top bar
+                    // and content padding already apply the system bars. Padding for
+                    // them here as well put a second status-bar gap above each top bar.
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize(),
+                        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+                    ) { innerPadding ->
                         NavHost(
                             navController = navController,
                             startDestination = startDestination,
@@ -153,7 +190,11 @@ class MainActivity : AppCompatActivity() {
                                     viewModel = feedbackVm,
                                     originalText = text,
                                     sourceUriDefault = imageUri,
-                                    onMenuClick = { scope.launch { drawerState.open() } }
+                                    onMenuClick = { scope.launch { drawerState.open() } },
+                                    // Cancel leaves the screen; it used to open the drawer.
+                                    onCancel = {
+                                        if (!navController.popBackStack()) navController.navigate("home")
+                                    }
                                 )
                             }
                             composable("contribute?text={text}") { backStackEntry ->
@@ -170,9 +211,7 @@ class MainActivity : AppCompatActivity() {
                             composable("intro") {
                                 IntroScreen(onFinish = {
                                     prefManager.isOnboardingCompleted = true
-                                    navController.navigate("home") {
-                                        popUpTo("intro") { inclusive = true }
-                                    }
+                                    navController.finishIntro()
                                 })
                             }
                         }
@@ -181,5 +220,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-}
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        sharedImageUri(intent)?.let { incomingShare.value = it }
+    }
+}

@@ -70,6 +70,14 @@ export async function getRecords(category = 'ocr-scan', limit = 50): Promise<OCR
 }
 
 /**
+ * One record by id, or undefined when it is gone (history cleared, other tab).
+ */
+export async function getRecord(id: string): Promise<OCRRecord | undefined> {
+	if (!db) return undefined;
+	return await db.records.get(id);
+}
+
+/**
  * Deletes a record by ID.
  */
 export async function deleteRecord(id: string): Promise<void> {

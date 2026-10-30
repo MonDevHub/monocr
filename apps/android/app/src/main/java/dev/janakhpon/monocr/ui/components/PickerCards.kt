@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,6 +34,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.janakhpon.monocr.R
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 
 @Composable
 fun PickerView(onGallery: () -> Unit, onPdf: () -> Unit, onCamera: () -> Unit) {
@@ -41,16 +45,18 @@ fun PickerView(onGallery: () -> Unit, onPdf: () -> Unit, onCamera: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Primary drop-zone — gallery picker
+        // Announced as a button: Surface(onClick) gives the click but no role.
         Surface(
+            onClick = onGallery,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp)
-                .clickable(onClickLabel = "Open gallery") { onGallery() },
+                .heightIn(min = 180.dp)
+                .semantics { role = Role.Button },
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
             border = androidx.compose.foundation.BorderStroke(
                 0.5.dp, 
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                MaterialTheme.colorScheme.outlineVariant
             )
         ) {
             Column(
@@ -81,9 +87,9 @@ fun PickerView(onGallery: () -> Unit, onPdf: () -> Unit, onCamera: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    stringResource(R.string.file_formats_limit, 50),
+                    stringResource(R.string.file_formats_limit, dev.janakhpon.monocr.ui.screens.IMPORT_LIMIT_MB),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -119,12 +125,14 @@ private fun SecondaryPickerButton(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(56.dp),
+        modifier = modifier
+            .heightIn(min = 56.dp)
+            .semantics { role = Role.Button },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
             0.5.dp, 
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            MaterialTheme.colorScheme.outlineVariant
         )
     ) {
         Row(

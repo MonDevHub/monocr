@@ -24,6 +24,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.janakhpon.monocr.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,8 +171,9 @@ fun DocsScreen(onMenuClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
                 OutlinedButton(
-                    onClick = { /* Open link */ },
+                    onClick = { uriHandler.openUri(MODEL_HUB_URL) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -180,7 +186,7 @@ fun DocsScreen(onMenuClick: () -> Unit) {
             // ── Contributors ─────────────────
             DocSection(
                 number = "6",
-                title = "Contributors",
+                title = stringResource(R.string.docs_contributors),
                 icon = Icons.Outlined.Group
             ) {
                 val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
@@ -223,6 +229,9 @@ fun DocsScreen(onMenuClick: () -> Unit) {
     }
 }
 
+/** The model card the Model Hub section describes. */
+internal const val MODEL_HUB_URL = "https://huggingface.co/janakhpon/monocr"
+
 @Composable
 fun DocSection(
     number: String,
@@ -244,7 +253,12 @@ fun DocSection(
             Spacer(modifier = Modifier.width(12.dp))
             Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                title,
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
         }
         content()
     }
@@ -256,7 +270,7 @@ fun CodeBlock(code: String) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Text(
             text = code,
@@ -273,12 +287,12 @@ fun QualityCard(icon: ImageVector, title: String, body: String, modifier: Modifi
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
             Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
+            Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -294,14 +308,14 @@ fun SdkSwitcher() {
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.fillMaxWidth().padding(1.dp)
         ) {
-            Row(modifier = Modifier.padding(4.dp)) {
+            Row(modifier = Modifier.padding(4.dp).selectableGroup()) {
                 sdks.forEach { sdk ->
                     val isSelected = selectedSdk == sdk
                     Surface(
                         modifier = Modifier
                             .weight(1f)
-                            .height(36.dp)
-                            .clickable { selectedSdk = sdk },
+                            .heightIn(min = 48.dp)
+                            .selectable(selected = isSelected, role = Role.Tab) { selectedSdk = sdk },
                         shape = RoundedCornerShape(12.dp),
                         color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
                         shadowElevation = if (isSelected) 1.dp else 0.dp

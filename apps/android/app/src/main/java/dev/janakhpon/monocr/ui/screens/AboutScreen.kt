@@ -97,11 +97,11 @@ fun AboutScreen(
                 TextButton(onClick = onNavigateToDocs) {
                     Text(stringResource(R.string.nav_docs), style = MaterialTheme.typography.labelMedium)
                 }
-                Text(" • ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                Text(" • ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = onNavigateToContribute) {
                     Text(stringResource(R.string.nav_contribute), style = MaterialTheme.typography.labelMedium)
                 }
-                Text(" • ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                Text(" • ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = onNavigateToFeedback) {
                     Text(stringResource(R.string.nav_feedback), style = MaterialTheme.typography.labelMedium)
                 }
@@ -131,7 +131,7 @@ fun AboutScreen(
                         }
                     }
                 ) {
-                    Text(stringResource(R.string.about_export_logs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                    Text(stringResource(R.string.about_export_logs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -140,7 +140,7 @@ fun AboutScreen(
             Text(
                 "MIT License · © 2026 Janakhpon",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
@@ -235,7 +235,7 @@ private fun ModelInfoCard() {
                     )
                 }
                 if (idx < rows.lastIndex) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
         }
@@ -274,9 +274,7 @@ private fun LinksCard(
             // Native Privacy Policy Link
             TextButton(
                 onClick = onPrivacyClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = "Privacy Policy, opens in-app" }
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     stringResource(R.string.privacy_title),
@@ -293,16 +291,17 @@ private fun LinksCard(
             }
             
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                color = MaterialTheme.colorScheme.outlineVariant,
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
             
+            val opensInBrowser = stringResource(R.string.opens_in_browser)
             links.forEachIndexed { idx, link ->
                 TextButton(
                     onClick = { onLinkClick(link.url) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .semantics { contentDescription = "${link.label}, opens in browser" }
+                        .semantics { contentDescription = opensInBrowser.format(link.label) }
                 ) {
                     Text(
                         link.label,
@@ -319,7 +318,7 @@ private fun LinksCard(
                 }
                 if (idx < links.lastIndex) {
                     HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                        color = MaterialTheme.colorScheme.outlineVariant,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                 }

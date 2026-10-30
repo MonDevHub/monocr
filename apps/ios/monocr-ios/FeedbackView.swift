@@ -36,6 +36,7 @@ struct FeedbackView: View {
                                     selectedItem = nil
                                 }
                                 .font(.caption)
+                                .frame(minHeight: 44)
                             }
                         } else {
                             Menu {
@@ -63,13 +64,13 @@ struct FeedbackView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             SectionHeader(title: "Original Output")
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("\"\(viewModel.originalText)\"")
+                                Text(verbatim: "\"\(viewModel.originalText)\"")
                                     .font(MonTheme.Typography.monBody(size: 14))
                                     .foregroundColor(.secondary)
                                 
                                 HStack(spacing: 6) {
                                     Image(systemName: "info.circle")
-                                        .font(.system(size: 10))
+                                        .font(.caption2)
                                     Text("Report quality issues to help improve our model")
                                         .font(MonTheme.Typography.meta)
                                 }
@@ -88,7 +89,7 @@ struct FeedbackView: View {
                             SectionHeader(title: "Corrected Text")
                             Spacer()
                             Text("VERIFIED BY HUMANS")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.caption2.weight(.bold))
                                 .foregroundColor(.secondary.opacity(0.5))
                         }
                         
@@ -108,11 +109,12 @@ struct FeedbackView: View {
                                             .font(MonTheme.Typography.meta)
                                             .fontWeight(.bold)
                                             .padding(.horizontal, 12)
-                                            .padding(.vertical, 4)
+                                            .frame(minHeight: 44)
                                             .background(viewModel.selectedType == type ? Color.accentColor : Color(.secondarySystemBackground))
                                             .foregroundColor(viewModel.selectedType == type ? .white : .primary)
                                             .cornerRadius(4)
                                     }
+                                    .accessibilityAddTraits(viewModel.selectedType == type ? [.isSelected] : [])
                                 }
                             }
                         }
@@ -123,24 +125,7 @@ struct FeedbackView: View {
                         Divider()
                             .padding(.vertical, 8)
                         
-                        HStack(alignment: .top, spacing: 12) {
-                            Button {
-                                viewModel.consent.toggle()
-                            } label: {
-                                Image(systemName: viewModel.consent ? "checkmark.square.fill" : "square")
-                                    .foregroundColor(viewModel.consent ? .accentColor : .secondary)
-                                    .font(.title3)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("I want to help improve MonOCR")
-                                    .font(MonTheme.Typography.secondary)
-                                    .fontWeight(.medium)
-                                Text("Allow this feedback to be used for model verification and archival research.")
-                                    .font(MonTheme.Typography.meta)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
+                        UploadConsentToggle(isOn: $viewModel.consent)
                         
                         Button {
                             viewModel.submitFeedback(context: modelContext)
@@ -149,7 +134,7 @@ struct FeedbackView: View {
                             Text("Share Correction")
                                 .fontWeight(.bold)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 36) // Reduced from 40
+                                .frame(minHeight: 44)
                                 .background(viewModel.isSubmitDisabled ? Color.gray : Color.accentColor)
                                 .foregroundColor(.white)
                                 .cornerRadius(4)
@@ -161,7 +146,7 @@ struct FeedbackView: View {
                         }
                         .font(MonTheme.Typography.secondary)
                         .foregroundColor(.secondary)
-                        .padding(.vertical, 8)
+                        .frame(minHeight: 44)
 
                         // History Section for Feedback
                         HistorySection(title: "Accuracy Feedback", category: "feedback")
@@ -177,14 +162,18 @@ struct FeedbackView: View {
                 }
             }
             .onChange(of: selectedItem) { _, newItem in
+                guard let newItem else { return }
                 Task {
-                    if let data = try? await newItem?.loadTransferable(type: Data.self),
+                    if let data = try? await newItem.loadTransferable(type: Data.self),
                        let image = UIImage(data: data) {
                         viewModel.sourceImage = image
                         viewModel.originalPdfData = nil
+                    } else {
+                        viewModel.message = .imageUnreadable
                     }
                 }
             }
+            .submissionAlerts(message: $viewModel.message, submitted: $viewModel.submitted)
             .sheet(isPresented: $showingDocumentPicker) {
                 DocumentPicker(types: [.pdf]) { url in
                     viewModel.handleSelectedPDF(at: url)

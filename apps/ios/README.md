@@ -62,8 +62,7 @@ Requires Xcode 26.2 or later, and a device on iOS 26.2 or later: `project.pbxpro
 2. Signing is Automatic with no team set, so choose your own team under Signing & Capabilities.
 3. Build and run the `monocr-ios` scheme on a physical device.
 
-The project resolves `onnxruntime-swift-package-manager` over an SSH URL
-(`git@github.com:microsoft/...`), so Xcode needs GitHub SSH access to resolve packages.
+The app has no Swift package dependencies; it runs the model through Core ML and Vision.
 
 The command-line build, with the `DEVELOPER_DIR` it needs on a machine whose active developer
 directory is the Command Line Tools, is in
@@ -82,7 +81,7 @@ types. It needs a Swift 6 toolchain (`swift-tools-version: 6.0`); the Command Li
 enough, and neither Xcode nor a simulator is required. Anything that imports UIKit, SwiftUI or
 Core ML has no test, because running it needs a simulator.
 
-- `MonOcrCore/Sources/MonOcrCore/` holds 15 relative symlinks into `monocr-ios/`, not copies, so
+- `MonOcrCore/Sources/MonOcrCore/` holds relative symlinks into `monocr-ios/`, not copies, so
   the package tests the app's own files without a second copy that can drift. Adding a file to the
   package means adding a symlink.
 - Use the script, not a bare `swift test`. It passes the `-F` and `-rpath` flags SwiftPM needs to
@@ -95,18 +94,20 @@ Core ML has no test, because running it needs a simulator.
 
 CI runs this package on every push. It does not build the app.
 
-## Known gap: most of the app's own strings are not translated
+## Known gap: many of the app's own strings are not translated
 
-`Localizable.xcstrings` holds 207 entries with Mon and Burmese translations, and **16 of the 24
-`NSLocalizedString` literals in the Swift sources are not among them**. Those 16 fall back to their
-English key, for the two languages this app exists to serve. They include every segmentation mode
-label and description (`SegmentationMode.swift`), both accuracy warnings (`ResultCardView.swift`),
-most of the engine's error messages (`MonOcrEngine.swift`) and the multi-page failure notice
-(`MainViewModel.swift`). A further 29 of the 207 entries are not translated into both languages.
+Every string the Swift code shows is now a key in `Localizable.xcstrings`, and the in-app
+language picker reaches all of them, including errors, scan warnings and the status bar (it
+used to reach SwiftUI literals only). What is missing is the translations themselves. As of
+2026-10-29, 81 of the 164 keys in use have no Burmese translation and 101 have no Mon one; a
+Mon value that is the English text copied across counts as missing, because that is what
+`pnpm translate` writes when the sheet's Mon cell is empty. They fall back to English.
 
-The entries need real translations, and inventing them would be worse than the gap. Re-derive the
-counts before quoting them: extract the literals from `apps/ios/monocr-ios/**/*.swift` and compare
-them against the catalogue's `strings` keys.
+[`TRANSLATIONS-TODO.md`](TRANSLATIONS-TODO.md) lists each one. The entries need real
+translations, and inventing them would be worse than the gap. `Scripts/check-strings.py`,
+which `Scripts/swift-test.sh` runs and CI therefore enforces, fails on a key that is not in the
+catalogue and on an untranslated key that is not in that list. Re-derive the counts with it
+rather than quoting these.
 
 ## Licence
 

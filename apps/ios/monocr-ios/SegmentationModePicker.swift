@@ -17,24 +17,35 @@ struct SegmentationModePicker: View {
     let mode: SegmentationMode
     let isEnabled: Bool
     let onSelect: (SegmentationMode) -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Picker(
-                "Segmentation",
-                selection: Binding(get: { mode }, set: { onSelect($0) })
-            ) {
-                ForEach(SegmentationMode.allCases) { option in
-                    Text(option.label).tag(option)
-                }
+            // A segmented control does not grow with Dynamic Type, so at
+            // accessibility sizes the same choice is a menu, which does.
+            if typeSize.isAccessibilitySize {
+                picker.pickerStyle(.menu)
+            } else {
+                picker.pickerStyle(.segmented)
             }
-            .pickerStyle(.segmented)
-            .disabled(!isEnabled)
 
-            Text(mode.detail)
+            Text(LocalizedStringKey(mode.detailKey))
                 .font(MonTheme.Typography.meta)
                 .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal)
+    }
+
+    private var picker: some View {
+        Picker(
+            "Segmentation",
+            selection: Binding(get: { mode }, set: { onSelect($0) })
+        ) {
+            ForEach(SegmentationMode.allCases) { option in
+                Text(LocalizedStringKey(option.labelKey)).tag(option)
+            }
+        }
+        .disabled(!isEnabled)
     }
 }

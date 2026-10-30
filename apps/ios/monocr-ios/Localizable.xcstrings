@@ -3511,6 +3511,225 @@
           }
         }
       }
+    },
+    "%1$lld of %2$lld pages have not been read; this reading is incomplete.": {
+      "extractionState": "manual"
+    },
+    "%lld block(s) were too tall to be one line. Their text may be invented — try the Sparse or Line mode.": {
+      "extractionState": "manual"
+    },
+    "%lld line(s) could not be read completely. Check the source image.": {
+      "extractionState": "manual"
+    },
+    "%lld line(s) may have missing text around a gap. Check the source image.": {
+      "extractionState": "manual"
+    },
+    "Could not access the PDF file.": {
+      "extractionState": "manual"
+    },
+    "Could not open the file: %@": {
+      "extractionState": "manual"
+    },
+    "Could not prepare the page for reading.": {
+      "extractionState": "manual"
+    },
+    "Could not read the image pixels.": {
+      "extractionState": "manual"
+    },
+    "Dense text: scans, book pages, PDFs.": {
+      "extractionState": "manual"
+    },
+    "Failed to initialize OCR engine: %@": {
+      "extractionState": "manual"
+    },
+    "Line": {
+      "extractionState": "manual"
+    },
+    "No detected line could be read completely.": {
+      "extractionState": "manual"
+    },
+    "No page of this PDF could be read.": {
+      "extractionState": "manual"
+    },
+    "No text could be read.": {
+      "extractionState": "manual"
+    },
+    "No text was read on one or more pages. Check the source; this does not confirm a blank page.": {
+      "extractionState": "manual"
+    },
+    "Page": {
+      "extractionState": "manual"
+    },
+    "Pages could not be read: %@.": {
+      "extractionState": "manual"
+    },
+    "Processing cancelled. Nothing was saved.": {
+      "extractionState": "manual"
+    },
+    "Processing cancelled. The pages read so far are in history.": {
+      "extractionState": "manual"
+    },
+    "Processing was cancelled; this reading is incomplete.": {
+      "extractionState": "manual"
+    },
+    "Recognition failed: %@": {
+      "extractionState": "manual"
+    },
+    "Segmentation": {
+      "extractionState": "manual"
+    },
+    "Sparse": {
+      "extractionState": "manual"
+    },
+    "Text regions were not detected. The whole-page reading needs review against the source.": {
+      "extractionState": "manual"
+    },
+    "The PDF could not be opened. It may be invalid or no longer accessible.": {
+      "extractionState": "manual"
+    },
+    "The page could not be rendered.": {
+      "extractionState": "manual"
+    },
+    "The recognizer returned an invalid tensor shape.": {
+      "extractionState": "manual"
+    },
+    "The recognizer returned nonfinite scores.": {
+      "extractionState": "manual"
+    },
+    "The whole image is one line of text.": {
+      "extractionState": "manual"
+    },
+    "This PDF has no pages to read.": {
+      "extractionState": "manual"
+    },
+    "This PDF is larger than 20 MB. Choose a smaller file, or send a page as an image.": {
+      "extractionState": "manual"
+    },
+    "This PDF is locked. Unlock it before importing it.": {
+      "extractionState": "manual"
+    },
+    "This build cannot use the bundled model: %@": {
+      "extractionState": "manual"
+    },
+    "This image could not be opened. Try another one.": {
+      "extractionState": "manual"
+    },
+    "This photo looks soft. The text may be misread — try again with steadier focus.": {
+      "extractionState": "manual"
+    },
+    "Wide gaps: photos, posters, slides.": {
+      "extractionState": "manual"
+    },
+    "charset.txt could not be read.": {
+      "extractionState": "manual"
+    },
+    "charset.txt is empty.": {
+      "extractionState": "manual"
+    },
+    "charset.txt is missing from the app bundle.": {
+      "extractionState": "manual"
+    },
+    "1. Scans stay on your device": {
+      "extractionState": "manual"
+    },
+    "2. Scan history": {
+      "extractionState": "manual"
+    },
+    "3. Feedback and contributions are uploaded": {
+      "extractionState": "manual"
+    },
+    "Changes to this policy will be published in the project's open-source repository and on this screen.": {
+      "extractionState": "manual"
+    },
+    "Effective Date: October 29, 2026": {
+      "extractionState": "manual"
+    },
+    "On-device OCR for the Mon language. Recognition runs locally with Apple Core ML, and your scans never leave your device.": {
+      "extractionState": "manual"
+    },
+    "Recognition runs entirely on your device. Scans are never uploaded; only Feedback and Contributions you choose to submit are.": {
+      "extractionState": "manual"
+    },
+    "Scans are saved in the app's history on this device so you can open them again. You can delete them from the history at any time, and deleting the app deletes them.": {
+      "extractionState": "manual"
+    },
+    "Submitting uploads the text and any attached image or PDF to the MonDevHub feedback service, where they are used to check and improve the model.": {
+      "extractionState": "manual"
+    },
+    "Upload failed": {
+      "extractionState": "manual"
+    },
+    "MonOCR reads text on your device with Core ML. The images, PDFs and camera photos you scan, and the text read from them, are not sent anywhere unless you include them in Feedback or a contribution (section 3). There is no account and no analytics.": {
+      "extractionState": "manual"
+    },
+    "Feedback and Contribute are the only screens that send anything. When you submit one, its text and any image or PDF attached to it are uploaded to the MonDevHub feedback service, where they are used to check and improve the recognition model. Feedback starts with the scan you are reporting attached; you can change or remove it. Both screens ask for your consent first, and nothing is sent until you submit. Each submission is also kept in that screen's history, which shows whether it has been uploaded.": {
+      "extractionState": "manual"
+    },
+    "New scan": {
+      "extractionState": "manual"
+    },
+    "Menu": {
+      "extractionState": "manual"
+    },
+    "Delete": {
+      "extractionState": "manual"
+    },
+    "Delete this item?": {
+      "extractionState": "manual"
+    },
+    "%lld words, %lld characters, %@ seconds": {
+      "extractionState": "manual"
+    },
+    "Contributors": {
+      "extractionState": "manual"
+    },
+    "Follow these standards to give the model the best chance of reading a page.": {
+      "extractionState": "manual"
+    },
+    "History is temporarily unavailable. New scans will not be kept after closing the app.": {
+      "extractionState": "manual"
+    },
+    "PDF or Images": {
+      "extractionState": "manual"
+    },
+    "Reading: %lld of %lld pages done": {
+      "extractionState": "manual"
+    },
+    "Cancel": {
+      "extractionState": "manual"
+    },
+    "OK": {
+      "extractionState": "manual"
+    },
+    "Thank you": {
+      "extractionState": "manual"
+    },
+    "Your submission is saved and will be uploaded when you are online. The history below shows when it has been.": {
+      "extractionState": "manual"
+    },
+    "Your submission is saved on this device. This build is not set up to upload submissions.": {
+      "extractionState": "manual"
+    },
+    "Allow camera access for MonOCR in Settings to photograph pages.": {
+      "extractionState": "manual"
+    },
+    "Camera use is restricted on this device, so MonOCR cannot open it.": {
+      "extractionState": "manual"
+    },
+    "Open Settings": {
+      "extractionState": "manual"
+    },
+    "This device has no camera. Choose a photo or a PDF instead.": {
+      "extractionState": "manual"
+    },
+    "Camera access is off": {
+      "extractionState": "manual"
+    },
+    "Camera access is restricted": {
+      "extractionState": "manual"
+    },
+    "Camera not available": {
+      "extractionState": "manual"
     }
   },
   "version": "1.1"

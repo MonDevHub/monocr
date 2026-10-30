@@ -41,6 +41,7 @@ import dev.janakhpon.monocr.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.collectAsState
 import dev.janakhpon.monocr.ui.FeedbackViewModel
+import dev.janakhpon.monocr.ui.components.ConsentRow
 import dev.janakhpon.monocr.ui.components.DashedUploadBox
 import dev.janakhpon.monocr.ui.components.HistorySection
 import dev.janakhpon.monocr.ui.components.SectionHeader
@@ -54,15 +55,50 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.draw.clip
 import android.content.Intent
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun FeedbackScreen(
     viewModel: FeedbackViewModel,
     originalText: String = "",
     sourceUriDefault: Uri? = null,
-    onMenuClick: () -> Unit
+    onMenuClick: () -> Unit,
+    onCancel: () -> Unit = onMenuClick
 ) {
     val feedbackHistory by viewModel.feedbackHistory.collectAsState()
+    val context = LocalContext.current
+    FeedbackContent(
+        feedbackHistory = feedbackHistory,
+        originalText = originalText,
+        sourceUriDefault = sourceUriDefault,
+        onMenuClick = onMenuClick,
+        onCancel = onCancel,
+        onSubmit = { fileName, text, type, uri ->
+            viewModel.saveFeedback(
+                context = context,
+                fileName = fileName,
+                text = text,
+                type = type,
+                sourceUri = uri,
+                originalText = originalText
+            )
+        },
+        onDelete = viewModel::deleteHistoryRecord,
+        onClearAll = viewModel::clearHistory
+    )
+}
+
+/** The Feedback screen without its ViewModel, so a test can drive it. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+internal fun FeedbackContent(
+    feedbackHistory: List<HistoryRecord>,
+    originalText: String,
+    sourceUriDefault: Uri?,
+    onMenuClick: () -> Unit,
+    onCancel: () -> Unit,
+    onSubmit: (fileName: String, text: String, type: String, sourceUri: Uri?) -> Unit,
+    onDelete: (Long) -> Unit,
+    onClearAll: () -> Unit
+) {
     var correctedText by remember { mutableStateOf(originalText) }
     var selectedType by remember { mutableStateOf("Spelling") }
     var consent by remember { mutableStateOf(false) }
@@ -157,13 +193,13 @@ fun FeedbackScreen(
                                 Icons.Outlined.Info,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 stringResource(R.string.feedback_help_desc),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -181,7 +217,7 @@ fun FeedbackScreen(
                     Text(
                         stringResource(R.string.feedback_human_verified),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         letterSpacing = 1.sp
                     )
                 }
@@ -190,6 +226,7 @@ fun FeedbackScreen(
                     value = correctedText,
                     onValueChange = { correctedText = it },
                     modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.feedback_corrected_title)) },
                     placeholder = { Text(stringResource(R.string.feedback_corrected_placeholder), fontSize = 13.sp) },
                     textStyle = monScriptStyle,
                     shape = RoundedCornerShape(12.dp)
@@ -222,44 +259,30 @@ fun FeedbackScreen(
 
             // ── Consent & Submit Section ──────────────────
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 
-                Row(verticalAlignment = Alignment.Top) {
-                    Checkbox(
-                        checked = consent,
-                        onCheckedChange = { consent = it },
-                        modifier = Modifier.padding(top = 0.dp)
-                    )
-                    Column(modifier = Modifier.padding(start = 8.dp)) {
-                        Text(
-                            stringResource(R.string.feedback_consent_title),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            stringResource(R.string.feedback_consent_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                        )
-                    }
-                }
+                ConsentRow(
+                    checked = consent,
+                    onCheckedChange = { consent = it },
+                    title = stringResource(R.string.feedback_consent_title),
+                    description = stringResource(R.string.feedback_consent_desc)
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Button(
                     onClick = { 
-                        viewModel.saveFeedback(
-                            context = context,
-                            fileName = sourceUri?.let { FileUtil.getFileName(context, it) } ?: "feedback_file",
-                            text = correctedText,
-                            type = selectedType,
-                            sourceUri = sourceUri,
-                            originalText = originalText
+                        onSubmit(
+                            sourceUri?.let { FileUtil.getFileName(context, it) } ?: "feedback_file",
+                            correctedText,
+                            selectedType,
+                            sourceUri
                         )
                         correctedText = ""
                         sourceUri = null
+                        consent = false
                     },
-                    modifier = Modifier.fillMaxWidth().height(36.dp), // Reduced from 50.dp
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     enabled = correctedText.isNotBlank() && consent,
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -267,7 +290,7 @@ fun FeedbackScreen(
                 }
                 
                 TextButton(
-                    onClick = onMenuClick,
+                    onClick = onCancel,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.feedback_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -278,8 +301,8 @@ fun FeedbackScreen(
                 HistorySection(
                     title = stringResource(R.string.feedback_history_title),
                     history = feedbackHistory,
-                    onDelete = { viewModel.deleteHistoryRecord(it) },
-                    onClearAll = { viewModel.clearHistory() },
+                    onDelete = onDelete,
+                    onClearAll = onClearAll,
                     onItemClick = { previewRecordState.value = it }
                 )
 
@@ -301,5 +324,5 @@ fun FeedbackScreen(
 
 @Composable
 private fun borderStroke() = androidx.compose.foundation.BorderStroke(
-    0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    0.5.dp, MaterialTheme.colorScheme.outlineVariant
 )

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import dev.janakhpon.monocr.R
 import androidx.compose.ui.res.stringResource
 import dev.janakhpon.monocr.ui.ContributeViewModel
+import dev.janakhpon.monocr.ui.components.ConsentRow
 import dev.janakhpon.monocr.ui.components.DashedUploadBox
 import dev.janakhpon.monocr.ui.components.HistorySection
 import dev.janakhpon.monocr.ui.components.SectionHeader
@@ -37,7 +38,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.draw.clip
 import android.content.Intent
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContributeScreen(
     viewModel: ContributeViewModel,
@@ -45,8 +45,36 @@ fun ContributeScreen(
     onMenuClick: () -> Unit
 ) {
     val contributionHistory by viewModel.contributionHistory.collectAsState()
+    val context = LocalContext.current
+    ContributeContent(
+        contributionHistory = contributionHistory,
+        initialText = initialText,
+        onMenuClick = onMenuClick,
+        onSubmit = { fileName, text, uri -> viewModel.saveContribution(context, fileName, text, uri) },
+        onDelete = viewModel::deleteHistoryRecord,
+        onClearAll = viewModel::clearHistory
+    )
+}
+
+/**
+ * The Contribute screen without its ViewModel, so a test can drive it.
+ *
+ * A submission is uploaded to the feedback service (SyncWorker), so it waits on the
+ * same consent the Feedback screen asks for.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ContributeContent(
+    contributionHistory: List<HistoryRecord>,
+    initialText: String,
+    onMenuClick: () -> Unit,
+    onSubmit: (fileName: String, text: String, sourceUri: Uri?) -> Unit,
+    onDelete: (Long) -> Unit,
+    onClearAll: () -> Unit
+) {
     var transcription by remember { mutableStateOf(initialText) }
     var sourceUri by remember { mutableStateOf<Uri?>(null) }
+    var consent by remember { mutableStateOf(false) }
     val previewRecordState = remember { mutableStateOf<HistoryRecord?>(null) }
 
     val context = LocalContext.current
@@ -121,22 +149,13 @@ fun ContributeScreen(
                         .height(100.dp)
                         .clip(RoundedCornerShape(16.dp)),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    val isImage = context.contentResolver.getType(uri)?.startsWith("image/") ?: false
-                    if (isImage) {
-                        AsyncImage(
-                            model = uri,
-                            contentDescription = stringResource(R.string.selected_image),
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        PdfPreviewList(
-                            uri = uri,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                    SelectedFilePreview(
+                        uri = uri,
+                        mimeType = context.contentResolver.getType(uri),
+                        name = FileUtil.getFileName(context, uri)
+                    )
                 }
             }
 
@@ -146,16 +165,16 @@ fun ContributeScreen(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
                 Text(
                     stringResource(R.string.label_or),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 12.dp), // Reduced from 16.dp
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp
                 )
-                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
             }
 
             // ── Textarea ──────────────────
@@ -166,26 +185,34 @@ fun ContributeScreen(
                     value = transcription,
                     onValueChange = { transcription = it },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+                    label = { Text(stringResource(R.string.contribute_type_title)) },
                     placeholder = { Text(stringResource(R.string.contribute_type_placeholder), fontSize = 13.sp) },
                     textStyle = monScriptStyle,
                     shape = RoundedCornerShape(12.dp)
                 )
             }
 
+            ConsentRow(
+                checked = consent,
+                onCheckedChange = { consent = it },
+                title = stringResource(R.string.feedback_consent_title),
+                description = stringResource(R.string.contribute_consent_desc)
+            )
+
             // ── Action ────────────────────
             Button(
                 onClick = { 
-                    viewModel.saveContribution(
-                        context,
+                    onSubmit(
                         sourceUri?.let { FileUtil.getFileName(context, it) } ?: "mon_text",
                         transcription,
                         sourceUri
                     )
                     transcription = ""
                     sourceUri = null
+                    consent = false
                 },
-                modifier = Modifier.fillMaxWidth().height(40.dp),
-                enabled = transcription.isNotBlank() || sourceUri != null,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                enabled = consent && (transcription.isNotBlank() || sourceUri != null),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(stringResource(R.string.contribute_submit), fontWeight = FontWeight.Bold)
@@ -196,8 +223,8 @@ fun ContributeScreen(
             HistorySection(
                 title = stringResource(R.string.contribute_history_title),
                 history = contributionHistory,
-                onDelete = { viewModel.deleteHistoryRecord(it) },
-                onClearAll = { viewModel.clearHistory() },
+                onDelete = onDelete,
+                onClearAll = onClearAll,
                 onItemClick = { previewRecordState.value = it }
             )
 
@@ -214,4 +241,38 @@ fun ContributeScreen(
         )
     }
 
+}
+
+/**
+ * What the picked file looks like: the image, the PDF's pages, or, for a text or Word
+ * file, its icon and name. Every non-image used to go to the PDF renderer, which put a
+ * red "PDF preview unavailable" under a perfectly good .txt.
+ */
+@Composable
+internal fun SelectedFilePreview(uri: Uri, mimeType: String?, name: String?) {
+    when {
+        mimeType?.startsWith("image/") == true -> AsyncImage(
+            model = uri,
+            contentDescription = stringResource(R.string.selected_image),
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        mimeType == "application/pdf" -> PdfPreviewList(uri = uri, modifier = Modifier.fillMaxSize())
+        else -> Row(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Outlined.Description,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                name ?: stringResource(R.string.file_selected),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
 }

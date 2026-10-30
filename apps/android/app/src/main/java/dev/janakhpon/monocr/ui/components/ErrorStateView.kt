@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +23,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.janakhpon.monocr.R
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import dev.janakhpon.monocr.ui.OcrFailure
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 
@@ -46,15 +51,32 @@ fun InitErrorView(message: String) {
             Text(
                 message,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onErrorContainer,
                 textAlign = TextAlign.Center
             )
         }
     }
 }
 
+/** The one message the screen shows for [failure]. */
 @Composable
-fun OcrErrorView(imageUri: Uri, message: String, onReset: () -> Unit, onViewDocs: () -> Unit) {
+internal fun ocrFailureMessage(failure: OcrFailure): String = when (failure) {
+    is OcrFailure.FileTooLarge -> stringResource(R.string.error_file_large, failure.limitMb)
+    OcrFailure.UnreadableFile -> stringResource(R.string.error_file_unreadable)
+    OcrFailure.UnreadableImage -> stringResource(R.string.error_corrupt)
+    OcrFailure.UnreadablePdf -> stringResource(R.string.error_pdf_unreadable)
+    OcrFailure.PdfNoPages -> stringResource(R.string.error_pdf_no_pages)
+    OcrFailure.OutOfMemory -> stringResource(R.string.error_memory)
+    OcrFailure.ModelRuntime -> stringResource(R.string.error_model_runtime)
+    is OcrFailure.Unknown -> stringResource(R.string.error_generic_ocr)
+}
+
+/** monocr-cli is the route for a file over the cap and for a device the model fails on. */
+internal fun OcrFailure.suggestsCli(): Boolean =
+    this is OcrFailure.FileTooLarge || this == OcrFailure.ModelRuntime
+
+@Composable
+fun OcrErrorView(imageUri: Uri, failure: OcrFailure, onReset: () -> Unit, onViewDocs: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -79,26 +101,14 @@ fun OcrErrorView(imageUri: Uri, message: String, onReset: () -> Unit, onViewDocs
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
-                val isCliError = message.contains("CLI", ignoreCase = true)
-                val friendlyMsg = when {
-                    isCliError -> message
-                    message.contains("timeout", ignoreCase = true) ->
-                        stringResource(R.string.error_timeout)
-                    message.contains("memory", ignoreCase = true) ||
-                    message.contains("oom", ignoreCase = true)     ->
-                        stringResource(R.string.error_memory)
-                    message.contains("corrupt", ignoreCase = true) ||
-                    message.contains("decode", ignoreCase = true)  ->
-                        stringResource(R.string.error_corrupt)
-                    else -> stringResource(R.string.error_generic_ocr)
-                }
                 Text(
-                    friendlyMsg,
+                    ocrFailureMessage(failure),
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onErrorContainer
                 )
 
-                if (isCliError) {
+                if (failure.suggestsCli()) {
                     TextButton(
                         onClick = onViewDocs,
                         modifier = Modifier.padding(top = 8.dp)
@@ -117,7 +127,7 @@ fun OcrErrorView(imageUri: Uri, message: String, onReset: () -> Unit, onViewDocs
             onClick = onReset,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(40.dp),
+                .heightIn(min = 48.dp),
             shape = RoundedCornerShape(12.dp),
             content = {
                 Text(stringResource(R.string.process_another))

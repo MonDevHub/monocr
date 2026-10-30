@@ -73,7 +73,7 @@ internal suspend fun <T : Any> readDocumentPages(
     recognize: suspend (T) -> OcrResult,
     release: (T) -> Unit
 ): List<OcrPageOutcome> {
-    require(pageCount > 0) { "The PDF has no readable pages." }
+    if (pageCount <= 0) throw EmptyPdfException()
     return (0 until pageCount).map { index ->
         currentCoroutineContext().ensureActive()
         val page = try {

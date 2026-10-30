@@ -14,7 +14,8 @@ class MainViewModel: ObservableObject {
     @Published var isProcessing = false
     @Published var status: EngineStatus = .loading
     @Published var showCamera = false
-    @Published var errorMessage: String?
+    /// Kept as a key and arguments, shown in whichever language is picked.
+    @Published var errorMessage: UserMessage?
 
     /// How the next scan will cut the page into lines. Set from provenance when
     /// an image arrives, and overridable by the user.
@@ -49,7 +50,7 @@ class MainViewModel: ObservableObject {
         } catch {
             guard jobGeneration.accepts(generation), !isProcessing else { return }
             status = .error(error.localizedDescription)
-            errorMessage = "Failed to initialize OCR engine: \(error.localizedDescription)"
+            errorMessage = .engineFailed(error.localizedDescription)
             MonLogger.e("Engine initialization failed", error: error)
         }
     }
@@ -92,6 +93,7 @@ class MainViewModel: ObservableObject {
         debugImage = nil
         selectedImage = nil
         isProcessing = true
+        status = .processing(nil)
         errorMessage = nil
         return generation
     }
@@ -124,9 +126,7 @@ class MainViewModel: ObservableObject {
         }
         // Only a PDF with at least one page read has a history row by now.
         if wasProcessing {
-            errorMessage = activeHistoryRecord == nil
-                ? "Processing cancelled. Nothing was saved."
-                : "Processing cancelled. The pages read so far are in history."
+            errorMessage = activeHistoryRecord == nil ? .cancelledNothingSaved : .cancelledPagesKept
         }
     }
 
@@ -178,8 +178,8 @@ class MainViewModel: ObservableObject {
                 // Every line failing is a failed scan, not an empty reading: no
                 // result, no history row and no success haptic.
                 if PageOutcome.noPageRead(result.pages) {
-                    let reason = result.pages.first?.error ?? "No text could be read."
-                    failJob("Recognition failed: \(reason)", generation: generation)
+                    let reason = result.pages.first?.error ?? UserMessage.noTextRead.key
+                    failJob(.recognitionFailed(reason), generation: generation)
                     return
                 }
                 ocrResult = result
@@ -190,7 +190,7 @@ class MainViewModel: ObservableObject {
                 saveHistory(result: result, fileName: activeFileName, context: modelContext)
             } catch {
                 guard canPublish(generation) else { return }
-                errorMessage = "Recognition failed: \(error.localizedDescription)"
+                errorMessage = .recognitionFailed(error.localizedDescription)
                 status = .error(error.localizedDescription)
                 isProcessing = false
                 jobTask = nil
@@ -218,22 +218,22 @@ class MainViewModel: ObservableObject {
             // App-owned URLs need no security scope. External URLs still have
             // to be readable after acquisition; a failed start is not a blank PDF.
             guard lease.acquired || FileManager.default.isReadableFile(atPath: url.path) else {
-                failJob("Could not access the PDF file.", generation: generation)
+                failJob(.pdfUnreadable, generation: generation)
                 return
             }
             if let attr = try? FileManager.default.attributesOfItem(atPath: url.path),
-               let size = attr[.size] as? Int64, size > 50 * 1024 * 1024 {
-                failJob("File too large (Max 50MB). Use CLI tools or desktop version for bigger file support.",
-                        generation: generation)
+               let size = attr[.size] as? Int64, SubmissionRules.importTooLarge(byteCount: size) {
+                failJob(.fileTooLarge, generation: generation)
                 return
             }
             let totalPages: Int
             do { totalPages = try PdfUtil.getPageCount(at: url) }
             catch {
-                failJob(error.localizedDescription, generation: generation)
+                failJob(UserMessage(key: error.localizedDescription), generation: generation)
                 return
             }
             guard canPublish(generation) else { return }
+            status = .processing(PageProgress(done: 0, total: totalPages))
             selectedImage = PdfUtil.renderPdfPageToImage(at: url, pageIndex: 0)
             let startTime = Date()
             var results = [Int: MonOcrResult]()
@@ -256,6 +256,7 @@ class MainViewModel: ObservableObject {
                         looksSoft: combined.looksSoft, rawText: combined.rawText, pages: outcomes)
                     ocrResult = reading
                     debugImage = reading.debugImage
+                    status = .processing(PageProgress(outcomes: outcomes))
                     // Upsert one history row after each page. Interruption keeps
                     // completed pages and explicit not-attempted/failed indices.
                     saveHistory(result: reading, fileName: activeFileName, context: modelContext)
@@ -274,7 +275,7 @@ class MainViewModel: ObservableObject {
                         }
                         guard let image = PdfUtil.renderPdfPageToImage(at: url, pageIndex: index) else {
                             return (index, nil, PageOutcome(pageIndex: index, state: .renderFailed,
-                                                          error: "The page could not be rendered."))
+                                                          error: PageOutcome.renderFailedError))
                         }
                         do {
                             try Task.checkCancellation()
@@ -298,7 +299,7 @@ class MainViewModel: ObservableObject {
                 // record() published a card per page; none of them holds a reading.
                 ocrResult = nil
                 debugImage = nil
-                failJob("No page of this PDF could be read.", generation: generation)
+                failJob(.noPdfPageRead, generation: generation)
                 return
             }
             isProcessing = false
@@ -307,10 +308,10 @@ class MainViewModel: ObservableObject {
         }
     }
 
-    private func failJob(_ message: String, generation: UUID) {
+    private func failJob(_ message: UserMessage, generation: UUID) {
         guard canPublish(generation) else { return }
         errorMessage = message
-        status = .error(message)
+        status = .error(message.text())
         isProcessing = false
         jobTask = nil
     }

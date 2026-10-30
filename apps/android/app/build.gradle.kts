@@ -88,6 +88,14 @@ android {
         }
     }
 
+    testOptions {
+        unitTests {
+            // Robolectric reads the merged resources, so stringResource() in a
+            // Compose test resolves to the real strings rather than throwing.
+            isIncludeAndroidResources = true
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -204,6 +212,12 @@ dependencies {
     // Reads the shared tiling fixture. Test-only: `org.json` is in the mockable
     // android.jar, so every call throws in a plain JVM unit test.
     testImplementation(libs.gson)
+    // Compose UI tests run in this same JVM suite under Robolectric, so CI's
+    // testDebugUnitTest exercises the screens without a device. ui-test-manifest
+    // (debugImplementation below) supplies the activity createComposeRule hosts.
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

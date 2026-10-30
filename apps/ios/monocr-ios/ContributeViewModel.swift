@@ -9,19 +9,33 @@ final class ContributeViewModel: ObservableObject {
     @Published var sourceImage: UIImage? = nil
     @Published var originalPdfData: Data? = nil
     @Published var selectedFileName: String? = nil
-    
+    /// A problem to show; these failures used to reach the log only.
+    @Published var message: UserMessage? = nil
+    /// Set after a submit, so the screen can say what happened to it.
+    @Published var submitted = false
+    /// A contribution is uploaded on submit, so it waits for consent, as
+    /// Feedback always has. This screen used to send on a tap.
+    @Published var consent: Bool = false
+
     var isSubmitDisabled: Bool {
-        transcription.isEmpty && sourceImage == nil && originalPdfData == nil
+        !SubmissionRules.canSubmitContribution(
+            transcription: transcription,
+            hasAttachment: sourceImage != nil || originalPdfData != nil,
+            consent: consent)
     }
 
     func handleSelectedPDF(at url: URL) {
-        guard url.startAccessingSecurityScopedResource() else { return }
+        guard url.startAccessingSecurityScopedResource() else {
+            message = .pdfUnreadable
+            return
+        }
         defer { url.stopAccessingSecurityScopedResource() }
         
         do {
             let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
-            if let fileSize = attributes[.size] as? Int64, fileSize > 20 * 1024 * 1024 {
+            if let fileSize = attributes[.size] as? Int64, SubmissionRules.attachmentTooLarge(byteCount: fileSize) {
                 MonLog_w("PDF file too large for this version (max 20MB): \(url.lastPathComponent)")
+                message = .attachmentTooLarge
                 return
             }
             
@@ -36,6 +50,7 @@ final class ContributeViewModel: ObservableObject {
             MonLog_i("Loaded PDF document: \(url.lastPathComponent) (\(data.count) bytes)")
         } catch {
             MonLog_e("Failed to load PDF document", error: error)
+            message = .pdfUnreadable
         }
     }
 
@@ -59,11 +74,13 @@ final class ContributeViewModel: ObservableObject {
         
         // Trigger immediate sync on background actor
         Task { await SyncService.shared.syncAll() }
+        submitted = true
         
         // Reset form
         transcription = ""
         sourceImage = nil
         originalPdfData = nil
         selectedFileName = nil
+        consent = false
     }
 }

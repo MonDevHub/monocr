@@ -23,7 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -85,6 +85,7 @@ fun HistorySection(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = title,
+                    modifier = Modifier.semantics { heading() },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -103,9 +104,9 @@ fun HistorySection(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
+                    .heightIn(min = 120.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                    .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
@@ -114,12 +115,12 @@ fun HistorySection(
                         Icons.Outlined.Description,
                         contentDescription = null,
                         modifier = Modifier.size(24.dp).padding(bottom = 8.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         stringResource(R.string.history_empty),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -159,17 +160,16 @@ fun HistoryItem(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
-            0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            0.5.dp, MaterialTheme.colorScheme.outlineVariant
         ),
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-            }
-            .semantics(mergeDescendants = true) {
-                contentDescription = record.fileName + ": " + date
             },
+        // No contentDescription override: the merged row reads its name, date, time and
+        // sync state, where the override replaced all of that with name and date.
         interactionSource = interactionSource
     ) {
         Row(
@@ -202,13 +202,13 @@ fun HistoryItem(
                     Text(
                         text = date,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (record.processingTime > 0) {
                         Text(
                             text = " • ${record.processingTime}ms",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -218,16 +218,16 @@ fun HistoryItem(
                             imageVector = if (record.isSynced) Icons.Outlined.CloudDone else Icons.Outlined.CloudUpload,
                             contentDescription = null,
                             modifier = Modifier.size(10.dp),
-                            tint = if (record.isSynced) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                            tint = if (record.isSynced) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = if (record.isSynced) stringResource(R.string.status_synced) 
                                    else stringResource(R.string.status_pending),
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                            color = if (record.isSynced) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (record.isSynced) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -239,7 +239,7 @@ fun HistoryItem(
                     Icons.Outlined.Delete,
                     contentDescription = stringResource(R.string.action_delete),
                     modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
+                    tint = MaterialTheme.colorScheme.error
                 )
             }
         }

@@ -1,9 +1,11 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ResultCardView: View {
     let result: MonOcrResult
     @Binding var showCopyToast: Bool
     var onReport: (() -> Void)? = nil
+    @Environment(\.locale) private var locale
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -19,6 +21,9 @@ struct ResultCardView: View {
                     StatChip(label: "\(result.charCount) ch")
                     StatChip(label: "\(result.durationMs)ms")
                 }
+                // Read aloud as words: the chips alone came out as "12 w", "340 ch".
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text("\(result.wordCount) words, \(result.charCount) characters, \(seconds) seconds"))
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -26,7 +31,8 @@ struct ResultCardView: View {
 
             Divider()
 
-            if let warning = result.warningSummary {
+            if let warning = result.reviewMetadata.localizedWarningSummary(
+                in: AppLanguage(preference: locale.identifier)) {
                 Label(warning, systemImage: "exclamationmark.triangle")
                     .font(MonTheme.Typography.meta)
                     .foregroundColor(MonTheme.warning)
@@ -36,7 +42,6 @@ struct ResultCardView: View {
 
             // Content
             MonTextView(text: result.text)
-                .frame(height: 300) // Reduced from 350 for density
                 .background(Color(.systemBackground))
 
             Divider()
@@ -44,13 +49,17 @@ struct ResultCardView: View {
             // Footer Actions: Save / Share / Copy — matches Android toolbar
             HStack(spacing: 0) {
                 Spacer()
-                // Save
-                Button {
-                    saveTextToFile(result.text)
-                } label: {
-                        Label("Save", systemImage: "arrow.down.circle")
-                            .font(MonTheme.Typography.meta)
+                // Save: hands a .txt file to the share sheet, where "Save to
+                // Files" lives. It wrote the file itself and presented the sheet
+                // from `windows.first?.rootViewController`, which fails from a
+                // sheet, and a write error only reached the log.
+                let export = TextFileExport(text: result.text)
+                ShareLink(item: export, preview: SharePreview(export.fileName)) {
+                    Label("Save", systemImage: "arrow.down.circle")
+                        .font(MonTheme.Typography.meta)
                         .fontWeight(.medium)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .padding(.trailing, 12)
 
@@ -59,6 +68,8 @@ struct ResultCardView: View {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .font(MonTheme.Typography.meta)
                         .fontWeight(.medium)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .padding(.trailing, 12)
 
@@ -79,7 +90,9 @@ struct ResultCardView: View {
                           systemImage: showCopyToast ? "checkmark" : "doc.on.doc")
                         .font(MonTheme.Typography.meta)
                         .fontWeight(.medium)
-                        .foregroundColor(showCopyToast ? .green : .accentColor)
+                        .foregroundColor(.accentColor)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 
                 // Report Issue
@@ -90,12 +103,15 @@ struct ResultCardView: View {
                         Label("Report", systemImage: "info.circle")
                             .font(MonTheme.Typography.meta)
                             .fontWeight(.medium)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                     .padding(.leading, 8)
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8) // Reduced from 12
+            // Each action is at least 44pt tall; the labels alone were about 30.
+            .frame(minHeight: 44)
             .background(Color(.systemGroupedBackground).opacity(0.6))
         }
         .background(Color(.secondarySystemBackground))
@@ -106,31 +122,39 @@ struct ResultCardView: View {
         )
     }
     
+    private var seconds: String {
+        (Double(result.durationMs) / 1000).formatted(.number.precision(.fractionLength(1)))
+    }
+
     private func StatChip(label: String) -> some View {
         Text(label)
-            .font(.system(size: 11, weight: .medium, design: .monospaced))
+            .font(.system(.caption2, design: .monospaced).weight(.medium))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(Color(.tertiarySystemFill))
             .cornerRadius(4) // Reduced from 10
             .foregroundColor(.secondary)
     }
-    
-    private func saveTextToFile(_ text: String) {
+}
+
+/// Recognised text as a `.txt` file, written only when the share sheet asks for it.
+nonisolated struct TextFileExport: Transferable {
+    let text: String
+    let fileName: String
+
+    init(text: String, date: Date = Date()) {
+        self.text = text
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HH_mm_ss"
-        let filename = "monocr-\(formatter.string(from: Date())).txt"
-        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent(filename)
-        do {
-            try text.write(to: url, atomically: true, encoding: .utf8)
-            let av = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-            if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let root = scene.windows.first?.rootViewController {
-                root.present(av, animated: true)
-            }
-        } catch {
-            MonLogger.e("Failed to save text file: \(error)")
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        self.fileName = "monocr-\(formatter.string(from: date)).txt"
+    }
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .plainText) { export in
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(export.fileName)
+            try export.text.write(to: url, atomically: true, encoding: .utf8)
+            return SentTransferredFile(url)
         }
     }
 }

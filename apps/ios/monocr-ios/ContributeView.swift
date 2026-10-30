@@ -38,14 +38,18 @@ struct ContributeView: View {
                 }
             }
             .onChange(of: selectedItem) { _, newItem in
+                guard let newItem else { return }
                 Task {
-                    if let data = try? await newItem?.loadTransferable(type: Data.self),
+                    if let data = try? await newItem.loadTransferable(type: Data.self),
                        let image = UIImage(data: data) {
                         viewModel.sourceImage = image
                         viewModel.originalPdfData = nil
+                    } else {
+                        viewModel.message = .imageUnreadable
                     }
                 }
             }
+            .submissionAlerts(message: $viewModel.message, submitted: $viewModel.submitted)
             .sheet(isPresented: $showingDocumentPicker) {
                 DocumentPicker(types: [.pdf]) { url in
                     viewModel.handleSelectedPDF(at: url)
@@ -59,7 +63,7 @@ struct ContributeView: View {
     private var heroHeader: some View {
         VStack(spacing: 4) { // Reduced from 8
             Image(systemName: "hand.raised.fill")
-                .font(.system(size: 32)) // Reduced from 40
+                .font(.largeTitle)
                 .foregroundColor(.accentColor)
                 .padding(.bottom, 4)
             
@@ -95,7 +99,8 @@ struct ContributeView: View {
                         selectedItem = nil
                     }
                     .font(.caption)
-                    .foregroundColor(.red)
+                    .foregroundColor(MonTheme.error)
+                    .frame(minHeight: 44)
                 }
                 .frame(maxWidth: .infinity)
             } else {
@@ -124,7 +129,7 @@ struct ContributeView: View {
         HStack {
             VStack { Divider() }
             Text("OR")
-                .font(.system(size: 10, weight: .bold))
+                .font(.caption2.weight(.bold))
                 .foregroundColor(.secondary.opacity(0.5))
                 .padding(.horizontal, 10)
             VStack { Divider() }
@@ -143,6 +148,8 @@ struct ContributeView: View {
     
     private var submitAction: some View {
         VStack(spacing: 24) {
+            UploadConsentToggle(isOn: $viewModel.consent)
+
             Button {
                 viewModel.submitContribution(context: modelContext)
                 selectedItem = nil
@@ -150,7 +157,7 @@ struct ContributeView: View {
                 Text("Submit Contribution")
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 40) // Reduced from 52
+                    .frame(minHeight: 44)
                     .background(viewModel.isSubmitDisabled ? Color.gray : Color.accentColor)
                     .foregroundColor(.white)
                     .cornerRadius(4) // Reduced from 12

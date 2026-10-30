@@ -87,4 +87,12 @@ fi
 
 echo "swift-test: $COUNT tests ran (floor $FLOOR)."
 
+# Every user-facing string must be in Localizable.xcstrings, and every one still
+# missing a Burmese or Mon translation must be listed in TRANSLATIONS-TODO.md.
+# Run here so the ios-core CI job enforces it without a job of its own; it needs
+# only python3, which the macOS runner has. See the script's docstring.
+if ! python3 Scripts/check-strings.py; then
+    [ "$STATUS" -ne 0 ] || STATUS=1
+fi
+
 exit "$STATUS"

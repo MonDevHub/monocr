@@ -4,6 +4,7 @@
 	import { db, getRecords, deleteRecord, clearHistory, type OCRRecord } from '$lib/storage/db';
 	import { syncService, syncEvents } from '$lib/services/sync-service';
 	import { ConfirmationModal, Badge, Icon } from './index';
+	import { syncBadge } from '$lib/sync-badge';
 	import { focusTrap } from '$lib/actions/focus-trap';
 	import { m } from '$lib/paraglide/messages';
 
@@ -117,9 +118,9 @@
 							</div>
 
 							<div class="flex items-center gap-2">
-								{#if record.isSynced}
+								{#if syncBadge(record) === 'synced'}
 									<Badge type="success" label={m.history_synced()} icon="check_circle" />
-								{:else if record.syncError}
+								{:else if syncBadge(record) === 'failed'}
 									<Badge type="error" label={m.history_failed()} icon="error" />
 									<button
 										onclick={async (e) => {
@@ -128,11 +129,11 @@
 											await syncService.syncAll();
 											await loadHistory();
 										}}
-										class="text-primary hover:text-primary/80 focus-ring ml-1 rounded-sm px-1 text-[9px] font-bold tracking-tighter uppercase underline underline-offset-2 transition-colors"
+										class="text-primary hover:text-primary/80 focus-ring ml-1 rounded-sm px-1 text-[11px] font-bold tracking-tighter uppercase underline underline-offset-2 transition-colors"
 									>
 										{m.history_retry()}
 									</button>
-								{:else}
+								{:else if syncBadge(record) === 'pending'}
 									<Badge type="neutral" label={m.history_pending()} icon="progress_activity" />
 								{/if}
 							</div>
@@ -257,7 +258,7 @@
 					</div>
 					<div class="flex-1 overflow-y-auto">
 						<p
-							class="font-mon text-fg-primary selection:bg-primary/20 leading-relaxed break-words whitespace-pre-wrap text-[var(--text-body)]"
+							class="font-mon text-fg-primary selection:bg-primary/20 selection:text-fg-primary leading-relaxed break-words whitespace-pre-wrap text-[var(--text-body)]"
 						>
 							{selectedRecord.text}
 						</p>

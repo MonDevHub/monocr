@@ -10,8 +10,10 @@ The model, its accuracy figures and the project's limitations are in the
 
 ONNX Runtime runs the bundled `assets/monocr.onnx` (46.2 MB), requesting NNAPI and falling back to
 the CPU where NNAPI is unavailable. Which layers NNAPI actually takes has not been checked on a
-device, and the BiLSTM layers are not expected to run on it. No image and no recognised text leaves
-the device: there is no network call on the recognition path. Contributing a sample is opt-in.
+device, and the BiLSTM layers are not expected to run on it. There is no network call on the
+recognition path. A file and its text leave the device only when the user submits them through
+Feedback or Contribute, each behind a consent box; `SyncWorker` then uploads them to the feedback
+service, in builds that have a `SYNC_API_KEY`.
 
 Imports are capped at 50 MiB, and the contribute and sync path at 20 MiB
 (`SyncPolicy.MAX_REQUEST_BODY_BYTES`, matching the feedback service). For larger files, use
@@ -70,10 +72,17 @@ NNAPI; it is not available on every device or emulator, and the app falls back t
 ./gradlew testDebugUnitTest
 ```
 
-125 tests across 14 classes. Without `JAVA_HOME` set as above, Gradle fails at configuration
-time with "Unable to download toolchain": that is a lookup failure, not a missing runtime.
+166 tests across 26 classes. Without `JAVA_HOME` set as above, Gradle fails at configuration
+time with "Unable to download toolchain": that is a lookup failure, not a missing runtime. Another
+JDK works as `JAVA_HOME` if Gradle is told where the JetBrains runtime is:
+`./gradlew -Porg.gradle.java.installations.paths="/Applications/Android Studio.app/Contents/jbr/Contents/Home" testDebugUnitTest`.
 
-CI runs this suite on every push and fails unless at least 125 tests passed. It does not build the
+The Compose screens are tested in the same JVM suite under Robolectric (`app/src/test/.../ui/`):
+consent gates, error messages, TalkBack semantics, navigation, colour contrast and Myanmar-script
+text at twice the font size. The first run downloads one Robolectric Android runtime (SDK 35, set
+in `app/src/test/resources/robolectric.properties`).
+
+CI runs this suite on every push and fails unless at least 166 tests passed. It does not build the
 app. The instrumented tests in `app/src/androidTest/` need a device and run in no CI job. Twelve
 of the tests check `LineSegmenter`, `LineTiler` and `PageNormalizer` against the shared fixtures
 in `shared/segmentation-fixtures/`, the only automated check that this port still agrees with web
