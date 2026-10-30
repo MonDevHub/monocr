@@ -28,3 +28,6 @@ src/lib/paraglide/*
 # trailing `# note` after a pattern becomes part of the pattern and matches
 # nothing.
 project.inlang/
+
+# Vendored quiet-ds: formatted and checked in its own repository
+/src/lib/quiet/

@@ -1,12 +1,21 @@
 <script lang="ts">
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { onMount, onDestroy, tick } from 'svelte';
-	import { fade, fly } from 'svelte/transition';
 	import { initializeEngine, recognize, cleanup, onModelProgress } from '$lib/monocr';
 	import { CONFIG } from '$lib/config';
 	import { renderPdfPage, loadPdf } from '$lib/utils/pdf-util';
 	import { feedbackStore } from '$lib/stores/feedback';
-	import { CropRotate, HistorySection, Icon } from '$lib/components';
+	import { CropRotate, HistorySection } from '$lib/components';
+	import {
+		Button,
+		Disclosure,
+		EmptyState,
+		Link,
+		Note,
+		Progress,
+		Status,
+		TextButton
+	} from '$lib/quiet';
 	import { getRecord, saveRecord } from '$lib/storage/db';
 	import { combinePages, isTimeout, pageWarnings, readPdfPages } from '$lib/reading';
 	import { createRunToken } from '$lib/run-token';
@@ -14,7 +23,6 @@
 		checkFile,
 		formatMegabytes,
 		intakeAction,
-		percent,
 		resultView,
 		retryTarget,
 		statusKind,
@@ -57,7 +65,6 @@
 	// The rotate-and-crop panel is open. Images only: a PDF page is not adjustable.
 	let adjusting = $state(false);
 	let fileInput = $state<HTMLInputElement>();
-	let copyButton = $state<HTMLButtonElement>();
 	let resultCard = $state<HTMLElement>();
 	let focusResult = false;
 
@@ -374,6 +381,8 @@
 		currentPage = 0;
 		totalPages = 0;
 		remember(null);
+		// The control that had focus (Cancel, Read another file) is gone: land on the next step.
+		void tick().then(() => document.getElementById('choose-file')?.focus());
 	}
 
 	function retry() {
@@ -418,10 +427,14 @@
 	}
 
 	// Smart focus for accessibility and efficiency: Copy takes focus when a read
-	// finishes. `preventScroll`, because focusing it scrolled the card's header
-	// under the fixed header; the card is then brought into view on its own terms.
+	// finishes. `preventScroll`, because focusing it scrolled the result's heading
+	// under the fixed header; the result is then brought into view on its own terms.
 	$effect(() => {
-		if (focusResult && view === 'text' && copyButton) {
+		// Read first, so the effect re-runs when the view changes: `focusResult` is not state,
+		// and a short-circuit on it would leave nothing tracked.
+		const showing = view === 'text';
+		const copyButton = resultCard?.querySelector<HTMLButtonElement>('[data-copy]');
+		if (focusResult && showing && copyButton) {
 			focusResult = false;
 			copyButton.focus({ preventScroll: true });
 			tick().then(() => resultCard?.scrollIntoView({ block: 'nearest' }));
@@ -452,14 +465,19 @@
 		}
 	}
 
+	// The engine's own words, shown on the page: Loading, then ready.
+	const engineText = $derived(
+		engineState === 'loading'
+			? m.main_loading_model()
+			: engineState === 'ready'
+				? m.main_engine_ready()
+				: ''
+	);
+
 	const statusText = $derived.by(() => {
 		switch (status) {
-			case 'loading_model':
-				return m.main_loading_model();
-			case 'ready':
-				return m.main_engine_ready();
-			case 'engine_failed':
-				return error ? describe(error).headline : '';
+			// 'loading_model' and 'ready' are the words of the visible engine Status.
+			// 'engine_failed' is announced by the error notice itself (role="alert").
 			case 'scanning':
 				return m.main_scanning();
 			case 'processing_page':
@@ -476,388 +494,225 @@
 
 {#snippet errorNotice(err: AppError)}
 	{@const info = describe(err)}
-	<div
-		role="alert"
-		class="rounded-[var(--radius-lg)] border border-red-200 bg-red-50 px-4 py-3 text-[13px] leading-snug text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300"
-	>
-		<p class="font-medium">{info.headline}</p>
+	<div role="alert" class="space-y-4">
+		<Note label={m.error_label()}>
+			<p class="wrap-anywhere">{info.headline}</p>
+		</Note>
 		{#if info.details}
-			<details class="mt-1.5">
-				<summary class="cursor-pointer text-[12px] underline underline-offset-2">
-					{m.error_details()}
-				</summary>
-				<p class="mt-1 text-[12px] break-words whitespace-pre-wrap opacity-90">{info.details}</p>
-			</details>
+			<Disclosure title={m.error_details()} class="max-w-measure">
+				<p class="type-small-wrapped pb-4 wrap-anywhere whitespace-pre-wrap">{info.details}</p>
+			</Disclosure>
 		{/if}
-		<div class="mt-2 flex flex-wrap items-center gap-3">
-			{#if retryTarget(err)}
-				<button
-					type="button"
-					onclick={retry}
-					class="focus-ring min-h-11 rounded-md border border-current px-4 text-[12px] font-semibold"
-				>
-					{m.history_retry()}
-				</button>
-			{/if}
-			{#if err.kind === 'file_large'}
-				<a href="/docs#cli-reference" class="focus-ring text-[12px] underline underline-offset-2">
-					{m.main_learn_more()}
-				</a>
-			{/if}
-		</div>
+		{#if retryTarget(err) || err.kind === 'file_large'}
+			<div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+				{#if retryTarget(err)}
+					<Button onclick={retry}>{m.history_retry()}</Button>
+				{/if}
+				{#if err.kind === 'file_large'}
+					<Link href="/docs#cli-reference" standalone>{m.main_learn_more()}</Link>
+				{/if}
+			</div>
+		{/if}
 	</div>
 {/snippet}
 
-<div class="mx-auto w-full max-w-3xl">
-	<!-- One polite status line for screen readers: loading, scanning, done. -->
-	<div class="sr-only" role="status" aria-live="polite">{statusText}</div>
+<main
+	id="main-content"
+	class="max-w-column pt-page-top pb-page-bottom sm:pt-page-top-wide mx-auto w-full space-y-10"
+>
+	<!-- Polite status lines, present before their text changes. This one carries the read
+	     itself (scanning, page progress, done); the engine and Copy have their own. -->
+	<Status message={statusText} visible={false} />
+	<Status message={copied ? m.main_copied() : ''} visible={false} />
 
-	<!-- Intro Section -->
-	<div class="mb-6 space-y-2 text-center md:mb-10 md:space-y-4">
-		<h1
-			class="text-fg-primary mx-auto mt-2 max-w-xl text-[18px] leading-snug font-medium tracking-tight text-balance sm:text-[20px] md:text-[var(--text-title)]"
-		>
-			{m.main_hero()}
-		</h1>
-
-		<div class="flex flex-col items-center gap-2 pt-2">
-			{#if engineState === 'loading'}
-				<div
-					class="bg-canvas-subtle/60 text-fg-muted inline-flex flex-col items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
-				>
-					<div class="flex items-center gap-2">
-						<div class="bg-fg-muted h-1 w-1 animate-pulse rounded-full"></div>
-						{m.main_loading_model()}
-						{#if modelTotal > 0}
-							<span class="normal-case tabular-nums"
-								>{formatMegabytes(modelReceived)} / {formatMegabytes(modelTotal)} MB</span
-							>
-						{/if}
-					</div>
-					{#if modelTotal > 0}
-						<!-- Determinate only when content-length was sent; otherwise the bar
-						     would animate against an unknown total and mislead. -->
-						<div class="bg-fg-muted/20 h-1 w-48 overflow-hidden rounded-full">
-							<div
-								class="bg-fg-muted h-full transition-[width] duration-200"
-								style="width: {percent(modelReceived, modelTotal)}%"
-							></div>
-						</div>
-					{/if}
-				</div>
-				<p class="text-fg-muted max-w-md text-[12px] leading-snug normal-case">
-					{m.main_model_info()}
-				</p>
-			{:else if engineState === 'ready'}
-				<div
-					class="bg-canvas-subtle/60 text-fg-muted inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-[11px] font-semibold tracking-wider uppercase"
-					in:fade
-				>
-					<div
-						class="animate-pulse-subtle h-1 w-1 rounded-full bg-emerald-500/60 dark:bg-emerald-500/40"
-					></div>
-					{m.main_engine_ready()}
-				</div>
-			{/if}
-		</div>
+	<div class="space-y-6">
+		<h1 class="type-h1">{m.main_title()}</h1>
+		<p class="max-w-measure type-body">{m.main_hero()}</p>
 	</div>
 
-	<!-- Main Content -->
-	<main id="main-content" class="space-y-12 sm:space-y-16">
-		{#if !file}
-			<div in:fade={{ duration: 150 }} class="space-y-4">
-				{#if error}
-					{@render errorNotice(error)}
-				{/if}
+	<!-- The engine: the word Loading, a determinate bar while the model arrives, then ready. -->
+	<div class="max-w-measure space-y-4">
+		<Status message={engineText} />
+		{#if engineState === 'loading'}
+			{#if modelTotal > 0}
+				<!-- Determinate only when content-length was sent; without a total the word
+				     Loading says all there is to say. -->
+				<Progress
+					id="model-progress"
+					value={modelReceived / 1_000_000}
+					max={modelTotal / 1_000_000}
+					label="{formatMegabytes(modelReceived)} / {formatMegabytes(modelTotal)} MB"
+				/>
+			{/if}
+			<p class="type-meta">{m.main_model_info()}</p>
+		{/if}
+	</div>
 
-				<div
-					class="bg-canvas-subtle/40 group relative flex flex-col items-center justify-center rounded-[var(--radius-huge)] py-16 transition-all duration-300 ease-in-out {dropDisabled
-						? 'opacity-50'
-						: 'hover:bg-canvas-subtle'} {dragging ? 'dropzone-active' : ''}"
-					ondragover={handleDragOver}
-					ondragleave={handleDragLeave}
-					ondrop={handleDrop}
-					onclick={() => !dropDisabled && fileInput?.click()}
-					role="button"
-					tabindex="0"
-					aria-disabled={dropDisabled}
-					onkeydown={(e) => {
-						if (e.key === 'Enter' || e.key === ' ') {
-							e.preventDefault();
-							if (!dropDisabled) fileInput?.click();
-						}
-					}}
-				>
-					<input
-						type="file"
-						bind:this={fileInput}
-						onchange={handleFileSelect}
-						accept="image/*,application/pdf"
-						class="hidden"
-						disabled={dropDisabled}
-					/>
-					<div
-						class="bg-primary-action/0 group-hover:bg-primary-action/[0.02] pointer-events-none absolute inset-0 rounded-[var(--radius-huge)] transition-colors"
-					></div>
+	{#if !file}
+		<div class="space-y-6">
+			{#if error}
+				{@render errorNotice(error)}
+			{/if}
 
-					<div class="relative flex flex-col items-center space-y-4 px-4 text-center">
-						<div
-							class="bg-canvas-subtle flex h-16 w-16 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 group-hover:scale-110"
-						>
-							<Icon
-								name="upload_file"
-								size={30}
-								class="text-fg-muted group-hover:text-primary transition-colors duration-300"
-							/>
-						</div>
-
-						<div class="space-y-1.5">
-							<h2 class="text-fg-primary text-base font-semibold tracking-tight">
-								{m.main_dropzone_title()}
-							</h2>
-							<p class="text-fg-secondary text-sm">{m.main_dropzone_hint()}</p>
-							{#if dropDisabled}
-								<p class="text-fg-secondary text-sm">{m.main_dropzone_blocked()}</p>
-							{:else if queuedFile}
-								<p class="text-fg-primary text-sm font-medium">
-									{m.main_queued({ name: queuedFile.name })}
-								</p>
-							{/if}
-						</div>
-					</div>
+			<!-- A drop target. The control inside it is the keyboard-operable one. -->
+			<div
+				role="group"
+				aria-label={m.main_dropzone_title()}
+				class="hairline-box border-border rounded-lg bg-transparent p-6 transition-colors duration-150 {dragging
+					? 'dropzone-active'
+					: ''}"
+				ondragover={handleDragOver}
+				ondragleave={handleDragLeave}
+				ondrop={handleDrop}
+			>
+				<input
+					type="file"
+					bind:this={fileInput}
+					onchange={handleFileSelect}
+					accept="image/*,application/pdf"
+					class="hidden"
+					disabled={dropDisabled}
+					tabindex="-1"
+					aria-hidden="true"
+				/>
+				<div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+					<Button id="choose-file" disabled={dropDisabled} onclick={() => fileInput?.click()}>
+						{m.main_choose_file()}
+					</Button>
+					<p class="type-small">{m.main_dropzone_title()}</p>
 				</div>
+				{#if dropDisabled}
+					<p class="max-w-measure type-small mt-4">{m.main_dropzone_blocked()}</p>
+				{:else if queuedFile}
+					<p class="max-w-measure type-small text-fg-primary mt-4 wrap-anywhere">
+						{m.main_queued({ name: queuedFile.name })}
+					</p>
+				{/if}
 			</div>
-		{:else}
-			<div class="mx-auto flex w-full max-w-2xl flex-col gap-6" in:fly={{ y: 20, duration: 400 }}>
-				<!-- Image Preview, or the rotate-and-crop panel in its place -->
-				{#if adjusting && file && !isPdf}
-					<CropRotate
-						{file}
-						oncancel={() => (adjusting = false)}
-						onapply={(adjusted) => {
-							adjusting = false;
-							startRead(adjusted);
-						}}
-					/>
-				{:else if previewUrl && !previewFailed}
-					<div
-						class="bg-canvas-subtle/30 relative flex min-h-[120px] items-center justify-center overflow-hidden rounded-lg p-3"
-					>
-						<img
-							src={previewUrl}
-							alt={m.main_preview_alt()}
-							class="h-auto max-h-[25vh] w-full object-contain"
-							onerror={() => (previewFailed = true)}
-						/>
+		</div>
+	{:else}
+		<div class="space-y-8">
+			<!-- The image being read, or the rotate-and-crop panel in its place -->
+			{#if adjusting && file && !isPdf}
+				<CropRotate
+					{file}
+					oncancel={() => {
+						adjusting = false;
+						// The Rotate and crop button that opened the panel comes back: focus it.
+						void tick().then(() => document.querySelector<HTMLElement>('[data-adjust]')?.focus());
+					}}
+					onapply={(adjusted) => {
+						adjusting = false;
+						startRead(adjusted);
+					}}
+				/>
+			{:else if previewUrl && !previewFailed}
+				<img
+					src={previewUrl}
+					alt={m.main_preview_alt()}
+					class="hairline-box border-border/50 max-h-64 max-w-full rounded-md object-contain"
+					onerror={() => (previewFailed = true)}
+				/>
+			{/if}
+
+			<div bind:this={resultCard} class="space-y-6">
+				<div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+					<h2 class="type-h2">{m.main_extracted_text()}</h2>
+					{#if processingTime > 0 && view === 'text' && resultText}
+						<p class="type-meta">
+							{wordCount(resultText)}
+							{m.main_words()} · {resultText.length}
+							{m.main_chars()} · {processingTime}ms
+						</p>
+					{/if}
+				</div>
+
+				{#if warnings.length > 0 && !reading}
+					<!-- Part of the input could not be read. Shown with the text rather
+					     than instead of it: what was read is still worth having, but
+					     not as if it were all there was. -->
+					<div role="status">
+						<Note label={m.note_label()}>
+							{#each warnings as warning (warning)}
+								<p class="wrap-anywhere">{warning}</p>
+							{/each}
+						</Note>
 					</div>
 				{/if}
 
-				<!-- Result -->
-				<div
-					bind:this={resultCard}
-					class="bg-canvas-subtle/20 animate-fade-in-up flex min-h-[250px] scroll-mt-20 flex-col overflow-hidden rounded-[var(--radius-huge)] transition-all duration-300"
-				>
-					<div
-						class="bg-canvas-subtle/50 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-2"
-					>
-						<div class="flex items-center gap-1">
-							<h2 class="section-label mb-0 tracking-[0.4em] text-[var(--text-meta)]">
-								{m.main_extracted_text()}
-							</h2>
-							<button
-								onclick={reset}
-								class="text-fg-secondary hover:text-fg-primary focus-ring flex h-11 w-11 items-center justify-center rounded-full transition-colors"
-								title={m.main_clear_result()}
-								aria-label={m.main_clear_result()}
-							>
-								<Icon name="close" size={18} />
-							</button>
-						</div>
-						{#if processingTime > 0 && view === 'text' && resultText}
-							<div
-								class="text-fg-secondary flex flex-wrap items-center gap-x-2.5 font-mono text-[var(--text-meta)]"
-							>
-								<span>{wordCount(resultText)} {m.main_words()}</span>
-								<span class="opacity-30">•</span>
-								<span>{resultText.length} {m.main_chars()}</span>
-								<span class="opacity-30">•</span>
-								<span>{processingTime}ms</span>
-							</div>
+				{#if view === 'loading'}
+					<div class="max-w-measure space-y-4">
+						{#if isPdf && totalPages > 0}
+							<Progress
+								id="read-progress"
+								value={currentPage}
+								max={totalPages}
+								label={m.main_processing_page({ current: currentPage, total: totalPages })}
+							/>
+						{:else}
+							<p class="type-small">{m.main_scanning()}</p>
 						{/if}
+						<Button onclick={reset}>{m.main_cancel()}</Button>
 					</div>
-
-					{#if warnings.length > 0 && !reading}
-						<!-- Part of the input could not be read. Shown with the text rather
-						     than instead of it: what was read is still worth having, but
-						     not as if it were all there was. -->
-						<div
-							role="status"
-							class="border-b border-amber-200/60 bg-amber-50/40 px-5 py-2 text-[var(--text-meta)] text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300"
-						>
-							{#each warnings as warning (warning)}
-								<p>{warning}</p>
-							{/each}
-						</div>
-					{/if}
-
+				{:else if view === 'error' && error}
+					{@render errorNotice(error)}
+					<TextButton onclick={reset}>{m.main_process_another()}</TextButton>
+				{:else if view === 'empty'}
+					<EmptyState title={m.main_no_text()} level={3} text={m.main_no_text_hint()}>
+						{#snippet action()}
+							<div class="flex flex-wrap items-center gap-2">
+								{#if canAdjust}
+									<Button data-adjust onclick={() => (adjusting = true)}>{m.adjust_open()}</Button>
+								{/if}
+								<Button variant="primary" onclick={reset}>{m.main_process_another()}</Button>
+							</div>
+						{/snippet}
+					</EmptyState>
+				{:else if view === 'text'}
 					<!-- Keyboard-focusable so the scrolling text can be read without a mouse. -->
 					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 					<div
-						class="relative max-h-[40vh] min-h-[170px] flex-1 overflow-y-auto p-5"
+						class="hairline-box border-border/50 max-h-96 overflow-y-auto rounded-lg p-6"
 						tabindex="0"
 						role="region"
 						aria-label={m.main_extracted_text()}
 					>
-						{#if view === 'loading'}
-							<div
-								class="bg-canvas/80 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
-							>
-								<div class="flex w-full max-w-xs flex-col items-center gap-3 px-4">
-									<div
-										class="border-primary-500 h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"
-									></div>
-									{#if isPdf && totalPages > 0}
-										<span class="text-fg-secondary text-center font-medium text-[var(--text-body)]">
-											{m.main_processing_page({ current: currentPage, total: totalPages })}
-										</span>
-										<div class="bg-fg-muted/20 h-1.5 w-full overflow-hidden rounded-full">
-											<div
-												class="bg-fg-primary h-full transition-[width] duration-300"
-												style="width: {percent(currentPage, totalPages)}%"
-											></div>
-										</div>
-									{:else}
-										<span
-											class="text-fg-secondary animate-pulse font-medium text-[var(--text-body)]"
-										>
-											{m.main_scanning()}
-										</span>
-									{/if}
-									<button type="button" class="btn-secondary min-h-11 px-6" onclick={reset}>
-										{m.main_cancel()}
-									</button>
-								</div>
-							</div>
-							<div class="flex flex-col gap-4 opacity-40">
-								<div class="shimmer h-3 w-full rounded-full"></div>
-								<div class="shimmer h-3 w-11/12 rounded-full"></div>
-								<div class="shimmer h-3 w-4/5 rounded-full"></div>
-								<div class="shimmer h-3 w-full rounded-full"></div>
-								<div class="shimmer h-3 w-3/4 rounded-full"></div>
-							</div>
-						{:else if view === 'error' && error}
-							{@render errorNotice(error)}
-						{:else if view === 'empty'}
-							<div class="flex flex-col items-center gap-2 py-6 text-center">
-								<p class="text-fg-primary font-medium text-[var(--text-body)]">
-									{m.main_no_text()}
-								</p>
-								<p class="text-fg-secondary max-w-xs text-[13px]">{m.main_no_text_hint()}</p>
-								<div class="mt-2 flex flex-wrap justify-center gap-2">
-									{#if canAdjust}
-										<button
-											type="button"
-											class="btn-secondary min-h-11"
-											onclick={() => (adjusting = true)}
-										>
-											{m.adjust_open()}
-										</button>
-									{/if}
-									<button type="button" class="btn-primary min-h-11" onclick={reset}>
-										<Icon name="add" size={16} class="mr-1.5" />
-										{m.main_process_another()}
-									</button>
-								</div>
-							</div>
-						{:else if view === 'text'}
-							<div class="prose max-w-none dark:prose-invert">
-								<p
-									class="font-mon text-fg-primary leading-relaxed break-words whitespace-pre-wrap text-[var(--text-body)]"
-								>
-									{resultText}
-								</p>
-							</div>
-						{/if}
+						<p
+							lang="mnw"
+							class="recognised font-mon type-body text-fg-primary wrap-anywhere whitespace-pre-wrap"
+						>
+							{resultText}
+						</p>
 					</div>
 
-					{#if view === 'text'}
-						<div class="bg-canvas-subtle/50 flex flex-col gap-2 px-4 py-3 sm:px-6">
-							<div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-								<button
-									class="btn-secondary min-h-11 text-center leading-tight"
-									onclick={downloadText}
-									aria-label={m.main_save_text()}
-								>
-									{m.main_save_text()}
-								</button>
-								<button
-									bind:this={copyButton}
-									class="btn-secondary min-h-11 text-center leading-tight"
-									onclick={copyText}
-									aria-label={m.main_copy_clipboard()}
-								>
-									{copied ? m.main_copied() : m.main_copy_clipboard()}
-								</button>
-								<button
-									class="btn-primary col-span-2 min-h-11 text-center leading-tight"
-									onclick={reset}
-									aria-label={m.main_process_another()}
-								>
-									<Icon name="add" size={16} class="mr-1.5" />
-									{m.main_process_another()}
-								</button>
-							</div>
-							<div class="flex items-center gap-2 sm:justify-end">
-								{#if canAdjust}
-									<button
-										type="button"
-										class="btn-secondary min-h-11"
-										onclick={() => (adjusting = true)}
-									>
-										{m.adjust_open()}
-									</button>
-								{/if}
-								<button
-									class="text-fg-secondary hover:text-fg-primary focus-ring group flex min-h-11 items-center gap-2 px-1 text-[11px] font-bold tracking-widest uppercase transition-all"
-									onclick={reportError}
-									aria-label={m.nav_feedback()}
-								>
-									<Icon
-										name="flag"
-										size={16}
-										class="opacity-60 transition-opacity group-hover:opacity-100"
-									/>
-									<span>{m.nav_feedback()}</span>
-								</button>
-							</div>
+					<div class="space-y-2">
+						<div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+							<Button variant="primary" class="col-span-2 sm:col-auto" data-copy onclick={copyText}>
+								{copied ? m.main_copied() : m.main_copy_clipboard()}
+							</Button>
+							<Button onclick={downloadText}>{m.main_save_text()}</Button>
+							{#if canAdjust}
+								<Button data-adjust onclick={() => (adjusting = true)}>{m.adjust_open()}</Button>
+							{/if}
+							<Button class="col-span-2 sm:col-auto" onclick={reset}>
+								{m.main_process_another()}
+							</Button>
 						</div>
-					{/if}
-				</div>
+						<TextButton onclick={reportError}>{m.main_report_problem()}</TextButton>
+					</div>
+				{/if}
 			</div>
-		{/if}
+		</div>
+	{/if}
 
-		<HistorySection bind:this={historySection} category="ocr-scan" />
-	</main>
-</div>
+	<HistorySection bind:this={historySection} category="ocr-scan" />
+</main>
 
 <style>
-	/* `@font-face` and `.font-mon` moved to src/app.css on 2026-08-26. Scoped here,
-	   they applied only to this route, so the contribute textarea and the history
-	   list asked for a font nothing had declared. */
-
-	@keyframes pulse-subtle {
-		0%,
-		100% {
-			opacity: 1;
-			transform: scale(1);
-		}
-		50% {
-			opacity: 0.4;
-			transform: scale(0.9);
-		}
-	}
-
-	:global(.animate-pulse-subtle) {
-		animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+	/* Recognised Mon text keeps its own spacing: the type role tracks Latin text slightly
+	   tight, and stacked consonants and medials must not move. `.font-mon` (app.css) is
+	   the family. */
+	.recognised {
+		letter-spacing: normal;
 	}
 </style>

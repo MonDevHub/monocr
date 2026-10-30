@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { fade, fly } from 'svelte/transition';
-	import { focusTrap } from '$lib/actions/focus-trap';
+	import { Button, Dialog } from '$lib/quiet';
 	import { m } from '$lib/paraglide/messages';
-	import { Icon } from './index';
 
 	interface Props {
 		isOpen: boolean;
@@ -23,62 +21,30 @@
 		onConfirm,
 		onCancel
 	}: Props = $props();
+
+	// The parent owns `isOpen`; the dialog keeps its own copy so that Escape and Close, which
+	// the browser handles, can close it, and tells the parent through onCancel.
+	let open = $derived(isOpen);
 </script>
 
-{#if isOpen}
-	<div
-		class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
-		in:fade={{ duration: 200 }}
-		out:fade={{ duration: 150 }}
-	>
-		<!-- Backdrop: mouse-only click-to-close. Escape is handled by focusTrap below,
-		     once focus has moved inside -- a listener here would never see it. -->
-		<div
-			class="bg-canvas/60 absolute inset-0 backdrop-blur-md"
-			onclick={onCancel}
-			aria-hidden="true"
-		></div>
-
-		<!-- Modal Container -->
-		<div
-			use:focusTrap={{ onEscape: onCancel }}
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="confirmation-modal-title"
-			class="bg-canvas border-border focus-ring relative w-full max-w-sm overflow-hidden rounded-[var(--radius-huge)] border shadow-xl"
-			in:fly={{ y: 20, duration: 400, easing: (t) => 1 - Math.pow(1 - t, 4) /* cubic-out */ }}
-		>
-			<div class="px-8 pt-10 pb-8 text-center">
-				<div
-					class="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10"
-				>
-					<Icon name="warning" size={28} class="text-red-500" />
-				</div>
-
-				<h2
-					id="confirmation-modal-title"
-					class="text-fg-primary mb-3 text-xl font-bold tracking-tight"
-				>
-					{title}
-				</h2>
-				<p class="text-fg-secondary leading-relaxed text-[var(--text-body)]">
-					{message}
-				</p>
-			</div>
-
-			<div
-				class="border-border bg-canvas-subtle/50 flex flex-col gap-3 border-t p-6 sm:flex-row sm:justify-end"
-			>
-				<button class="btn-secondary w-full sm:w-auto sm:min-w-[100px]" onclick={onCancel}>
-					{cancelLabel}
-				</button>
-				<button
-					class="btn-primary btn-danger w-full sm:w-auto sm:min-w-[100px]"
-					onclick={onConfirm}
-				>
-					{confirmLabel}
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+<!-- An urgent dialog: it answers a destructive choice, so the scrim does not dismiss it. The
+     choice is told by its words (the message says what is lost), not by colour, and focus
+     starts on Cancel, never on the destructive action. -->
+<Dialog
+	bind:open
+	urgent
+	{title}
+	closeLabel={m.history_close_view()}
+	description={message}
+	onclose={() => {
+		// Confirming sets isOpen false first; only a close from inside is a cancel.
+		if (isOpen) onCancel();
+	}}
+>
+	<!-- The message is the description; the body is empty. -->
+	<div></div>
+	{#snippet actions()}
+		<Button data-autofocus onclick={onCancel}>{cancelLabel}</Button>
+		<Button variant="primary" onclick={onConfirm}>{confirmLabel}</Button>
+	{/snippet}
+</Dialog>

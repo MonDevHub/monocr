@@ -19,8 +19,14 @@
 	import { initLanguage, currentLang } from '$lib/i18n';
 	import * as m from '$lib/paraglide/messages';
 	import { syncService } from '$lib/services/sync-service';
+	import SkipLink from '$lib/quiet/components/SkipLink.svelte';
+	import { drawerState } from '$lib/quiet/state.svelte';
+	import { THEME_INIT_SCRIPT } from '$lib/quiet/theme';
 
 	const { children } = $props();
+
+	// Built from a constant, never user input.
+	const themeScript = '<script>' + THEME_INIT_SCRIPT + '</' + 'script>';
 
 	onMount(async () => {
 		try {
@@ -52,21 +58,9 @@
 </script>
 
 <svelte:head>
-	<!-- apply theme immediately to prevent flash -->
-	<script>
-		(function () {
-			try {
-				const savedTheme = localStorage.getItem('theme');
-				const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-				const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
-				if (isDark) {
-					document.documentElement.classList.add('dark');
-				}
-			} catch {
-				// localStorage unavailable, fallback to css
-			}
-		})();
-	</script>
+	<!-- applies the saved or OS theme before first paint: no flash. Same key and class as ever. -->
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -- a build-time constant from theme.ts -->
+	{@html themeScript}
 
 	<!-- favicon -->
 	<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" />
@@ -94,27 +88,21 @@
 	<!-- load manifest async -->
 </svelte:head>
 
-<a
-	href="#main-content"
-	class="focus:text-bg-canvas focus:bg-fg-primary sr-only transition-all duration-200 focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-sm focus:px-4 focus:py-2"
->
-	{m.a11y_skip_to_main()}
-</a>
+<SkipLink label={m.a11y_skip_to_main()} />
 
 <Header />
 
 <div
-	class="selection:text-fg-on-primary bg-canvas text-fg-primary selection:bg-fg-accent min-h-screen transition-colors duration-500 ease-in-out"
+	class="bg-canvas text-fg-primary min-h-screen transition-colors duration-500 ease-in-out"
 	lang={$currentLang}
+	aria-hidden={drawerState.open || undefined}
+	inert={drawerState.open}
 >
 	<div
-		class="mx-auto flex min-h-screen flex-col px-4 pt-12 pb-8 sm:px-6 sm:pt-16 md:pb-12 lg:px-8 lg:pb-16"
+		class="max-w-column px-gutter py-shell sm:px-gutter-wide md:py-shell-md lg:py-shell-lg mx-auto"
 	>
 		<SEO />
-		<div class="flex-1">
-			{@render children?.()}
-		</div>
-
+		{@render children?.()}
 		<Footer />
 	</div>
 </div>

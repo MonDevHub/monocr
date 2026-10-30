@@ -1,0 +1,86 @@
+/*
+ * Compatibility for markup written before the app moved to quiet-ds. Each name below maps
+ * onto quiet-ds's tokens and roles, so older pages already read in the new look. Do not use
+ * these in new markup: use the quiet-ds components (Button, Field, Note, Card ...) and the
+ * type-* roles. When a name has no user left, delete it here.
+ */
+@theme {
+	/* Old colour names, all resolving to quiet-ds's achromatic tokens. */
+	--color-fg-muted: var(--fg-secondary);
+	--color-fg-on-primary: var(--fg-on-primary);
+	--color-primary: var(--fg-primary);
+	--color-primary-action: var(--fg-primary);
+	--color-primary-tint: var(--fg-primary);
+	--color-accent-gold: var(--fg-secondary);
+	--color-btn-bg: var(--bg-canvas-subtle);
+	--color-btn-border: var(--bg-border);
+	--color-btn-hover: var(--bg-canvas-subtle);
+	--color-canvas-glass: var(--bg-canvas);
+	--color-background: var(--bg-canvas);
+	--color-foreground: var(--fg-primary);
+	--color-card: var(--bg-canvas-subtle);
+	--color-card-foreground: var(--fg-primary);
+	--color-muted-foreground: var(--fg-secondary);
+	--color-input: var(--bg-border);
+	--color-ring: var(--fg-accent);
+	--font-display: 'Inter', system-ui, sans-serif;
+	--radius-xl: 8px;
+	--radius-2xl: 8px;
+	--radius-huge: 8px;
+}
+
+@layer utilities {
+	/* quiet-ds draws one focus outline for every control; this name now only marks old markup. */
+	.focus-ring {
+	}
+
+	.btn-primary {
+		@apply min-h-target bg-fg-primary text-on-primary type-label hover:bg-fg-primary/90 inline-flex items-center justify-center rounded-md px-4 transition-colors duration-150 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50;
+		color: var(--fg-on-primary);
+	}
+	.btn-secondary {
+		@apply min-h-target hairline-box border-link-underline type-label hover:bg-canvas-subtle/50 inline-flex items-center justify-center rounded-md px-4 transition-colors duration-150 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50;
+	}
+	/* Same height, less width: the 44px target stays. */
+	.btn-compact {
+		@apply px-3;
+	}
+	/* A destructive action is told apart by its words and a urgent Dialog, not by a colour. */
+	.btn-danger {
+		@apply bg-fg-primary;
+	}
+
+	/* The old micro-labels were uppercase and widely tracked. Labels are sentence case now. */
+	.section-label {
+		@apply type-meta mb-4 block;
+	}
+	.zen-label {
+		@apply type-meta;
+	}
+
+	/* Code in the docs: set in the one family, with exact characters. */
+	.zen-code-block {
+		@apply bg-canvas-subtle/50 type-small code-literal rounded-lg px-6 py-4;
+	}
+	.zen-code-comment {
+		@apply text-fg-secondary;
+	}
+	.zen-code-keyword {
+		@apply text-fg-primary;
+	}
+	.zen-code-string {
+		@apply text-fg-secondary;
+	}
+	.zen-code-func {
+		@apply text-fg-primary;
+	}
+
+	.glass {
+		@apply bg-canvas/90 backdrop-blur-header;
+	}
+
+	/* Loading placeholders hold their shape and do not shimmer. */
+	.shimmer {
+		@apply bg-border/50;
+	}
+}

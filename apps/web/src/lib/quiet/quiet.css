@@ -1,0 +1,577 @@
+/*
+ * quiet-ds for Tailwind 4.
+ *
+ *   @import 'tailwindcss';
+ *   @import 'quiet-ds/strict.css';   optional: removes Tailwind's default palette, sizes,
+ *                                     weights and shadows, so off-system classes emit nothing
+ *   @import 'quiet-ds/quiet.css';
+ *
+ * This file holds no values of its own. Every value is a var() of a token in tokens.css;
+ * tests/tokens.test.ts fails if a literal colour or duration appears here, or if the
+ * @theme mapping and the token list drift apart. The one literal is --breakpoint-xs:
+ * media queries cannot read custom properties, so it is copied from
+ * --layout-breakpoint-xs, and the same test pins the two together.
+ */
+
+@import './tokens.css';
+
+/* Lets Tailwind see the classes inside the packaged components (dist/components). */
+@source './components';
+
+/* `dark:` follows the .dark class on <html>, never the OS setting directly, so it can never
+   disagree with the toggle. Components do not need it: the tokens flip themselves. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+	/* Colour: one utility name per token (bg-canvas, text-fg-secondary, border-border). */
+	--color-canvas: var(--bg-canvas);
+	--color-canvas-subtle: var(--bg-canvas-subtle);
+	--color-border: var(--bg-border);
+	--color-scrim: var(--bg-scrim);
+	--color-fg-primary: var(--fg-primary);
+	--color-fg-secondary: var(--fg-secondary);
+	--color-fg-accent: var(--fg-accent);
+	--color-on-primary: var(--fg-on-primary);
+	--color-link-underline: var(--link-underline);
+
+	/* Type: one family for every font utility, two weights. */
+	--font-sans: var(--type-family);
+	--font-serif: var(--type-family);
+	--font-mono: var(--type-family);
+	--font-weight-normal: var(--type-weight-regular);
+	--font-weight-medium: var(--type-weight-medium);
+
+	/* Space and layout. Numeric spacing (p-4, gap-3) stays on the 4px unit. */
+	--spacing: var(--space-unit);
+	--container-column: var(--layout-column);
+	--container-measure: var(--layout-measure);
+	--container-xs: var(--layout-xs);
+	--container-sm: var(--layout-sm);
+	--spacing-gutter: var(--layout-gutter);
+	--spacing-gutter-wide: var(--layout-gutter-wide);
+	--spacing-shell: var(--space-shell);
+	--spacing-shell-md: var(--space-shell-md);
+	--spacing-shell-lg: var(--space-shell-lg);
+	--spacing-page-top: var(--space-page-top);
+	--spacing-page-top-wide: var(--space-page-top-wide);
+	--spacing-page-bottom: var(--space-page-bottom);
+	--spacing-section: var(--space-section);
+	--spacing-target: var(--space-target);
+	--spacing-header: var(--space-header);
+	--spacing-header-scrolled: var(--space-header-scrolled);
+	--spacing-drawer: var(--space-drawer);
+
+	/* Shape. rounded-full is Tailwind's own and needs no token. */
+	--radius-sm: var(--shape-radius-sm);
+	--radius-md: var(--shape-radius-md);
+	--radius-lg: var(--shape-radius-lg);
+	--aspect-wide: var(--shape-aspect-wide);
+	--blur-header: var(--shape-header-blur);
+
+	/* Motion. `transition-colors` with no duration class runs at --motion-fast. */
+	--default-transition-duration: var(--motion-fast);
+	--default-transition-timing-function: var(--motion-ease-standard);
+	--ease-out: var(--motion-ease-out);
+	--ease-in-out: var(--motion-ease-standard);
+	--animate-fade-in-up: fade-in-up var(--motion-slow) var(--motion-ease-out) both;
+
+	/* The one entrance. Below the fold only; never on a page's first block. */
+	@keyframes fade-in-up {
+		from {
+			opacity: 0;
+			transform: translateY(var(--motion-rise));
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+}
+
+@theme {
+	--breakpoint-xs: 22.5rem; /* = --layout-breakpoint-xs (360px) */
+}
+
+/*
+ * The nine type roles. Each sets size, line height, weight and colour; a page adds only
+ * layout. Nothing else sets a font size: no text-sm, no text-[13px].
+ *
+ *   type-h1             24/32     500  primary    page title; the most tracked text
+ *   type-h2             16/24     500  primary    section heading, sentence case
+ *   type-title          18/28     500  primary    entry, project, role and degree titles
+ *   type-body           16/26     400  secondary  running prose, inside max-w-measure
+ *   type-label          14/20     500  primary    row titles, labels, authors, link rows
+ *   type-subtitle       14/20     500  secondary  a level line under a name; an unlinked org
+ *   type-small          14/20     400  secondary  values, locations, short lines
+ *   type-small-wrapped  14/22.75  400  secondary  14px text that wraps (row summaries)
+ *   type-meta           12/16     400  secondary  dates, years, roles, stack line, footer note
+ */
+@utility type-h1 {
+	font-size: var(--type-h1-size);
+	line-height: var(--type-h1-leading);
+	font-weight: var(--type-weight-medium);
+	letter-spacing: var(--type-h1-tracking);
+	color: var(--fg-primary);
+	text-wrap: balance;
+}
+@utility type-h2 {
+	font-size: var(--type-h2-size);
+	line-height: var(--type-h2-leading);
+	font-weight: var(--type-weight-medium);
+	color: var(--fg-primary);
+	text-wrap: balance;
+	letter-spacing: var(--type-body-tracking);
+}
+@utility type-title {
+	font-size: var(--type-title-size);
+	line-height: var(--type-title-leading);
+	font-weight: var(--type-weight-medium);
+	color: var(--fg-primary);
+	text-wrap: balance;
+	letter-spacing: var(--type-title-tracking);
+}
+@utility type-body {
+	font-size: var(--type-body-size);
+	line-height: var(--type-body-leading);
+	font-weight: var(--type-weight-regular);
+	color: var(--fg-secondary);
+	text-wrap: pretty;
+	letter-spacing: var(--type-body-tracking);
+}
+@utility type-label {
+	font-size: var(--type-label-size);
+	line-height: var(--type-label-leading);
+	font-weight: var(--type-weight-medium);
+	color: var(--fg-primary);
+	letter-spacing: var(--type-label-tracking);
+}
+@utility type-subtitle {
+	font-size: var(--type-label-size);
+	line-height: var(--type-label-leading);
+	font-weight: var(--type-weight-medium);
+	color: var(--fg-secondary);
+	letter-spacing: var(--type-label-tracking);
+}
+@utility type-small {
+	font-size: var(--type-label-size);
+	line-height: var(--type-label-leading);
+	font-weight: var(--type-weight-regular);
+	color: var(--fg-secondary);
+	letter-spacing: var(--type-label-tracking);
+}
+@utility type-small-wrapped {
+	font-size: var(--type-label-size);
+	line-height: var(--type-small-wrapped-leading);
+	font-weight: var(--type-weight-regular);
+	color: var(--fg-secondary);
+	text-wrap: pretty;
+	letter-spacing: var(--type-label-tracking);
+}
+@utility type-meta {
+	font-size: var(--type-meta-size);
+	line-height: var(--type-meta-leading);
+	font-weight: var(--type-weight-regular);
+	color: var(--fg-secondary);
+	/* Set, not inherited: 12px meta inside 14px text must not take the 14px tracking. */
+	letter-spacing: normal;
+}
+
+/* Header navigation text. Outside the nine roles, frozen, header only. No colour: the
+   link sets fg-secondary at rest and fg-primary when hovered or current. */
+@utility type-nav {
+	font-size: var(--type-nav-size);
+	line-height: var(--type-nav-leading);
+	font-weight: var(--type-weight-medium);
+	text-transform: uppercase;
+}
+@utility type-nav-drawer {
+	font-size: var(--type-nav-drawer-size);
+	line-height: var(--type-nav-drawer-leading);
+	font-weight: var(--type-weight-medium);
+	text-transform: uppercase;
+}
+
+/*
+ * The one text-link style: fg-primary text with a thin Zinc 500 underline at rest that
+ * darkens to the text colour on hover and keyboard focus (and on row hover, through
+ * `:where(.group):hover`). It carries no size or padding, so each link keeps its own box.
+ * The underline clears 3:1 against the canvas in both themes; see DESIGN.md.
+ */
+@utility link {
+	color: var(--fg-primary);
+	text-decoration-line: underline;
+	text-decoration-thickness: var(--shape-underline);
+	text-underline-offset: var(--shape-underline-offset);
+	text-decoration-color: var(--link-underline);
+	transition: text-decoration-color var(--motion-fast);
+
+	&:hover,
+	&:focus-visible,
+	:where(.group):hover & {
+		text-decoration-color: currentColor;
+	}
+}
+
+/*
+ * Per-theme visibility, from the html class, so it is right before JavaScript runs. The one
+ * allowed way to show something in one theme only (ThemeToggle's icon and name). It is not
+ * a styling hook: colours never need it, the tokens flip themselves.
+ */
+@utility theme-light-only {
+	/* Not :where(): the extra specificity must beat display utilities like inline-flex. */
+	.dark & {
+		display: none;
+	}
+}
+@utility theme-dark-only {
+	:root:not(.dark) & {
+		display: none;
+	}
+}
+
+/* The portrait's two hover properties: colour returns and the image scales to 1.01. */
+@utility transition-portrait {
+	transition-property: filter, scale;
+	transition-timing-function: var(--tw-ease, var(--motion-ease-standard));
+	transition-duration: var(--tw-duration, var(--motion-fast));
+}
+
+/* stagger-N delays the fade-in-up entrance by N x 50ms. */
+@utility stagger-* {
+	animation-delay: calc(var(--motion-stagger) * --value(integer));
+}
+
+/* Timeline columns: dot, content below 768px; date, dot, content from 768px. */
+@utility grid-timeline {
+	grid-template-columns: auto auto 1fr;
+
+	@variant md {
+		grid-template-columns: 1fr auto 3fr;
+	}
+}
+
+/* Intro: name block beside a portrait. */
+@utility grid-intro {
+	grid-template-columns: 1fr auto;
+}
+
+/*
+ * Form controls. A text control is marked by one bottom edge in --link-underline (4.63:1
+ * light, 3.66:1 dark), the 3:1 that WCAG 1.4.11 asks of a control's boundary; --bg-border
+ * (1.21:1) is decorative and never an edge. No box, no fill, no radius. Focus is the one
+ * outline from :focus-visible, nothing else. Invalid: the edge turns fg-primary, the
+ * 1px of bottom padding it replaces keeps the text from moving, and Field says what is
+ * wrong in words. Disabled: dashed edge and fg-secondary text, a cue that is not colour.
+ * The value is 16px (below that iOS zooms on focus) in fg-primary, so a typed value never
+ * looks like the fg-secondary hint; check/page.ts exempts control text from the roles.
+ */
+@utility control {
+	display: block;
+	width: 100%;
+	min-height: var(--space-target);
+	padding: 0 0 1px;
+	border: 0;
+	border-bottom: var(--shape-underline) solid var(--link-underline);
+	border-radius: 0;
+	background-color: transparent;
+	color: var(--fg-primary);
+	font: inherit;
+	font-size: var(--type-body-size);
+	line-height: var(--type-body-leading);
+	font-weight: var(--type-weight-regular);
+
+	/* Invalid: the same 1px edge, darker. The word "Error:" carries the meaning, not weight. */
+	&[aria-invalid='true'] {
+		border-bottom-color: var(--fg-primary);
+	}
+	&:disabled {
+		border-bottom-style: dashed;
+		color: var(--fg-secondary);
+		cursor: not-allowed;
+	}
+	/* The focus outline takes the 4px corner links have, so it reads soft, not boxed. */
+	&:focus-visible {
+		border-radius: var(--shape-radius-sm);
+	}
+}
+
+/* Hairlines: the section Rule and the 50% dividers. --shape-hairline is 1px, or one device
+   pixel (0.5px) on a 2x screen. */
+@utility hairline {
+	height: var(--shape-hairline);
+}
+@utility hairline-t {
+	border-top-style: solid;
+	border-top-width: var(--shape-hairline);
+}
+@utility hairline-box {
+	border-style: solid;
+	border-width: var(--shape-hairline);
+}
+@utility hairline-b {
+	border-bottom-style: solid;
+	border-bottom-width: var(--shape-hairline);
+}
+
+/* A native select drawn as a control: the system picker stays, the arrow is an Icon the
+   component places at the right. Options take token colours so the popup reads in both
+   themes on platforms that paint it from the page. */
+@utility control-select {
+	appearance: none;
+	padding-right: calc(var(--space-unit) * 8);
+	cursor: pointer;
+
+	& option {
+		background-color: var(--bg-canvas);
+		color: var(--fg-primary);
+	}
+}
+
+/* Checkbox and radio: the native control, tinted by a token. The 44px target is the label
+   row around it; check/page.ts measures that row. */
+@utility choice {
+	width: calc(var(--space-unit) * 4);
+	height: calc(var(--space-unit) * 4);
+	flex-shrink: 0;
+	accent-color: var(--fg-primary);
+	cursor: pointer;
+
+	&:disabled {
+		cursor: not-allowed;
+	}
+}
+
+/* A determinate progress bar: a 2px track in --bg-border (decorative: the text beside it
+   carries the value) and the value in fg-primary. Forced colours repaint it below. */
+@utility progress {
+	appearance: none;
+	display: block;
+	width: 100%;
+	height: calc(var(--shape-underline) * 2);
+	border: 0;
+	background-color: var(--bg-border);
+	color: var(--fg-primary);
+
+	&::-webkit-progress-bar {
+		background-color: var(--bg-border);
+	}
+	&::-webkit-progress-value {
+		background-color: var(--fg-primary);
+	}
+	&::-moz-progress-bar {
+		background-color: var(--fg-primary);
+	}
+}
+
+/* Code shown exactly as typed. The shipped Inter subset has contextual alternates (calt):
+   it draws "->" and "=>" as arrows and the x in "1x2" as a multiplication sign. Ligatures
+   (liga, "fi") are off as well, for whichever face renders a glyph outside the subset. A
+   code sample must show the characters a reader will paste. --type-features are requested
+   again here, since Tailwind's preflight resets font-feature-settings on code, kbd and
+   samp. Used on CodeBlock's pre and on the code inside it, which preflight resets. */
+@utility code-literal {
+	font-variant-ligatures: none;
+	font-feature-settings:
+		var(--type-features),
+		'liga' 0,
+		'calt' 0;
+}
+
+/* An overlay in the browser's top layer (a modal <dialog>, a [popover]). In: it fades, rises
+   --motion-nudge and grows from --motion-overlay-scale over --motion-medium, on the settling
+   --motion-ease-overlay curve. Out: the same in reverse over --motion-fast. Opacity, translate
+   and scale only; display and overlay are discrete, so the element stays rendered until the
+   exit ends. Reduced motion switches the transitions off. */
+@utility overlay {
+	opacity: 0;
+	translate: 0 var(--motion-nudge);
+	scale: var(--motion-overlay-scale);
+	transition:
+		opacity var(--motion-fast) var(--motion-ease-standard),
+		translate var(--motion-fast) var(--motion-ease-standard),
+		scale var(--motion-fast) var(--motion-ease-standard),
+		display var(--motion-fast) allow-discrete,
+		overlay var(--motion-fast) allow-discrete;
+	&:is([open], :popover-open) {
+		opacity: 1;
+		translate: 0 0;
+		scale: 1;
+		transition:
+			opacity var(--motion-medium) var(--motion-ease-overlay),
+			translate var(--motion-medium) var(--motion-ease-overlay),
+			scale var(--motion-medium) var(--motion-ease-overlay),
+			display var(--motion-medium) allow-discrete,
+			overlay var(--motion-medium) allow-discrete;
+		@starting-style {
+			opacity: 0;
+			translate: 0 var(--motion-nudge);
+			scale: var(--motion-overlay-scale);
+		}
+	}
+}
+
+/* The scrim behind a modal <dialog>: the page's own scrim colour, faded with the panel. */
+@utility overlay-backdrop {
+	&::backdrop {
+		background-color: var(--bg-scrim);
+		opacity: 0;
+		transition:
+			opacity var(--motion-fast) var(--motion-ease-standard),
+			display var(--motion-fast) allow-discrete,
+			overlay var(--motion-fast) allow-discrete;
+	}
+	&[open]::backdrop {
+		opacity: 1;
+		transition:
+			opacity var(--motion-medium) var(--motion-ease-out),
+			display var(--motion-medium) allow-discrete,
+			overlay var(--motion-medium) allow-discrete;
+		@starting-style {
+			opacity: 0;
+		}
+	}
+}
+
+/* DescriptionList: term above detail on phones, term beside detail from 640px. */
+@utility grid-dl {
+	grid-template-columns: minmax(0, 1fr);
+
+	@variant sm {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+	}
+}
+
+@layer base {
+	:root {
+		font-family: var(--type-family);
+		background-color: var(--bg-canvas);
+		color: var(--fg-primary);
+		line-height: var(--type-leading-root);
+		font-feature-settings: var(--type-features);
+		/* Only 400 and 500 ship. A stray bold or italic renders the nearest real face. */
+		font-synthesis: none;
+	}
+
+	/* Weight only, no tracking: tracking comes with the type roles. */
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-weight: var(--type-weight-medium);
+	}
+
+	/* One focus indicator for every control. Components never restyle it. */
+	:focus-visible {
+		outline: var(--focus-width) solid var(--fg-accent);
+		outline-offset: var(--focus-offset);
+	}
+
+	/* Inline code and keys: Inter like everything else (monospace is not in the system), set
+	   apart by colour only within a role, as an inline link is. No box, no fill. */
+	code,
+	kbd,
+	samp {
+		font-family: inherit;
+		font-size: inherit;
+		color: var(--fg-primary);
+	}
+
+	::selection {
+		background-color: var(--fg-accent);
+		color: var(--fg-on-primary);
+	}
+
+	/* scroll-padding-top keeps anything scrolled into view clear of the fixed header. It is
+	   the one offset for the whole page: do not add scroll-mt-* on top of it. */
+	html {
+		scroll-behavior: smooth;
+		scroll-padding-top: var(--space-header-offset);
+		background-color: var(--bg-canvas);
+		color: var(--fg-primary);
+		transition:
+			background-color var(--motion-slow) var(--motion-ease-theme),
+			color var(--motion-slow) var(--motion-ease-theme);
+	}
+
+	body {
+		background-color: var(--bg-canvas);
+		color: var(--fg-primary);
+		font-family: var(--type-family);
+		transition:
+			background-color var(--motion-medium) var(--motion-ease-theme),
+			color var(--motion-medium) var(--motion-ease-theme);
+		min-height: 100vh;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		/* Only 400 and 500 ship: never let the browser fake a bolder weight from them. */
+		font-synthesis-weight: none;
+	}
+
+	::-webkit-scrollbar {
+		width: var(--shape-scrollbar);
+	}
+	::-webkit-scrollbar-track {
+		background: var(--bg-canvas);
+	}
+	::-webkit-scrollbar-thumb {
+		background: var(--bg-border);
+		border-radius: var(--shape-scrollbar-radius);
+	}
+	::-webkit-scrollbar-thumb:hover {
+		background: var(--fg-secondary);
+	}
+}
+
+/*
+ * Reduced motion. The delays matter as much as the durations: fade-in-up fills backwards,
+ * so a delay alone holds an element at opacity 0 for the user who asked for less motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after,
+	::backdrop {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-property: none !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+		animation-delay: 0ms !important;
+		transition-delay: 0ms !important;
+	}
+}
+
+/*
+ * Forced colours (Windows high contrast) replace every background with Canvas, which would
+ * erase the marks drawn as filled boxes: the timeline dot and line, the section hairline.
+ * Give them the system text colour. Text, links and the focus outline need nothing.
+ */
+@media (forced-colors: active) {
+	.bg-fg-secondary,
+	.bg-fg-secondary\/50,
+	.bg-border {
+		background-color: CanvasText;
+	}
+
+	/* The progress value is a filled box too, and its track needs an edge to read against.
+	   The edge is an outline, never a border: the bar is 2px tall and border-box, so a 1px
+	   border on each side would leave a 0px content box and the value would never paint. An
+	   outline takes no space, so the whole 2px bar stays free for the value inside it. */
+	.progress {
+		outline: var(--shape-underline) solid CanvasText;
+		outline-offset: 0;
+	}
+	.progress::-webkit-progress-value {
+		background-color: CanvasText;
+	}
+	.progress::-moz-progress-bar {
+		background-color: CanvasText;
+	}
+
+	/* Native checkboxes and radios redraw themselves in system colours. */
+	.choice {
+		appearance: auto;
+	}
+}
