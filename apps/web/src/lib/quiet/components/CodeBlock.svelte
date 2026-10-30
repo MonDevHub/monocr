@@ -28,8 +28,14 @@
 		#press = 0;
 		readonly #write: (text: string) => Promise<void>;
 
-		constructor(write: (text: string) => Promise<void>) {
+		readonly #words: () => Record<CopyOutcome, string>;
+
+		constructor(
+			write: (text: string) => Promise<void>,
+			words: () => Record<CopyOutcome, string> = () => COPY_WORDS
+		) {
 			this.#write = write;
+			this.#words = words;
 		}
 
 		async press(text: string) {
@@ -50,7 +56,7 @@
 			if (press !== this.#press) return;
 			this.cancel();
 			this.outcome = outcome;
-			this.announcement = COPY_WORDS[this.outcome];
+			this.announcement = this.#words()[this.outcome];
 			if (this.outcome === 'copied') {
 				this.#timer = setTimeout(() => {
 					this.outcome = 'idle';
@@ -95,17 +101,24 @@
 		caption?: string;
 		/** Shows the "Copy" button and its status region. Set it to false for output nobody should paste. */
 		copy?: boolean;
+		/** The button and status words, to translate them, keyed idle (the Copy word), copied and failed. Any you leave out keep their English default. */
+		copyLabels?: Partial<Record<CopyOutcome, string>>;
 	}
 
-	const { code, caption, copy = true }: Props = $props();
+	const { code, caption, copy = true, copyLabels }: Props = $props();
+
+	const words = $derived({ ...COPY_WORDS, ...copyLabels });
 
 	/** Makes each button's name unique on the page in every state: "Copy install.sh", "Copy failed code". */
 	const suffix = $derived(' ' + (caption ?? 'code'));
 
-	const action = new CopyAction(async (text) => {
-		if (!navigator.clipboard) throw new Error('Clipboard unavailable');
-		await navigator.clipboard.writeText(text);
-	});
+	const action = new CopyAction(
+		async (text) => {
+			if (!navigator.clipboard) throw new Error('Clipboard unavailable');
+			await navigator.clipboard.writeText(text);
+		},
+		() => words
+	);
 
 	$effect(() => () => action.destroy());
 </script>
@@ -119,7 +132,7 @@
 		     word at the right end of that box and ml-auto pushes the box to the right of the row,
 		     with or without a caption, so the word's last letter meets the column's right edge. -->
 		<TextButton onclick={() => action.press(code)} class="ml-auto min-w-target justify-end"
-			>{COPY_WORDS[action.outcome]}<VisuallyHidden>{suffix}</VisuallyHidden></TextButton
+			>{words[action.outcome]}<VisuallyHidden>{suffix}</VisuallyHidden></TextButton
 		>
 		<p role="status" class="sr-only">{action.announcement}</p>
 	{/if}

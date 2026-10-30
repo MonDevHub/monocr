@@ -1,6 +1,7 @@
 <script lang="ts">
 	/*
-	 * The fixed header. No name or wordmark: navigation and controls only.
+	 * The fixed header: navigation and controls, and, on a documentation or product site, the
+	 * site's name as a link home on the left. A personal site leaves `name` out.
 	 *
 	 * At the top of the page it is transparent and lets taps through (pointer-events-none on
 	 * the bar, auto on its controls), 32px padding. Once the page scrolls past 20px it tightens
@@ -26,9 +27,34 @@
 		current: string;
 		/** Controls after the links, in the bar and in the drawer. Defaults to ThemeToggle. */
 		controls?: Snippet;
+		/** The name of a documentation or product site, a link home on the left. Leave it out on a personal site. */
+		name?: string;
+		/** Where the name links to. */
+		nameHref?: string;
+		/** Accessible name of the menu button. Translate it when the site is not in English. */
+		menuLabel?: string;
+		/** Accessible name of the close button and the scrim in the drawer. */
+		closeLabel?: string;
+		/** Accessible name of the drawer dialog. */
+		drawerLabel?: string;
+		/** Accessible name of the navigation landmark in the bar. */
+		navLabel?: string;
+		/** Accessible name of the navigation landmark in the drawer. */
+		drawerNavLabel?: string;
 	}
 
-	const { items, current, controls }: Props = $props();
+	const {
+		items,
+		current,
+		controls,
+		name,
+		nameHref = '/',
+		menuLabel = 'Toggle navigation menu',
+		closeLabel = 'Close menu',
+		drawerLabel = 'Menu',
+		navLabel,
+		drawerNavLabel
+	}: Props = $props();
 
 	let isMobile = $state(false);
 	let isScrolled = $state(false);
@@ -117,18 +143,27 @@
 	]}
 >
 	<div class="mx-auto flex max-w-column items-center justify-between px-gutter sm:px-gutter-wide">
-		<IconButton
-			bind:ref={triggerButton}
-			label="Toggle navigation menu"
-			aria-expanded={drawerState.open}
-			aria-controls="mobile-menu"
-			class="pointer-events-auto md:hidden"
-			onclick={openDrawer}
-		>
-			<Icon name="menu" size={20} />
-		</IconButton>
+		<div class="flex items-center gap-2">
+			<IconButton
+				bind:ref={triggerButton}
+				label={menuLabel}
+				aria-expanded={drawerState.open}
+				aria-controls="mobile-menu"
+				class="pointer-events-auto md:hidden"
+				onclick={openDrawer}
+			>
+				<Icon name="menu" size={20} />
+			</IconButton>
+			{#if name}
+				<a
+					href={nameHref}
+					class="pointer-events-auto inline-flex min-h-target items-center type-label underline-offset-4 hover:underline focus-visible:rounded-sm"
+					>{name}</a
+				>
+			{/if}
+		</div>
 
-		<Nav {items} {current} variant="bar" controls={controls ?? defaultControls} />
+		<Nav {items} {current} variant="bar" label={navLabel} controls={controls ?? defaultControls} />
 	</div>
 </header>
 
@@ -137,7 +172,7 @@
 	type="button"
 	tabindex="-1"
 	aria-hidden="true"
-	aria-label="Close navigation menu"
+	aria-label={closeLabel}
 	class={[
 		'fixed inset-0 z-(--layer-scrim) w-full cursor-default bg-scrim transition-opacity duration-300 md:hidden',
 		drawerState.open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
@@ -150,7 +185,7 @@
 	id="mobile-menu"
 	role="dialog"
 	aria-modal="true"
-	aria-label="Menu"
+	aria-label={drawerLabel}
 	aria-hidden={!drawerState.open}
 	inert={!drawerState.open}
 	tabindex="-1"
@@ -161,13 +196,14 @@
 	]}
 >
 	<div class="flex h-full flex-col p-6">
-		<IconButton label="Close menu" class="mb-8 self-end" onclick={closeDrawer}>
+		<IconButton label={closeLabel} class="mb-8 self-end" onclick={closeDrawer}>
 			<Icon name="close" size={24} />
 		</IconButton>
 		<Nav
 			{items}
 			{current}
 			variant="drawer"
+			label={drawerNavLabel}
 			onnavigate={closeDrawer}
 			controls={controls ?? defaultControls}
 		/>

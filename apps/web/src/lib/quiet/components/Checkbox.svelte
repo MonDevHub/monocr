@@ -20,6 +20,8 @@
 		hint?: string;
 		/** What is wrong and the next step, for a lone checkbox that must be checked. Shown after "Error: "; sets aria-invalid="true" on the input. Empty means no error. In a group, set it on the Fieldset. */
 		error?: string;
+		/** The word that starts the error, shown before it with a colon. Translate it when the site is not in English. */
+		errorLabel?: string;
 		/** Whether it is checked. Bindable: bind:checked. */
 		checked?: boolean;
 	}
@@ -28,6 +30,7 @@
 		label,
 		hint,
 		error,
+		errorLabel = 'Error',
 		checked = $bindable(false),
 		id,
 		disabled,
@@ -49,7 +52,7 @@
 
 <div>
 	{#if error}
-		<p id={errorId} class="max-w-measure type-label">Error: {error}</p>
+		<p id={errorId} class="max-w-measure type-label">{errorLabel}: {error}</p>
 	{/if}
 	<label
 		class={[

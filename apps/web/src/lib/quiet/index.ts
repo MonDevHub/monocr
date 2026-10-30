@@ -2,7 +2,6 @@
 // quiet-ds/tokens.css, quiet-ds/quiet.css, quiet-ds/strict.css, quiet-ds/fonts.css.
 
 // Frame
-export { default as ThemeHead } from './components/ThemeHead.svelte';
 export { default as Shell } from './components/Shell.svelte';
 export { default as Header } from './components/Header.svelte';
 export { default as Nav } from './components/Nav.svelte';

@@ -21,13 +21,26 @@
 		error?: string;
 		/** Appends " (optional)" to the legend. Set it on each optional one when most questions are required. When most are optional, leave it unset and write "required" in the few legends that need it. */
 		optional?: boolean;
+		/** The word appended in brackets when optional is set. Translate it when the site is not in English. */
+		optionalLabel?: string;
+		/** The word that starts the error, shown before it with a colon. Translate it when the site is not in English. */
+		errorLabel?: string;
 		/** The choices: Checkbox or Radio, one per row. */
 		children: Snippet;
 	}
 
-	const { legend, id, hint, error, optional = false, children }: Props = $props();
+	const {
+		legend,
+		id,
+		hint,
+		error,
+		optional = false,
+		optionalLabel = 'optional',
+		errorLabel = 'Error',
+		children
+	}: Props = $props();
 
-	const text = $derived(optional ? legend + ' (optional)' : legend);
+	const text = $derived(optional ? legend + ' (' + optionalLabel + ')' : legend);
 
 	const hintId = $derived(id + '-hint');
 	const errorId = $derived(id + '-error');
@@ -51,7 +64,7 @@
 		<p id={hintId} class="max-w-measure type-small">{hint}</p>
 	{/if}
 	{#if error}
-		<p id={errorId} class="max-w-measure type-label">Error: {error}</p>
+		<p id={errorId} class="max-w-measure type-label">{errorLabel}: {error}</p>
 	{/if}
 	<div>
 		{@render children()}

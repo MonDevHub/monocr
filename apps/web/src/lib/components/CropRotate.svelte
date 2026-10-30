@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { Button, Note } from '$lib/quiet';
 	import { m } from '$lib/paraglide/messages';
 	import {
 		adjustImage,
@@ -36,10 +37,15 @@
 		const rotated = rotatedSize(bitmap.width, bitmap.height, turns);
 		const maxWidth = Math.min(640, (canvas.parentElement?.clientWidth ?? 640) - 8);
 		display = fitSize(rotated.width, rotated.height, maxWidth, window.innerHeight * 0.5);
+		// The crop frame and the dimmed area are drawn in the page's colours, read from the canvas
+		// element so both themes work.
+		const ink = getComputedStyle(canvas);
 		canvas.width = display.width;
 		canvas.height = display.height;
 		const ctx = canvas.getContext('2d')!;
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
+		// The image itself is flattened onto white, as the reader does with a transparent image: the
+		// preview shows what it will see.
 		ctx.fillStyle = 'white';
 		ctx.fillRect(0, 0, display.width, display.height);
 		const [a, b, c, d, e, f] = rotationMatrix(turns, bitmap.width, bitmap.height);
@@ -48,14 +54,16 @@
 		ctx.drawImage(bitmap, 0, 0);
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
 		if (crop) {
-			// Dim everything outside the selection.
-			ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+			// Fade everything outside the selection towards the page colour.
+			ctx.globalAlpha = 0.7;
+			ctx.fillStyle = ink.backgroundColor;
 			ctx.fillRect(0, 0, display.width, crop.y);
 			ctx.fillRect(0, crop.y + crop.height, display.width, display.height - crop.y - crop.height);
 			ctx.fillRect(0, crop.y, crop.x, crop.height);
 			ctx.fillRect(crop.x + crop.width, crop.y, display.width - crop.x - crop.width, crop.height);
-			ctx.strokeStyle = '#ffffff';
-			ctx.lineWidth = 2;
+			ctx.globalAlpha = 1;
+			ctx.strokeStyle = ink.color;
+			ctx.lineWidth = 1;
 			ctx.strokeRect(crop.x, crop.y, crop.width, crop.height);
 		}
 	}
@@ -125,44 +133,32 @@
 	}
 </script>
 
-<div class="bg-canvas-subtle/30 flex flex-col items-center gap-3 rounded-lg p-3">
-	<p class="text-fg-secondary text-center text-[13px]">{m.adjust_hint()}</p>
+<div class="hairline-box border-border space-y-4 rounded-lg p-6">
+	<p class="max-w-measure type-small">{m.adjust_hint()}</p>
 	{#if failed}
-		<p role="alert" class="text-[13px] text-red-700 dark:text-red-300">
-			{m.error_ocr_failed({ msg: file.name })}
-		</p>
+		<div role="alert">
+			<Note label={m.error_label()}>
+				<p class="wrap-anywhere">{m.error_ocr_failed({ msg: file.name })}</p>
+			</Note>
+		</div>
 	{/if}
 	<canvas
 		bind:this={canvas}
 		aria-label={m.adjust_canvas_label()}
-		class="max-w-full touch-none rounded-md {loaded ? 'cursor-crosshair' : ''}"
+		class="hairline-box border-border/50 bg-canvas text-fg-primary max-w-full touch-none rounded-md {loaded
+			? 'cursor-crosshair'
+			: ''}"
 		{onpointerdown}
 		{onpointermove}
 		{onpointerup}
 		onpointercancel={onpointerup}
 	></canvas>
-	<div class="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-center">
-		<button type="button" class="btn-secondary min-h-11" onclick={rotate} disabled={!loaded}>
-			{m.adjust_rotate()}
-		</button>
-		<button
-			type="button"
-			class="btn-secondary min-h-11"
-			onclick={() => (crop = null)}
-			disabled={!crop}
-		>
-			{m.adjust_clear_crop()}
-		</button>
-		<button type="button" class="btn-secondary min-h-11" onclick={oncancel}>
-			{m.main_cancel()}
-		</button>
-		<button
-			type="button"
-			class="btn-primary min-h-11"
-			onclick={apply}
-			disabled={!loaded || applying}
-		>
+	<div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+		<Button onclick={rotate} disabled={!loaded}>{m.adjust_rotate()}</Button>
+		<Button onclick={() => (crop = null)} disabled={!crop}>{m.adjust_clear_crop()}</Button>
+		<Button onclick={oncancel}>{m.main_cancel()}</Button>
+		<Button variant="primary" onclick={apply} disabled={!loaded || applying}>
 			{m.adjust_apply()}
-		</button>
+		</Button>
 	</div>
 </div>

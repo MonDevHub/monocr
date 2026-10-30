@@ -32,13 +32,26 @@
 		error?: string;
 		/** Appends " (optional)" to the label. Set it on each optional one when most fields are required. When most are optional, leave it unset and write "required" in the few labels that need it. */
 		optional?: boolean;
+		/** The word appended in brackets when optional is set. Translate it when the site is not in English. */
+		optionalLabel?: string;
+		/** The word that starts the error, shown before it with a colon. Translate it when the site is not in English. */
+		errorLabel?: string;
 		/** The control. Receives ControlAttributes; spread all of them onto the TextInput, Textarea or Select. */
 		children: Snippet<[ControlAttributes]>;
 	}
 
-	const { id, label, hint, error, optional = false, children }: Props = $props();
+	const {
+		id,
+		label,
+		hint,
+		error,
+		optional = false,
+		optionalLabel = 'optional',
+		errorLabel = 'Error',
+		children
+	}: Props = $props();
 
-	const text = $derived(optional ? label + ' (optional)' : label);
+	const text = $derived(optional ? label + ' (' + optionalLabel + ')' : label);
 	const hintId = $derived(id + '-hint');
 	const errorId = $derived(id + '-error');
 	const control = $derived<ControlAttributes>({
@@ -55,7 +68,7 @@
 		<p id={hintId} class="type-small">{hint}</p>
 	{/if}
 	{#if error}
-		<p id={errorId} class="type-label">Error: {error}</p>
+		<p id={errorId} class="type-label">{errorLabel}: {error}</p>
 	{/if}
 	{@render children(control)}
 </div>

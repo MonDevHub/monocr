@@ -1,8 +1,10 @@
 <script lang="ts">
-	import { fade, fly } from 'svelte/transition';
-	import { focusTrap } from '$lib/actions/focus-trap';
+	/*
+	 * A confirmation in the vendored Dialog, for a flow that must interrupt. The two form pages
+	 * report their result inline (a Status and a Note) because nothing here needs an answer.
+	 */
+	import { Dialog, Button } from '$lib/quiet';
 	import { m } from '$lib/paraglide/messages';
-	import Icon from './Icon.svelte';
 
 	interface Props {
 		isOpen: boolean;
@@ -19,44 +21,9 @@
 	}: Props = $props();
 </script>
 
-{#if isOpen}
-	<div
-		class="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
-		in:fade={{ duration: 150 }}
-		out:fade={{ duration: 100 }}
-	>
-		<!-- Backdrop: mouse-only click-to-close. Escape is handled by focusTrap below,
-		     once focus has moved inside -- a listener here would never see it. -->
-		<div
-			class="bg-canvas/60 absolute inset-0 backdrop-blur-md"
-			onclick={onClose}
-			aria-hidden="true"
-		></div>
-
-		<div
-			use:focusTrap={{ onEscape: onClose }}
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="success-modal-title"
-			class="bg-canvas border-border focus-ring relative flex w-full max-w-[320px] flex-col overflow-hidden rounded-[var(--radius-huge)] border p-8 text-center shadow-xl"
-			in:fly={{ y: 15, duration: 250, delay: 50 }}
-		>
-			<div class="mb-4 flex flex-col items-center">
-				<div class="bg-primary/5 mb-4 flex h-12 w-12 items-center justify-center rounded-full">
-					<Icon name="check_circle" size={24} class="text-primary" />
-				</div>
-				<h2 id="success-modal-title" class="text-fg-primary text-lg font-bold tracking-tight">
-					{title}
-				</h2>
-			</div>
-
-			<p class="text-fg-secondary mb-8 leading-relaxed text-[var(--text-body)]">
-				{message}
-			</p>
-
-			<button class="btn-primary mx-auto min-w-[100px]" onclick={onClose}>
-				{m.history_done()}
-			</button>
-		</div>
-	</div>
-{/if}
+<Dialog open={isOpen} {title} closeLabel={m.history_close_view()} onclose={onClose}>
+	<p class="type-small">{message}</p>
+	{#snippet actions()}
+		<Button variant="primary" data-autofocus onclick={onClose}>{m.history_done()}</Button>
+	{/snippet}
+</Dialog>

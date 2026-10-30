@@ -61,6 +61,8 @@
 	import TextButton from './TextButton.svelte';
 
 	interface Props {
+		/** The text of the Close button. Translate it when the site is not in English. */
+		closeLabel?: string;
 		/** Whether the dialog is open. Bindable: bind:open. It follows every close, so Escape, Close and the scrim set it back to false. */
 		open?: boolean;
 		/** The heading and the accessible name, in sentence case. Required. */
@@ -94,6 +96,7 @@
 
 	let {
 		open = $bindable(false),
+		closeLabel = 'Close',
 		title,
 		titleHidden = false,
 		head,
@@ -204,12 +207,13 @@
 			<div class="flex items-center gap-3 hairline-b border-border/50 py-3 pr-5 pl-3">
 				<h2 id={titleId} class="sr-only">{title}</h2>
 				<div class="min-w-0 flex-1">{@render head()}</div>
-				<TextButton class="shrink-0" onclick={() => dialog?.close()}>Close</TextButton>
+				<TextButton class="shrink-0" onclick={() => dialog?.close()}>{closeLabel}</TextButton>
 			</div>
 		{:else}
 			<div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-6 pt-6">
 				<h2 id={titleId} class={titleHidden ? 'sr-only' : 'type-title'}>{title}</h2>
-				<TextButton class="-my-2 ml-auto shrink-0" onclick={() => dialog?.close()}>Close</TextButton
+				<TextButton class="-my-2 ml-auto shrink-0" onclick={() => dialog?.close()}
+					>{closeLabel}</TextButton
 				>
 			</div>
 		{/if}

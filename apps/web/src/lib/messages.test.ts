@@ -29,7 +29,12 @@ describe('message coverage', () => {
 describe('home page wiring', () => {
 	it('uses the translated messages that were sitting unused', () => {
 		for (const key of [
+			'main_title',
 			'main_hero',
+			'main_choose_file',
+			'main_report_problem',
+			'error_label',
+			'note_label',
 			'main_engine_ready',
 			'main_extracted_text',
 			'main_no_text',

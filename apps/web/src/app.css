@@ -34,6 +34,9 @@
 }
 .font-mon {
 	font-family: 'PyidaungSu', 'Myanmar Text', 'Padauk', 'Noto Sans Myanmar', sans-serif;
+	/* The type roles track their text slightly tighter, which pulls stacked consonants and medials
+	   apart in Mon script whatever the interface language is. */
+	letter-spacing: normal;
 }
 
 /* Interface text in Mon and Burmese. Inter stays first so Latin text is unchanged;

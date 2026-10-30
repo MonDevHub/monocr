@@ -14,6 +14,23 @@
 
 ### Changed
 
+- Web: every page is rebuilt on quiet-ds, the project's design system, vendored in
+  `apps/web/src/lib/quiet`: one left-aligned column, sentence-case text in nine type roles,
+  1px lines, subtle highlights, a primary and a secondary button, and a documentation footer.
+  Behaviour, data flow, consent and the OCR pipeline are unchanged.
+- Web: the home page shows the engine's progress as a determinate bar, reads errors as
+  "Error:" plus the next step, and puts Copy, Download, Rotate and crop and Read another file
+  in one toolbar. Clearing history asks in an urgent dialog.
+- Web: the documentation is one column with a table of contents, plain code blocks with a
+  Copy button, and tabs for the SDKs. The privacy page leads with a short version and lists
+  the device permissions. The Feedback and Contribute forms use labelled fields, a segmented
+  error type and an unticked, required consent box, and say what is missing instead of
+  disabling Submit.
+- Web: a page that does not exist, or fails, shows a proper error page with a way home.
+- Web: a dropped file of the wrong type, and a failed save, are now said in words instead of
+  being ignored or only logged.
+- Web: Mon text is never letter-spaced and is marked `lang="mnw"`; the language toggle's
+  accessible name starts with its visible text.
 - Android: warnings about the reading (soft photo, merged or failed lines) are
   shown for PDF results too.
 - Android and iOS: these warnings, and pages that could not be read, are kept

@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fade, fly } from 'svelte/transition';
 	import { db, getRecords, deleteRecord, clearHistory, type OCRRecord } from '$lib/storage/db';
 	import { syncService, syncEvents } from '$lib/services/sync-service';
-	import { ConfirmationModal, Badge, Icon } from './index';
+	import { ConfirmationModal, Badge } from './index';
+	import { Button, Dialog, List, ListRow, Section, Status, TextButton } from '$lib/quiet';
 	import { syncBadge } from '$lib/sync-badge';
-	import { focusTrap } from '$lib/actions/focus-trap';
 	import { m } from '$lib/paraglide/messages';
 
 	interface Props {
@@ -56,233 +55,106 @@
 		modalOpen = true;
 	}
 
+	// The Dialog has closed (Done, Close, Escape): let go of the record and its preview URL.
 	function closeRecordView() {
-		modalOpen = false;
-		// Cleanup after transition
-		setTimeout(() => {
-			if (!modalOpen) {
-				selectedRecord = null;
-				if (modalPreviewUrl) {
-					URL.revokeObjectURL(modalPreviewUrl);
-					modalPreviewUrl = null;
-				}
-			}
-		}, 300);
+		selectedRecord = null;
+		if (modalPreviewUrl) {
+			URL.revokeObjectURL(modalPreviewUrl);
+			modalPreviewUrl = null;
+		}
+	}
+
+	async function retrySync(record: OCRRecord) {
+		await db?.records.update(record.id, { syncAttempts: 0 });
+		await syncService.syncAll();
+		await loadHistory();
+	}
+
+	async function removeRecord(record: OCRRecord) {
+		await deleteRecord(record.id);
+		await loadHistory();
+	}
+
+	function copyRecord() {
+		navigator.clipboard.writeText(selectedRecord?.text || '');
+		copied = true;
+		setTimeout(() => (copied = false), 2000);
 	}
 </script>
 
+<!-- Present before its text changes, for screen readers. -->
+<Status message={loading ? m.history_updating() : copied ? m.main_copied() : ''} visible={false} />
+
 {#if historyRecords.length > 0}
-	<section class="mt-8 space-y-4" in:fade={{ duration: 150 }}>
-		<div class="flex items-center justify-between">
-			<h2 class="text-fg-primary text-xl font-bold tracking-tight">
-				{title}
-				{#if loading}
-					<span class="text-fg-muted ml-3 text-xs font-normal">{m.history_updating()}</span>
-				{/if}
-			</h2>
-			<button
-				onclick={() => {
-					showClearModal = true;
-				}}
-				class="text-fg-secondary focus-ring rounded-sm px-2 py-1 text-[11px] font-bold tracking-wider uppercase transition-colors hover:text-red-500"
-			>
-				{m.history_clear_all()}
-			</button>
-		</div>
-
-		<div class="space-y-2.5">
+	<Section {title}>
+		<List>
 			{#each historyRecords as record (record.id)}
-				<div
-					class="bg-canvas-subtle/30 hover:bg-canvas-subtle/60 group relative flex cursor-pointer items-center justify-between overflow-hidden rounded-[var(--radius-lg)] px-4 py-3 transition-all duration-200 select-none"
-				>
-					<div class="flex min-w-0 items-center gap-4">
-						<!-- Icon Wrapper (Cleaner, no box) -->
-						<div
-							class="flex h-8 w-8 items-center justify-center opacity-40 transition-opacity group-hover:opacity-100"
-						>
-							<Icon
-								name={record.fileType.includes('pdf') ? 'description' : 'image'}
-								size={22}
-								class="text-fg-primary"
-							/>
-						</div>
-
-						<div class="flex min-w-0 flex-col gap-0.5">
-							<div class="flex items-center gap-2.5">
-								<span class="text-fg-primary truncate text-[13px] font-semibold tracking-tight"
-									>{record.fileName}</span
-								>
-								<span class="text-fg-muted text-[10px] whitespace-nowrap"
-									>{new Date(record.timestamp).toLocaleDateString()}</span
-								>
-							</div>
-
-							<div class="flex items-center gap-2">
-								{#if syncBadge(record) === 'synced'}
-									<Badge type="success" label={m.history_synced()} icon="check_circle" />
-								{:else if syncBadge(record) === 'failed'}
-									<Badge type="error" label={m.history_failed()} icon="error" />
-									<button
-										onclick={async (e) => {
-											e.stopPropagation();
-											await db?.records.update(record.id, { syncAttempts: 0 });
-											await syncService.syncAll();
-											await loadHistory();
-										}}
-										class="text-primary hover:text-primary/80 focus-ring ml-1 rounded-sm px-1 text-[11px] font-bold tracking-tighter uppercase underline underline-offset-2 transition-colors"
-									>
-										{m.history_retry()}
-									</button>
-								{:else if syncBadge(record) === 'pending'}
-									<Badge type="neutral" label={m.history_pending()} icon="progress_activity" />
-								{/if}
-							</div>
-						</div>
-					</div>
-
-					<div class="flex items-center gap-1">
-						<button
-							onclick={() => viewRecord(record)}
-							class="text-fg-muted hover:bg-fg-muted/5 hover:text-fg-primary focus-ring flex h-10 w-10 items-center justify-center rounded-full opacity-40 transition-all group-hover:opacity-100"
-							aria-label={m.history_view_record()}
-						>
-							<Icon name="visibility" size={20} />
-						</button>
-						<button
-							onclick={async (e) => {
-								e.stopPropagation();
-								await deleteRecord(record.id);
-								await loadHistory();
-							}}
-							class="text-fg-muted focus-ring flex h-10 w-10 items-center justify-center rounded-full opacity-40 transition-all group-hover:opacity-100 hover:bg-red-500/5 hover:text-red-500"
-							aria-label={m.history_delete_record()}
-						>
-							<Icon name="delete_outline" size={20} />
-						</button>
-					</div>
-				</div>
+				<ListRow title={record.fileName}>
+					{#snippet secondary()}
+						<span class="flex flex-wrap items-center gap-x-6 gap-y-1">
+							<span class="type-meta">{new Date(record.timestamp).toLocaleDateString()}</span>
+							<!-- A badge only where there is consent to sync: a local scan has no sync state. -->
+							{#if syncBadge(record) === 'synced'}
+								<Badge label={m.history_synced()} />
+							{:else if syncBadge(record) === 'failed'}
+								<Badge label={m.history_failed()} />
+								<TextButton onclick={() => retrySync(record)}>{m.history_retry()}</TextButton>
+							{:else if syncBadge(record) === 'pending'}
+								<Badge label={m.history_pending()} />
+							{/if}
+							<TextButton onclick={() => viewRecord(record)}>
+								{m.history_view_record()}<span class="sr-only">: {record.fileName}</span>
+							</TextButton>
+							<TextButton onclick={() => removeRecord(record)}>
+								{m.history_delete_record()}<span class="sr-only">: {record.fileName}</span>
+							</TextButton>
+						</span>
+					{/snippet}
+				</ListRow>
 			{/each}
-		</div>
-	</section>
-{:else if loading}
-	<div class="mt-8 space-y-4">
-		<div class="shimmer h-6 w-32 rounded-md opacity-20"></div>
-		<div class="space-y-2">
-			{#each [1, 2, 3] as i (i)}
-				<div class="bg-canvas-subtle/40 flex h-[52px] items-center gap-3 rounded-xl px-3 py-1.5">
-					<div class="shimmer h-4 w-4 rounded-full opacity-10"></div>
-					<div class="flex flex-1 flex-col gap-2">
-						<div class="shimmer h-3 w-1/3 rounded-full opacity-10"></div>
-						<div class="shimmer h-2 w-1/4 rounded-full opacity-5"></div>
-					</div>
-				</div>
-			{/each}
-		</div>
-	</div>
-{:else if !loading}
-	<!-- Reclaimed vertical space (collapsed empty state) -->
+		</List>
+		<TextButton class="mt-4" onclick={() => (showClearModal = true)}>
+			{m.history_clear_all()}
+		</TextButton>
+	</Section>
 {/if}
 
-<!-- Modal View -->
-{#if modalOpen && selectedRecord}
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-		in:fade={{ duration: 200 }}
-		out:fade={{ duration: 200 }}
+<!-- A saved scan, read-only, in a dialog. -->
+{#if selectedRecord}
+	<Dialog
+		bind:open={modalOpen}
+		title={selectedRecord.fileName}
+		closeLabel={m.history_close_view()}
+		onclose={closeRecordView}
 	>
-		<!-- Backdrop: mouse-only click-to-close. Escape is handled by focusTrap below,
-		     once focus has moved inside -- a listener here would never see it. -->
-		<div
-			class="bg-canvas/60 absolute inset-0 backdrop-blur-md"
-			onclick={closeRecordView}
-			aria-hidden="true"
-		></div>
-
-		<div
-			use:focusTrap={{ onEscape: closeRecordView }}
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="history-record-title"
-			class="bg-canvas border-border focus-ring relative flex h-full max-h-[82vh] w-full max-w-4xl flex-col overflow-hidden rounded-[var(--radius-huge)] border shadow-xl"
-			in:fly={{
-				y: 20,
-				duration: 400,
-				easing: (t) => 1 - Math.pow(1 - t, 4) /* cubic-out */,
-				delay: 50
-			}}
-		>
-			<div class="bg-canvas-subtle/50 flex items-center justify-between px-6 py-4">
-				<div class="flex items-center gap-3">
-					<Icon
-						name={selectedRecord.fileType.includes('pdf') ? 'picture_as_pdf' : 'image'}
-						size={20}
-						class="text-fg-muted"
-					/>
-					<h2 id="history-record-title" class="text-fg-primary text-sm font-bold tracking-tight">
-						{selectedRecord.fileName}
-					</h2>
+		<div class="space-y-6">
+			{#if modalPreviewUrl}
+				<img
+					src={modalPreviewUrl}
+					alt={m.main_preview_alt()}
+					class="hairline-box border-border/50 max-h-64 max-w-full rounded-md object-contain"
+				/>
+			{/if}
+			<div class="space-y-2">
+				<div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+					<h3 class="type-label">{m.history_content_label()}</h3>
+					<p class="type-meta">{selectedRecord.processingTime}ms</p>
 				</div>
-				<button
-					onclick={closeRecordView}
-					class="text-fg-secondary hover:text-fg-primary focus-ring flex h-8 w-8 items-center justify-center rounded-full transition-colors"
-					aria-label={m.history_close_view()}
+				<p
+					lang="mnw"
+					class="recorded font-mon type-body text-fg-primary wrap-anywhere whitespace-pre-wrap"
 				>
-					<Icon name="close" size={20} />
-				</button>
-			</div>
-
-			<!-- Modal Body -->
-			<div class="flex flex-1 flex-col overflow-hidden lg:flex-row">
-				<!-- Preview Panel -->
-				<div
-					class="border-border bg-canvas-subtle flex items-center justify-center border-b p-4 lg:w-1/2 lg:border-r lg:border-b-0"
-				>
-					<div class="relative flex h-full w-full items-center justify-center overflow-hidden">
-						<img
-							src={modalPreviewUrl}
-							alt="History Record Preview"
-							class="h-auto max-h-full w-auto max-w-full rounded-[var(--radius-md)] object-contain shadow-sm"
-						/>
-					</div>
-				</div>
-
-				<!-- Content Panel -->
-				<div class="bg-canvas flex flex-1 flex-col overflow-hidden p-6 lg:w-1/2">
-					<div class="mb-4 flex items-center justify-between pb-2">
-						<span class="text-fg-secondary text-[10px] font-bold tracking-widest uppercase"
-							>{m.history_content_label()}</span
-						>
-						<div class="text-fg-muted font-mono text-[10px]">
-							{selectedRecord.processingTime}ms
-						</div>
-					</div>
-					<div class="flex-1 overflow-y-auto">
-						<p
-							class="font-mon text-fg-primary selection:bg-primary/20 selection:text-fg-primary leading-relaxed break-words whitespace-pre-wrap text-[var(--text-body)]"
-						>
-							{selectedRecord.text}
-						</p>
-					</div>
-				</div>
-			</div>
-
-			<div class="border-border bg-canvas-subtle flex justify-end gap-3 border-t p-6">
-				<button
-					class="btn-secondary min-w-[100px]"
-					onclick={() => {
-						navigator.clipboard.writeText(selectedRecord?.text || '');
-						copied = true;
-						setTimeout(() => (copied = false), 2000);
-					}}
-				>
-					{copied ? m.main_copied() : m.history_copy_text()}
-				</button>
-				<button class="btn-primary min-w-[100px]" onclick={closeRecordView}>
-					{m.history_done()}
-				</button>
+					{selectedRecord.text}
+				</p>
 			</div>
 		</div>
-	</div>
+		{#snippet actions()}
+			<Button onclick={copyRecord}>
+				{copied ? m.main_copied() : m.history_copy_text()}
+			</Button>
+			<Button variant="primary" onclick={() => (modalOpen = false)}>{m.history_done()}</Button>
+		{/snippet}
+	</Dialog>
 {/if}
 
 <ConfirmationModal
@@ -302,8 +174,9 @@
 />
 
 <style>
-	/* `.font-mon` moved to src/app.css on 2026-08-26. The copy here carried the
-	   family but not the `@font-face`, which lived in routes/+page.svelte — so this
-	   component requested PyidaungSu on every route except `/` and got whatever the
-	   OS offered for Myanmar, which on a Myanmar-market machine may be Zawgyi. */
+	/* Recognised Mon text keeps its own spacing: see routes/+page.svelte. `.font-mon` is in
+	   src/app.css. */
+	.recorded {
+		letter-spacing: normal;
+	}
 </style>

@@ -1,79 +1,91 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve */
-	import { SEO, Icon } from '$lib/components';
+	import { SEO } from '$lib/components';
+	import {
+		CodeBlock,
+		DescriptionList,
+		Link,
+		Rule,
+		Section,
+		Tabs,
+		TableOfContents
+	} from '$lib/quiet';
 	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages';
 
-	let activeSection = $state('introduction');
-	let selectedSdk = $state('js');
+	// The button words follow the interface language; "Copy failed" keeps its English default until it has a message.
+	const copyLabels = $derived({ idle: m.main_copy_clipboard(), copied: m.main_copied() });
 
 	const sdks = [
-		{ id: 'js', name: 'JavaScript', pkg: 'monocr' },
-		{ id: 'python', name: 'Python', pkg: 'monocr-onnx' },
-		{ id: 'go', name: 'Go', pkg: 'monocr-onnx/go' },
-		{ id: 'rust', name: 'Rust', pkg: 'monocr' }
-	];
-
-	interface DocLink {
-		id: string;
-		label: () => string;
-	}
-
-	const sections: { title: () => string; links: DocLink[] }[] = [
 		{
-			title: () => m.docs_foundation(),
-			links: [
-				{ id: 'introduction', label: () => m.docs_foundation_overview() },
-				{ id: 'getting-started', label: () => m.docs_foundation_get_started() },
-				{ id: 'image-quality', label: () => m.docs_foundation_image_quality() }
-			]
+			id: 'js',
+			name: 'JavaScript',
+			pkg: 'monocr',
+			code: `// Node.js Implementation
+import { MonOCR } from 'monocr';
+
+const ocr = new MonOCR();
+const lines = await ocr.predictPage('page.jpg');`
 		},
 		{
-			title: () => m.docs_usage_title(),
-			links: [
-				{ id: 'sdks', label: () => m.docs_usage_sdks() },
-				{ id: 'cli-reference', label: () => m.docs_usage_cli() }
-			]
+			id: 'python',
+			name: 'Python',
+			pkg: 'monocr-onnx',
+			code: `# Python
+from monocr_onnx import MonOCR
+
+engine = MonOCR()
+text = engine.predict("document.png")
+print(text)`
 		},
 		{
-			title: () => m.docs_governance(),
-			links: [
-				{ id: 'privacy', label: () => m.docs_governance_privacy() },
-				{ id: 'license', label: () => m.docs_governance_license() }
-			]
+			id: 'go',
+			name: 'Go',
+			pkg: 'monocr-onnx/go',
+			code: `// Go binding
+import monocr "github.com/MonDevHub/monocr-onnx/go"
+
+text, _ := monocr.ReadImage("manuscript.jpg")`
+		},
+		{
+			id: 'rust',
+			name: 'Rust',
+			pkg: 'monocr',
+			code: `// Memory-safe Rust implementation
+use monocr_onnx::MonOcr;
+
+let mut ocr = MonOcr::builder().build().await?;
+let text = ocr.read_image("scan.jpg").await?;`
 		}
 	];
 
-	const toc = [
-		{ id: 'introduction', label: () => m.docs_foundation_overview() },
-		{ id: 'getting-started', label: () => m.docs_foundation_get_started() },
-		{ id: 'installation', label: () => m.docs_install_title(), sub: true },
-		{ id: 'quick-start', label: () => m.docs_impl_title(), sub: true },
-		{ id: 'image-quality', label: () => m.docs_foundation_image_quality() },
-		{ id: 'sdks', label: () => m.docs_usage_sdks() },
-		{ id: 'cli-reference', label: () => m.docs_usage_cli() },
-		{ id: 'privacy', label: () => m.docs_governance_privacy() },
-		{ id: 'license', label: () => m.docs_governance_license() }
-	];
+	const installCode = 'pip install monocr';
+	const quickStartCode = `# Initialize engine
+from monocr import MonOCR
+
+ocr = MonOCR()
+text = ocr.predict('manuscript.jpg')
+print(text)`;
+	const cliCode = `# Process single file
+monocr read manuscript_01.jpg
+
+# Batch process archive directory
+monocr batch ./scans/ --output results.txt`;
+
+	let selectedSdk = $state('js');
+
+	const sdkTabs = sdks.map((sdk) => ({ id: sdk.id, label: sdk.name }));
+
+	const toc = $derived([
+		{ href: '#installation', label: m.docs_install_title() },
+		{ href: '#quick-start', label: m.docs_impl_title() },
+		{ href: '#image-quality', label: m.docs_standards_title() },
+		{ href: '#sdks', label: m.docs_usage_sdks() },
+		{ href: '#cli-reference', label: m.docs_usage_cli() },
+		{ href: '#privacy', label: m.docs_governance_privacy() },
+		{ href: '#license', label: m.docs_governance_license() }
+	]);
 
 	onMount(() => {
-		const observer = new IntersectionObserver(
-			(entries) => {
-				entries.forEach((entry) => {
-					if (entry.isIntersecting) {
-						activeSection = entry.target.id;
-					}
-				});
-			},
-			{ threshold: 0.1, rootMargin: '-10% 0% -80% 0%' }
-		);
-
-		document.querySelectorAll('section[id], h2[id], div[id]').forEach((el) => {
-			if (toc.some((item) => item.id === el.id)) {
-				observer.observe(el);
-			}
-		});
-
 		// Handle initial hash for SDK selection
 		const hash = window.location.hash.replace('#', '');
 		if (['js', 'python', 'go', 'rust', 'cli', 'nodejs'].includes(hash)) {
@@ -81,457 +93,67 @@
 			else if (hash === 'nodejs') selectedSdk = 'js';
 			else selectedSdk = hash;
 		}
-
-		return () => observer.disconnect();
 	});
-
-	function copyToClipboard(text: string) {
-		navigator.clipboard.writeText(text);
-	}
 </script>
 
 <SEO title={`${m.docs_title()} - MonOCR`} description={m.docs_hero_desc()} />
 
-<div class="selection:bg-primary-tint/20 selection:text-fg-primary">
-	<div class="mx-auto max-w-[1400px] px-6 lg:px-8">
-		<div class="flex flex-col gap-8 lg:flex-row lg:gap-2">
-			<!-- VERCEL STYLE: LEFT NAVIGATION -->
-			<aside
-				class="no-scrollbar glass border-border/50 sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto border-r py-16 lg:block"
-			>
-				<div class="space-y-8 pr-6">
-					{#each sections as section (section.title())}
-						<div class="space-y-3">
-							<span class="text-fg-muted px-3 text-[10px] font-bold tracking-[0.2em] uppercase">
-								{section.title()}
-							</span>
-							<nav class="flex flex-col gap-0.5">
-								{#each section.links as link (link.id)}
-									<a
-										href="#{link.id}"
-										class="group relative flex items-center gap-2 rounded-md px-3 py-2 text-[13px] transition-all duration-200
-											{activeSection === link.id
-											? 'bg-canvas text-primary ring-border/30 font-medium shadow-sm ring-1'
-											: 'text-fg-muted hover:text-fg-primary hover:bg-canvas-subtle'}"
-									>
-										{#if activeSection === link.id}
-											<span class="bg-primary-tint absolute left-0 h-4 w-0.5 rounded-full"></span>
-										{/if}
-										<span>{link.label()}</span>
-									</a>
-								{/each}
-							</nav>
-						</div>
-					{/each}
-				</div>
-			</aside>
-
-			<!-- MAIN CONTENT PANEL -->
-			<main class=" w-full min-w-0 flex-1 py-16 lg:px-12 xl:px-20">
-				<!-- Breadcrumbs -->
-				<nav class="text-fg-muted mb-12 flex items-center gap-2 text-[12px] font-medium">
-					<a href="/docs" class="hover:text-fg-primary">{m.nav_docs()}</a>
-					<span class="opacity-30">/</span>
-					<span class="text-fg-primary capitalize">{activeSection.replace('-', ' ')}</span>
-				</nav>
-
-				<article class="flex max-w-[750px] flex-col gap-24 pb-32">
-					<!-- Header Section -->
-					<section id="introduction" class="scroll-mt-32">
-						<div class="space-y-6">
-							<h1
-								class="text-fg-primary text-4xl leading-tight font-extrabold tracking-tight lg:text-5xl"
-							>
-								{m.docs_hero_title()}
-							</h1>
-							<p class="text-fg-secondary text-lg leading-relaxed font-light">
-								{m.docs_hero_desc()}
-							</p>
-						</div>
-					</section>
-
-					<!-- Getting Started Section -->
-					<section id="getting-started" class="scroll-mt-32 pt-8">
-						<div class="space-y-20">
-							<div id="installation" class="scroll-mt-32 space-y-8">
-								<div class="space-y-4">
-									<h2 class="text-fg-primary text-2xl font-bold tracking-tight">
-										{m.docs_install_title()}
-									</h2>
-									<p class="text-fg-muted text-[15px] leading-relaxed">
-										{m.docs_install_desc()}
-									</p>
-								</div>
-
-								<div
-									class="group border-border/50 bg-canvas-subtle/40 relative overflow-hidden rounded-xl border shadow-sm"
-								>
-									<!-- Mac Traffic Lights -->
-									<div
-										class="border-border/30 bg-canvas-subtle/50 flex items-center justify-between border-b px-4 py-3"
-									>
-										<div class="flex gap-2">
-											<div class="h-2.5 w-2.5 rounded-full bg-red-500/30"></div>
-											<div class="h-2.5 w-2.5 rounded-full bg-yellow-500/30"></div>
-											<div class="h-2.5 w-2.5 rounded-full bg-green-500/30"></div>
-										</div>
-										<span
-											class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
-											>Bash</span
-										>
-									</div>
-									<div class="relative">
-										<pre class="p-6 font-mono text-[13px] leading-relaxed"><span
-												class="text-primary-tint/30 select-none"
-												>$ </span>pip install monocr</pre>
-										<button
-											onclick={() => copyToClipboard('pip install monocr')}
-											class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-1/2 right-4 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg border transition-colors"
-											aria-label="Copy code"
-										>
-											<Icon name="content_copy" size={16} class="opacity-60" />
-										</button>
-									</div>
-								</div>
-							</div>
-
-							<div id="quick-start" class="scroll-mt-32 space-y-8">
-								<div class="space-y-4">
-									<h2 class="text-fg-primary text-2xl font-bold tracking-tight">
-										{m.docs_impl_title()}
-									</h2>
-									<p class="text-fg-muted text-[15px] leading-relaxed">
-										{m.docs_impl_desc()}
-									</p>
-								</div>
-								<div
-									class="group border-border/50 bg-canvas-subtle/40 relative overflow-hidden rounded-xl border shadow-sm"
-								>
-									<div
-										class="border-border/30 bg-canvas-subtle/50 flex items-center justify-between border-b px-4 py-3"
-									>
-										<div class="flex gap-2">
-											<div class="h-2.5 w-2.5 rounded-full bg-red-400/20"></div>
-											<div class="h-2.5 w-2.5 rounded-full bg-yellow-400/20"></div>
-											<div class="h-2.5 w-2.5 rounded-full bg-green-400/20"></div>
-										</div>
-										<span
-											class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
-											>example.py</span
-										>
-									</div>
-									<div class="relative">
-										<pre class="p-6 font-mono text-[13px] leading-[1.8]"><span
-												class="zen-code-comment"># Initialize engine</span
-											>
-<span class="zen-code-keyword">from</span> monocr <span class="zen-code-keyword">import</span
-											> MonOCR
-
-ocr = MonOCR()
-text = ocr.predict(<span class="zen-code-string">'manuscript.jpg'</span>)
-<span class="zen-code-keyword">print</span>(text)</pre>
-										<button
-											onclick={() =>
-												copyToClipboard(
-													"from monocr import MonOCR\n\nocr = MonOCR()\ntext = ocr.predict('manuscript.jpg')\nprint(text)"
-												)}
-											class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-1/2 right-4 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg border transition-colors"
-											aria-label="Copy code"
-										>
-											<Icon name="content_copy" size={16} class="opacity-60" />
-										</button>
-									</div>
-								</div>
-							</div>
-						</div>
-					</section>
-
-					<!-- Image Quality Section -->
-					<section id="image-quality" class="scroll-mt-32 pt-8">
-						<div class="space-y-12">
-							<div class="space-y-4">
-								<h2 class="text-fg-primary text-2xl font-bold tracking-tight">
-									{m.docs_standards_title()}
-								</h2>
-								<p class="text-fg-muted text-[15px] leading-relaxed">
-									{m.docs_standards_desc()}
-								</p>
-							</div>
-
-							<div class="grid gap-6 sm:grid-cols-2">
-								<div
-									class="bg-canvas-subtle/40 hover:bg-canvas-subtle/60 border-border/30 rounded-2xl border p-8 transition-all hover:shadow-sm"
-								>
-									<h3 class="text-fg-muted mb-4 text-[11px] font-bold tracking-[0.2em] uppercase">
-										{m.docs_standards_dpi_title()}
-									</h3>
-									<p class="text-fg-muted text-[13px] leading-relaxed font-light">
-										{m.docs_standards_dpi_desc()}
-									</p>
-								</div>
-								<div
-									class="bg-canvas-subtle/40 hover:bg-canvas-subtle/60 border-border/30 rounded-2xl border p-8 transition-all hover:shadow-sm"
-								>
-									<h3 class="text-fg-muted mb-4 text-[11px] font-bold tracking-[0.2em] uppercase">
-										{m.docs_standards_light_title()}
-									</h3>
-									<p class="text-fg-muted text-[13px] leading-relaxed font-light">
-										{m.docs_standards_light_desc()}
-									</p>
-								</div>
-							</div>
-						</div>
-					</section>
-
-					<!-- SDKs Section -->
-					<section id="sdks" class="scroll-mt-32 pt-8">
-						<div class="space-y-12">
-							<div class="space-y-4">
-								<h2 class="text-fg-primary text-2xl font-bold tracking-tight">
-									{m.docs_usage_sdks()}
-								</h2>
-								<p class="text-fg-muted text-[15px] leading-relaxed">
-									{m.docs_sdks_desc()}
-								</p>
-							</div>
-
-							<div class="space-y-6">
-								<div
-									class="bg-canvas-subtle/30 border-border/30 font-display flex w-fit gap-1 rounded-lg border p-1"
-								>
-									{#each sdks as sdk (sdk.id)}
-										<button
-											onclick={() => (selectedSdk = sdk.id)}
-											class="rounded-md px-4 py-1.5 text-[11px] font-semibold transition-all
-												{selectedSdk === sdk.id
-												? 'bg-canvas text-primary shadow-sm'
-												: 'text-fg-muted hover:text-fg-primary'}"
-										>
-											{sdk.name}
-										</button>
-									{/each}
-								</div>
-
-								<div
-									class="group border-border/50 bg-canvas-subtle/40 relative overflow-hidden rounded-xl border shadow-sm"
-								>
-									<div
-										class="border-border/30 bg-canvas-subtle/50 flex items-center justify-between border-b px-4 py-3"
-									>
-										<div class="flex gap-2">
-											<div class="h-2.5 w-2.5 rounded-full bg-red-400/20"></div>
-											<div class="h-2.5 w-2.5 rounded-full bg-yellow-400/20"></div>
-											<div class="h-2.5 w-2.5 rounded-full bg-green-400/20"></div>
-										</div>
-										<span
-											class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
-											>{sdks.find((s) => s.id === selectedSdk)?.pkg}</span
-										>
-									</div>
-									<div class="relative">
-										<pre
-											class="min-h-[160px] p-6 font-mono text-[13px] leading-[1.8]">{#if selectedSdk === 'js'}
-												<span class="zen-code-comment">// Node.js Implementation</span>
-<span
-													class="zen-code-keyword">import</span
-												> &#123; MonOCR &#125; <span class="zen-code-keyword">from</span> <span
-													class="zen-code-string">'monocr'</span
-												>;
-
-<span class="zen-code-keyword">const</span> ocr = <span
-													class="zen-code-keyword">new</span
-												> MonOCR();
-<span class="zen-code-keyword">const</span> lines = <span
-													class="zen-code-keyword">await</span
-												> ocr.predictPage(<span class="zen-code-string">'page.jpg'</span>);
-											{:else if selectedSdk === 'python'}
-												<span class="zen-code-comment"># Python</span>
-<span class="zen-code-keyword"
-													>from</span
-												> monocr_onnx <span class="zen-code-keyword">import</span
-												> MonOCR
-
-engine = MonOCR()
-text = engine.predict(<span class="zen-code-string"
-													>"document.png"</span
-												>)
-<span class="zen-code-keyword">print</span>(text)
-											{:else if selectedSdk === 'go'}
-												<span class="zen-code-comment">// Go binding</span>
-<span
-													class="zen-code-keyword">import</span
-												> monocr <span class="zen-code-string"
-													>"github.com/MonDevHub/monocr-onnx/go"</span
-												>
-
-text, _ := monocr.ReadImage(<span class="zen-code-string"
-													>"manuscript.jpg"</span
-												>)
-											{:else if selectedSdk === 'rust'}
-												<span class="zen-code-comment">// Memory-safe Rust implementation</span
-												>
-<span class="zen-code-keyword">use</span> monocr_onnx::MonOcr;
-
-<span
-													class="zen-code-keyword">let</span
-												> <span class="zen-code-keyword">mut</span
-												> ocr = MonOcr::builder().build().<span class="zen-code-keyword">await</span
-												>?;
-<span class="zen-code-keyword">let</span> text = ocr.read_image(<span
-													class="zen-code-string">"scan.jpg"</span
-												>).<span class="zen-code-keyword">await</span>?;
-											{/if}</pre>
-									</div>
-								</div>
-							</div>
-						</div>
-					</section>
-
-					<!-- CLI Reference Section -->
-					<section id="cli-reference" class="scroll-mt-32 pt-8">
-						<div class="space-y-8">
-							<div class="space-y-4">
-								<h2 class="text-fg-primary text-2xl font-bold tracking-tight">
-									{m.docs_usage_cli()}
-								</h2>
-								<p class="text-fg-muted text-[15px] leading-relaxed">
-									{m.docs_cli_desc()}
-								</p>
-							</div>
-
-							<div
-								class="border-border/50 bg-canvas-subtle/40 relative overflow-hidden rounded-xl border shadow-sm"
-							>
-								<div
-									class="border-border/30 bg-canvas-subtle/50 flex items-center justify-between border-b px-4 py-3"
-								>
-									<div class="flex gap-2">
-										<div class="h-2.5 w-2.5 rounded-full bg-red-400/20"></div>
-										<div class="h-2.5 w-2.5 rounded-full bg-yellow-400/20"></div>
-										<div class="h-2.5 w-2.5 rounded-full bg-green-400/20"></div>
-									</div>
-									<span
-										class="text-fg-muted font-mono text-[9px] font-bold tracking-widest uppercase"
-										>Terminal</span
-									>
-								</div>
-								<div class="relative">
-									<pre class="p-6 font-mono text-[13px] leading-[1.8]"><span
-											class="zen-code-comment"># Process single file</span
-										>
-monocr read manuscript_01.jpg
-
-<span class="zen-code-comment"># Batch process archive directory</span>
-monocr batch ./scans/ --output results.txt</pre>
-									<button
-										onclick={() =>
-											copyToClipboard(
-												'# Process single file\nmonocr read manuscript_01.jpg\n\n# Batch process archive directory\nmonocr batch ./scans/ --output results.txt'
-											)}
-										class="focus-ring bg-canvas border-border/50 hover:bg-canvas-subtle absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-lg border transition-colors"
-										aria-label="Copy code"
-									>
-										<Icon name="content_copy" size={16} class="opacity-60" />
-									</button>
-								</div>
-							</div>
-						</div>
-					</section>
-
-					<!-- Privacy Section -->
-					<section id="privacy" class="scroll-mt-32 pt-8">
-						<div class="space-y-4">
-							<h2 class="text-fg-primary text-2xl font-bold tracking-tight">
-								{m.docs_governance_privacy()}
-							</h2>
-							<p class="text-fg-muted text-justify text-[15px] leading-relaxed font-light">
-								{m.docs_privacy_guarantee()}
-							</p>
-						</div>
-					</section>
-
-					<!-- License Section -->
-					<section id="license" class="scroll-mt-32 pt-8">
-						<div class="space-y-4">
-							<h2 class="text-fg-primary text-2xl font-bold tracking-tight">
-								{m.docs_governance_license()}
-							</h2>
-							<p class="text-fg-muted text-justify text-[15px] leading-relaxed font-light">
-								{m.docs_license_desc()}
-							</p>
-						</div>
-					</section>
-
-					<!-- Footer Navigation -->
-					<footer class="border-border/30 border-t pt-24 pb-12">
-						<div class=" flex flex-col justify-between gap-8 pt-12 sm:flex-row">
-							<a href="/" class="group space-y-3">
-								<span
-									class="text-fg-muted group-hover:text-primary-tint text-[10px] font-bold tracking-widest uppercase transition-colors"
-									>Previous</span
-								>
-								<div class="text-fg-primary text-lg font-bold">{m.docs_footer_prev()}</div>
-							</a>
-							<a href="/report" class="group space-y-3 text-right">
-								<span
-									class="text-fg-muted group-hover:text-primary-tint text-[10px] font-bold tracking-widest uppercase transition-colors"
-									>Next</span
-								>
-								<div class="text-fg-primary text-lg font-bold">{m.docs_footer_next()}</div>
-							</a>
-						</div>
-					</footer>
-				</article>
-			</main>
-
-			<!-- VERCEL STYLE: RIGHT TOC -->
-			<aside
-				class="no-scrollbar sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto px-6 py-16 xl:block"
-			>
-				<div class="space-y-6">
-					<span class="text-fg-muted px-3 text-[10px] font-bold tracking-[0.2em] uppercase">
-						On this page
-					</span>
-					<nav class=" border-border/50 ml-3 flex flex-col gap-0.5 border-l">
-						{#each toc as item (item.id)}
-							<a
-								href="#{item.id}"
-								class="-ml-px border-l-2 px-4 py-1.5 text-[12.5px] transition-all duration-200
-									{activeSection === item.id
-									? 'text-primary-tint border-primary-tint bg-primary-tint/5 font-semibold'
-									: 'text-fg-muted hover:text-fg-primary hover:border-border border-transparent'}
-									{item.sub ? 'pl-8 text-[11.5px]' : ''}"
-							>
-								{item.label()}
-							</a>
-						{/each}
-					</nav>
-				</div>
-			</aside>
-		</div>
+<main id="main-content" class="max-w-column pt-page-top pb-page-bottom sm:pt-page-top-wide">
+	<div class="space-y-3">
+		<h1 class="type-h1">{m.docs_hero_title()}</h1>
+		<p class="max-w-measure type-body">{m.docs_hero_desc()}</p>
 	</div>
-</div>
 
-<style>
-	:global(html) {
-		scroll-behavior: smooth;
-	}
+	<div class="mt-8">
+		<TableOfContents items={toc} title={m.docs_title()} />
+	</div>
 
-	.no-scrollbar::-webkit-scrollbar {
-		display: none;
-	}
-	.no-scrollbar {
-		-ms-overflow-style: none;
-		scrollbar-width: none;
-	}
+	<Section id="installation" title={m.docs_install_title()} intro={m.docs_install_desc()}>
+		<CodeBlock caption="Shell" code={installCode} {copyLabels} />
+	</Section>
 
-	pre {
-		margin: 0;
-	}
+	<Section id="quick-start" title={m.docs_impl_title()} intro={m.docs_impl_desc()}>
+		<CodeBlock caption="example.py" code={quickStartCode} {copyLabels} />
+	</Section>
 
-	@media (max-width: 1023px) {
-		.scroll-mt-32 {
-			scroll-margin-top: 6rem;
-		}
-	}
-</style>
+	<Section id="image-quality" title={m.docs_standards_title()} intro={m.docs_standards_desc()}>
+		<DescriptionList
+			items={[
+				{ term: m.docs_standards_dpi_title(), detail: m.docs_standards_dpi_desc() },
+				{ term: m.docs_standards_light_title(), detail: m.docs_standards_light_desc() }
+			]}
+		/>
+	</Section>
+
+	<Section id="sdks" title={m.docs_usage_sdks()} intro={m.docs_sdks_desc()}>
+		<Tabs
+			label={m.docs_usage_sdks()}
+			items={sdkTabs}
+			bind:value={selectedSdk}
+			panelFocusable={false}
+		>
+			{#snippet panel(id)}
+				{@const sdk = sdks.find((s) => s.id === id) ?? sdks[0]}
+				<CodeBlock caption={`${sdk.name} (${sdk.pkg})`} code={sdk.code} {copyLabels} />
+			{/snippet}
+		</Tabs>
+	</Section>
+
+	<Section id="cli-reference" title={m.docs_usage_cli()} intro={m.docs_cli_desc()}>
+		<CodeBlock caption="Terminal" code={cliCode} {copyLabels} />
+	</Section>
+
+	<Section id="privacy" title={m.docs_governance_privacy()}>
+		<p class="max-w-measure type-body">{m.docs_privacy_guarantee()}</p>
+	</Section>
+
+	<Section id="license" title={m.docs_governance_license()}>
+		<p class="max-w-measure type-body">{m.docs_license_desc()}</p>
+	</Section>
+
+	<Rule />
+	<div class="flex flex-wrap gap-x-6">
+		<Link href="/" standalone>{m.docs_footer_prev()}</Link>
+		<Link href="/report" standalone>{m.docs_footer_next()}</Link>
+	</div>
+</main>
