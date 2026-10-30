@@ -1,0 +1,176 @@
+/*
+ * quiet-ds tokens: the single source of every value in the system.
+ *
+ * Plain CSS custom properties. Nothing here needs Tailwind, so any app can import this
+ * file on its own. quiet.css maps these tokens into Tailwind 4 (`@theme inline`) and
+ * builds the type roles, the link style and the base layer from them.
+ *
+ * Light values sit on :root, dark values on `.dark` (a class on <html>, set before
+ * first paint by THEME_INIT_SCRIPT in theme.ts). Only colours and `color-scheme`
+ * change between themes; everything else is defined once, on :root.
+ *
+ * Values are taken from zinmin.com. Changing one is a design decision: update
+ * DESIGN.md, run `pnpm test` (contrast and drift checks read this file) and add a
+ * CHANGELOG entry.
+ */
+
+:root {
+	color-scheme: light;
+
+	/* ---- Colour: surfaces (light) ---------------------------------------------- */
+	--bg-canvas: #fafafa; /* Zinc 50. Page background. Never pure white. */
+	--bg-canvas-subtle: #f4f4f5; /* Zinc 100. Hover fill: toggles, icon buttons; rows at /50. */
+	--bg-border: #e4e4e7; /* Zinc 200. Hairlines, mostly at /50. Decorative, never a control edge. */
+	/* Black at 50%. Behind the mobile drawer only. Same in both themes. */
+	--bg-scrim: rgb(0 0 0 / 0.5);
+
+	/* ---- Colour: text and marks (light) ----------------------------------------- */
+	--fg-primary: #18181b; /* Zinc 900. Headings, titles, labels, link text. */
+	--fg-secondary: #52525b; /* Zinc 600. Body, meta, inactive nav, icons at rest. */
+	--fg-accent: #27272a; /* Zinc 800. Focus outline, icon hover, selection background. */
+	--fg-on-primary: #fafafa; /* Text on fg-primary or fg-accent: skip link, selection. */
+	--link-underline: #71717a; /* Zinc 500. Text-link underline at rest. Same in both themes. */
+
+	/* ---- Type ------------------------------------------------------------------- */
+	--type-family: 'Inter', 'Inter Fallback', sans-serif; /* One family. No monospace, no serif. */
+	--type-features: 'cv11', 'ss01';
+	--type-leading-root: 1.6; /* Inherited line height for text outside a role. */
+	--type-weight-regular: 400;
+	--type-weight-medium: 500; /* The heaviest weight in the system. */
+
+	/* The nine roles. Size / line height (computed px in the comment). Line heights are
+	   unitless ratios, exactly as Tailwind's text-* and leading-relaxed emit them. */
+	--type-h1-size: 1.5rem; /* 24px */
+	--type-h1-leading: calc(2 / 1.5); /* 32px */
+	--type-h1-tracking: -0.025em; /* -0.6px at 24px */
+	--type-title-tracking: -0.014em; /* -0.25px at 18px. Inter's own curve: tighter as text grows. */
+	--type-body-tracking: -0.011em; /* -0.18px at 16px (type-h2 and type-body) */
+	--type-label-tracking: -0.006em; /* -0.08px at 14px (label, subtitle, small, small-wrapped). 12px stays at 0. */
+	--type-h2-size: 1rem; /* 16px */
+	--type-h2-leading: calc(1.5 / 1); /* 24px */
+	--type-title-size: 1.125rem; /* 18px */
+	--type-title-leading: calc(1.75 / 1.125); /* 28px */
+	--type-body-size: 1rem; /* 16px */
+	--type-body-leading: 1.625; /* 26px */
+	--type-label-size: 0.875rem; /* 14px: label, subtitle and small share it */
+	--type-label-leading: calc(1.25 / 0.875); /* 20px */
+	--type-small-wrapped-leading: 1.625; /* 22.75px */
+	--type-meta-size: 0.75rem; /* 12px. The floor: no text is smaller. */
+	--type-meta-leading: calc(1 / 0.75); /* 16px */
+	/* Header navigation only. Outside the nine roles and frozen. */
+	--type-nav-size: 0.875rem; /* 14px, capitals, 500 */
+	--type-nav-leading: calc(1.25 / 0.875); /* 20px */
+	--type-nav-drawer-size: 1.125rem; /* 18px, capitals, 500 */
+	--type-nav-drawer-leading: calc(1.75 / 1.125); /* 28px */
+
+	/* ---- Space and layout ------------------------------------------------------- */
+	--space-unit: 0.25rem; /* 4px grid. Tailwind's numeric spacing (p-4 = 16px) is built on it. */
+	--layout-column: 48rem; /* 768px content column (max-w-column) */
+	--layout-measure: 36rem; /* 576px reading measure for prose (max-w-measure) */
+	--layout-xs: 20rem; /* 320px: the widest a Tooltip grows (max-w-xs) */
+	--layout-sm: 24rem; /* 384px: a Toaster toast from 640px up, near Sonner's 356px (max-w-sm) */
+	--layout-gutter: 1.5rem; /* 24px side padding below 640px (px-gutter) */
+	--layout-gutter-wide: 2rem; /* 32px side padding from 640px (sm:px-gutter-wide) */
+	--layout-breakpoint-xs: 22.5rem; /* 360px. The one breakpoint Tailwind lacks (footer icons). */
+	--space-shell: 2rem; /* 32px shell padding top and bottom (py-shell) */
+	--space-shell-md: 3rem; /* 48px from 768px (md:py-shell-md) */
+	--space-shell-lg: 4rem; /* 64px from 1024px (lg:py-shell-lg) */
+	--space-page-top: 4rem; /* 64px above a page's first block (pt-page-top) */
+	--space-page-top-wide: 6rem; /* 96px from 640px (sm:pt-page-top-wide) */
+	--space-page-bottom: 6rem; /* 96px between the last block and the footer (pb-page-bottom) */
+	--space-section: 3rem; /* 48px each side of the section hairline: a 96px rhythm (my-section) */
+	--space-target: 2.75rem; /* 44px: the minimum hit area for every control (min-h-target) */
+	--space-header: 2rem; /* 32px header padding at the top of the page (py-header) */
+	--space-header-scrolled: 1rem; /* 16px once scrolled (py-header-scrolled) */
+	--space-header-offset: 5.5rem; /* 88px scroll-padding-top that clears the fixed header */
+	--space-drawer: 16rem; /* 256px mobile drawer width (w-drawer) */
+
+	/* ---- Shape ------------------------------------------------------------------ */
+	--shape-radius-sm: 0.25rem; /* 4px: focus outline on links, skip link */
+	--shape-radius-md: 0.375rem; /* 6px: icon buttons and toggles */
+	--shape-radius-lg: 0.5rem; /* 8px: row hover bleed */
+	--shape-aspect-wide: 16 / 7; /* Wide figure image (aspect-wide) */
+	--shape-header-blur: 8px; /* Frosted header once scrolled (backdrop-blur-header) */
+	--shape-underline: 1px; /* Text-link underline thickness */
+	--shape-hairline: 1px; /* Section rules and 50% dividers; 0.5px on a 2x screen (below) */
+	--shape-underline-offset: 4px; /* Text-link underline offset (the active nav link uses 8px) */
+	--shape-scrollbar: 10px; /* WebKit scrollbar width */
+	--shape-scrollbar-radius: 5px; /* WebKit scrollbar thumb radius */
+
+	/* ---- Motion ----------------------------------------------------------------- */
+	/* Every duration in the system. A class or rule with any other duration fails the
+	   banned-pattern test. */
+	--motion-fast: 150ms; /* Hover, press and colour feedback; the link underline. */
+	--motion-medium: 200ms; /* Body colour on theme swap; skip link reveal. */
+	--motion-slow: 300ms; /* Header shrink, drawer, scrim, back-arrow nudge, the one entrance; root colour on theme swap. */
+	--motion-slower: 500ms; /* Shell colour on theme swap. Nothing else. */
+	--motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1); /* Tailwind's default and ease-in-out */
+	--motion-ease-out: cubic-bezier(0, 0, 0.2, 1); /* Entrances and press feedback (ease-out) */
+	--motion-ease-theme: ease; /* Root and body colour on theme swap */
+	--motion-ease-overlay: cubic-bezier(
+		0.16,
+		1,
+		0.3,
+		1
+	); /* Overlay entrances: a quick start that settles softly (Radix dialog) */
+	--motion-overlay-scale: 0.97; /* An overlay enters from 97%, the press scale */
+	--motion-rise: 16px; /* fade-in-up travel */
+	--motion-stagger: 50ms; /* stagger-N delay step (N x 50ms) */
+	--motion-nudge: 4px; /* overlay entrance travel: dialog, popover, toast */
+
+	/* ---- Layers ----------------------------------------------------------------- */
+	--layer-raised: 10; /* Timeline dot over its line */
+	--layer-header: 50; /* Fixed header */
+	--layer-scrim: 60; /* Drawer scrim */
+	--layer-drawer: 70; /* Mobile drawer */
+	--layer-skip: 80; /* Skip link, above everything */
+
+	/* ---- Focus ------------------------------------------------------------------ */
+	--focus-width: 1.5px; /* One indicator for every control: a thin solid fg-accent outline, never removed */
+	--focus-offset: 2px;
+}
+
+.dark {
+	color-scheme: dark;
+
+	/* ---- Colour: surfaces (dark) ------------------------------------------------ */
+	--bg-canvas: #18181b; /* Zinc 900. Never near-black. */
+	--bg-canvas-subtle: #27272a; /* Zinc 800 */
+	--bg-border: #3f3f46; /* Zinc 700 */
+	--bg-scrim: rgb(0 0 0 / 0.5);
+
+	/* ---- Colour: text and marks (dark) ------------------------------------------ */
+	--fg-primary: #e4e4e7; /* Zinc 200 */
+	--fg-secondary: #a1a1aa; /* Zinc 400 */
+	--fg-accent: #f4f4f5; /* Zinc 100 */
+	--fg-on-primary: #09090b; /* Zinc 950: dark text on the light accent (skip link, selection) */
+	--link-underline: #71717a;
+}
+
+/*
+ * Paper. Browsers drop background colours when printing but keep text colours, so the dark
+ * theme would print its light text on white. Print uses the light values, always. Same nine
+ * colour tokens as :root; tests/print-and-forced-colours.test.ts fails if they drift.
+ */
+@media print {
+	.dark {
+		color-scheme: light;
+		--bg-canvas: #fafafa;
+		--bg-canvas-subtle: #f4f4f5;
+		--bg-border: #e4e4e7;
+		--bg-scrim: rgb(0 0 0 / 0.5);
+		--fg-primary: #18181b;
+		--fg-secondary: #52525b;
+		--fg-accent: #27272a;
+		--fg-on-primary: #fafafa;
+		--link-underline: #71717a;
+	}
+}
+
+/* On a 2x screen a hairline is half a CSS pixel, one device pixel: the divider reads finer
+   without going fainter. Control edges keep --shape-underline, which they need for contrast. */
+@media (min-resolution: 2dppx) {
+	:root {
+		--shape-hairline: 0.5px;
+	}
+}

@@ -1,257 +1,20 @@
-/* Google Fonts - loaded in +layout.svelte */
-
+/*
+ * The web app's stylesheet. The look comes from quiet-ds (src/lib/quiet): its tokens, type
+ * roles, utilities and base layer. This file adds only what is specific to this app: the
+ * Mon-script fonts and their typographic exceptions, and the compatibility classes in
+ * src/lib/styles/legacy.css, which keep older markup working while pages move to quiet-ds
+ * components. New markup uses quiet-ds classes and components, never the legacy ones.
+ */
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
+@import './lib/quiet/quiet.css';
+@import './lib/styles/legacy.css';
 
-/* Configure dark mode */
-@variant dark (&:is(.dark *));
-
-@layer base {
-	/* ☀️ LIGHT MODE - Professional Paper */
-	:root {
-		/* Spacing Scale (4/8px rhythm) - Consistent Engineering Reality */
-		--space-1: 0.25rem; /* 4px */
-		--space-2: 0.5rem; /* 8px */
-		--space-3: 0.75rem; /* 12px */
-		--space-4: 1rem; /* 16px */
-		--space-6: 1.5rem; /* 24px */
-		--space-8: 2rem; /* 32px */
-		--space-10: 2.5rem; /* 40px */
-		--space-12: 3rem; /* 48px */
-
-		/* Backgrounds - Calm Paper-like */
-		--bg-canvas: #fcfbf9;
-		--bg-canvas-subtle: #f5f4f0;
-		--bg-canvas-glass: rgba(252, 251, 249, 0.8);
-		--bg-border: #e8e6e1;
-
-		/* Professional Productivity Palette - Neutral & Utilitarian */
-		--primary: #1a1a1a; /* Pure, deep professional gray/black */
-		--primary-tint: #4338ca; /* Indigo 700 tint for subtle accents */
-		/* #b2940a computed to 2.85:1 on --bg-canvas -- fails WCAG AA (4.5:1). Darkened for
-		   light mode only; the original value is restored under .dark below, where it
-		   already passes (6.19:1) against the much darker canvas there. */
-		--accent-gold: #7a6200;
-		--background-light: #ffffff;
-		--background-dark: #0a0a0a;
-		--color-border-raw: 224, 224, 224; /* RGB for --bg-border */
-
-		/* Text Hierarchy - Softered for Eye Comfort */
-		--fg-primary: #2a2a2b; /* Soft Deep Gray */
-		--fg-secondary: #5c5c5e; /* Muted Zinc */
-		/* #8a8a8c computed to 3.33:1 on --bg-canvas -- fails WCAG AA (4.5:1) for normal text,
-		   and this token is used at full size (docs body copy) as well as small/uppercase
-		   labels. Darkened to a value that clears 4.5:1 against both --bg-canvas (5.14:1)
-		   and --bg-canvas-subtle (4.83:1); dark mode's #8e8e93 already passes and is
-		   untouched. */
-		--fg-muted: #6b6b6d;
-		--fg-accent: #3a3a3c; /* Zinc 900 equivalent */
-
-		/* Buttons/Interactive */
-		--btn-bg: #f5f4f0;
-		--btn-border: #e8e6e1;
-		--btn-hover: #e8e6e1;
-
-		/* Text on Primary Background */
-		--fg-on-primary: #ffffff;
-	}
-
-	/* 🌑 DARK MODE - Dim Studio */
-	.dark {
-		--bg-canvas: #151517;
-		--bg-canvas-subtle: #1c1c1e;
-		--bg-canvas-glass: rgba(21, 21, 23, 0.8);
-		--bg-border: #222224;
-		/* Restore the original gold -- it's the light-mode value above that fails contrast,
-		   not this one (6.19:1 against this dark canvas). */
-		--accent-gold: #b2940a;
-		--fg-primary: #d1d1d6;
-		--fg-secondary: #8e8e93;
-		--fg-muted: #8e8e93;
-		--fg-accent: #f4f4f5;
-		--btn-bg: #1c1c1e;
-		--btn-border: #2c2c2e;
-		--btn-hover: #3a3a3c;
-		--primary-tint: #6366f1; /* Indigo 500 tint */
-		--fg-on-primary: #151517; /* Dark text on light button in dark mode */
-		/* Pure professional neutral in dark */
-		--primary-action: #f4f4f5;
-		/* --primary used to stay #1a1a1a here, so everything drawn in it -- the focus
-		   ring, the docs active link and SDK tab (1.04:1), the history Retry link, the
-		   scrollbar and text selection -- vanished into this canvas. theme-tokens.test.ts
-		   checks the contrast. */
-		--primary: #f4f4f5;
-		--color-border-raw: 39, 39, 42; /* RGB for --bg-border (zinc-800) */
-	}
-}
-
-@theme {
-	--color-canvas: var(--bg-canvas);
-	--color-canvas-subtle: var(--bg-canvas-subtle);
-	--color-canvas-glass: var(--bg-canvas-glass);
-	--color-border: var(--bg-border);
-	--color-fg-primary: var(--fg-primary);
-	--color-fg-secondary: var(--fg-secondary);
-	--color-fg-muted: var(--fg-muted);
-	--color-fg-accent: var(--fg-accent);
-	--color-btn-bg: var(--btn-bg);
-	--color-btn-border: var(--btn-border);
-	--color-btn-hover: var(--btn-hover);
-	--color-fg-on-primary: var(--fg-on-primary);
-	--color-primary-action: var(--primary-action, var(--primary));
-
-	--color-primary: var(--primary);
-	--color-primary-tint: var(--primary-tint);
-	--color-accent-gold: var(--accent-gold);
-
-	--font-display: 'Inter', system-ui, sans-serif;
-
-	--color-background: var(--bg-canvas);
-	--color-foreground: var(--fg-primary);
-	--color-card: var(--bg-canvas-subtle);
-	--color-card-foreground: var(--fg-primary);
-	--color-muted-foreground: var(--fg-secondary);
-	--color-input: var(--bg-border);
-	--color-ring: var(--primary);
-
-	/* Radius standardization - Refined & Mature (consistent 4px) */
-	--radius-sm: 2px;
-	--radius-md: 4px; /* Standardized */
-	--radius-lg: 4px; /* Standardized */
-	--radius-xl: 4px; /* Standardized */
-	--radius-2xl: 6px;
-	--radius-huge: 6px; /* Ultra-Compact */
-
-	/* Transition tokens - "Immediate but invisible" */
-	--transition-fast: 100ms;
-	--transition-base: 150ms;
-
-	/* Typography Constitution (20, 14, 13, 12, 12) - Ultra-Compact & Efficient */
-	--text-title: 1.25rem; /* 20px */
-	--text-section: 0.875rem; /* 14px */
-	--text-body: 0.8125rem; /* 13px */
-	--text-secondary: 0.75rem; /* 12px */
-	--text-meta: 0.75rem; /* 12px - Upgraded from 11px for readability */
-}
-
-@layer utilities {
-	/* Standardized Focus Ring - Pure CSS for build stability */
-	.focus-ring {
-		outline: none;
-		transition-property: box-shadow, transform, opacity;
-		transition-duration: 150ms;
-	}
-
-	/* 60%, not 40%: at 40% the ring measured 2.5:1 on the light canvas, under the
-	   3:1 WCAG asks of a focus indicator. theme-tokens.test.ts holds both themes to it. */
-	.focus-ring:focus-visible {
-		box-shadow:
-			0 0 0 2px var(--bg-canvas),
-			0 0 0 4px color-mix(in srgb, var(--primary) 60%, transparent);
-	}
-
-	.btn-primary {
-		@apply bg-primary-action text-fg-on-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] border border-transparent px-5 py-2.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50;
-	}
-
-	.btn-secondary {
-		@apply border-border bg-btn-bg text-fg-secondary dark:text-fg-primary hover:bg-btn-hover hover:text-fg-primary inline-flex items-center justify-center rounded-[var(--radius-lg)] border px-4 py-2.5 text-[11px] font-semibold tracking-[0.05em] uppercase transition-all duration-150 ease-out active:scale-[0.98] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50;
-	}
-
-	/* A real compact variant, not a utility-class override: .btn-primary/.btn-secondary's
-	   own padding is @apply'd in this same layer, so a call site adding `px-3 py-1` on top
-	   loses the cascade -- later-in-layer wins at equal specificity, regardless of source
-	   order in the markup. Combine with .btn-primary/.btn-secondary instead of overriding. */
-	.btn-compact {
-		@apply px-3 py-1.5;
-	}
-
-	/* Same cascade issue as .btn-compact above, seen on ConfirmationModal's
-	   destructive button: `border-red-500 bg-red-500` layered on top of .btn-primary lost to
-	   its own @apply'd background, so the button rendered near-black instead of red --
-	   undercutting the one signal that a confirm action is irreversible. A real modifier,
-	   defined after .btn-primary in this same layer, wins the cascade instead of losing it. */
-	.btn-danger {
-		@apply border-red-500 bg-red-500 hover:bg-red-600;
-	}
-}
-
-/* Global focus safety for all interactive elements */
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible,
-[role='button']:focus-visible {
-	@apply ring-primary/60 ring-offset-canvas ring-2 ring-offset-2 outline-none;
-}
-
-/* Ensure proper affordance */
-button,
-label,
-select,
-[role='button'],
-input[type='checkbox'],
-input[type='radio'],
-input[type='file'],
-input[type='submit'] {
-	cursor: pointer;
-}
-
-:root {
-	font-family: var(--font-display);
-	background-color: var(--bg-canvas);
-	color: var(--fg-primary);
-	line-height: 1.5;
-	font-size: 16px; /* Optimized for mobile accessibility & auto-zoom prevention */
-	font-feature-settings: 'cv11', 'ss01', 'cv08', 'tnum';
-	-webkit-tap-highlight-color: transparent;
-	text-rendering: optimizeLegibility;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-	letter-spacing: -0.015em; /* Refined for better legibility */
-	font-weight: 500; /* Maintain semibold-like feel but with Inter's precision */
-	color: var(--fg-primary);
-}
-
-html {
-	scroll-behavior: smooth;
-	background-color: var(--bg-canvas);
-	color: var(--fg-primary);
-	transition:
-		background-color 0.3s,
-		color 0.3s;
-}
-
-body {
-	background-color: var(--bg-canvas);
-	color: var(--fg-primary);
-	font-family: var(--font-display);
-	transition:
-		background-color 0.2s,
-		color 0.2s;
-	min-height: 100vh;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-}
-
-/* Mon script. Global, and here rather than in a component, because Svelte scopes
-   component styles: the `@font-face` and `.font-mon` rule used to live in
-   `routes/+page.svelte`, so `.font-mon` on `contribute/+page.svelte` matched no
-   rule at all (its own <style> block held only a comment), and `HistorySection`
-   carried a copy of the rule but no `@font-face` — so history Mon text on
-   /contribute and /report asked for a family with no webfont behind it. Corrected
-   2026-08-26.
-
-   Pyidaungsu 2.053 covers the Mon block this model emits (U+1039, U+103A,
-   U+105A-U+1060) and registers Myanmar shaping under `mym2`, which is what makes
-   stacked consonants and medials render rather than sit side by side. */
+/* Mon script. Global, and here rather than in a component, because Svelte scopes component
+   styles: a rule in one page's <style> does not reach another's text.
+   Pyidaungsu 2.053 covers the Mon block the model emits (U+1039, U+103A, U+105A-U+1060) and
+   registers Myanmar shaping under `mym2`, which is what makes stacked consonants and medials
+   render rather than sit side by side. */
 @font-face {
 	font-family: 'PyidaungSu';
 	/* No `local()` first, deliberately. Pyidaungsu 1.x is widely installed and has
@@ -261,184 +24,60 @@ body {
 	font-weight: 400;
 	font-display: swap;
 }
-
 @font-face {
 	font-family: 'PyidaungSu';
-	/* The Bold TTF was committed and never referenced, so bold Mon was synthetically
-	   emboldened — which smears virama stacks and medials rather than thickening
-	   them. */
+	/* A real bold, so Mon text is never synthetically emboldened: faux bold smears virama
+	   stacks and medials rather than thickening them. */
 	src: url('/fonts/PyidaungSu/Pyidaungsu-Bold.ttf') format('truetype');
 	font-weight: 700;
 	font-display: swap;
 }
-
 .font-mon {
 	font-family: 'PyidaungSu', 'Myanmar Text', 'Padauk', 'Noto Sans Myanmar', sans-serif;
 }
 
-/* Interface text in Mon and Burmese. Only .font-mon (the recognised text) used to
-   get PyidaungSu; the nav, buttons and labels were set in Inter, which has no
-   Myanmar glyphs, so the OS fallback (Noto Sans Myanmar here) drew them, and
-   app.css itself warns that a local font may be an incomplete Pyidaungsu 1.x or
-   Zawgyi. Inter stays first so Latin text is unchanged; PyidaungSu comes before
-   any system font so Myanmar-script characters are drawn by the vetted 2.053.
-   It keys on <html lang>, which doc-lang.ts keeps current. */
+/* Interface text in Mon and Burmese. Inter stays first so Latin text is unchanged;
+   PyidaungSu comes before any system font so Myanmar-script characters are drawn by the
+   vetted 2.053. Both the legacy name and quiet-ds's token are set. It keys on <html lang>,
+   which doc-lang.ts keeps current. */
 html:lang(mnw),
 html:lang(my) {
 	--font-display: 'Inter', 'PyidaungSu', 'Myanmar Text', 'Noto Sans Myanmar', system-ui, sans-serif;
+	--type-family: 'Inter', 'PyidaungSu', 'Myanmar Text', 'Noto Sans Myanmar', sans-serif;
 }
 
-/* Myanmar script has no capitals to shout and no word spaces to widen; added
-   letter-spacing pulls stacked consonants and medials apart. */
+/* Myanmar script has no capitals to shout and no word spaces to widen; added letter-spacing
+   pulls stacked consonants and medials apart. The type roles track their text slightly
+   tighter, so this switches that off, and gives stacked marks the room the Latin line
+   heights do not. */
 html:lang(mnw) *,
 html:lang(my) * {
 	letter-spacing: normal;
 }
+html:lang(mnw) [class*='type-'],
+html:lang(my) [class*='type-'] {
+	line-height: 1.75;
+}
 
-/* Drop-zone feedback while a file is dragged over it. */
+/* Drop-zone feedback while a file is dragged over it: a faint tint, never a heavy outline. */
 .dropzone-active {
-	outline: 2px dashed var(--primary);
-	outline-offset: -8px;
-}
-
-/* People who ask for less motion get none of the spin, pulse, shimmer or
-   transitions; the loading state stays readable as text. */
-@media (prefers-reduced-motion: reduce) {
-	*,
-	*::before,
-	*::after {
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
-		transition-duration: 0.01ms !important;
-		scroll-behavior: auto !important;
-	}
-}
-
-/* The text colour is the token paired with --primary, not a literal white: with a
-   light --primary in dark mode, white-on-white made selected text unreadable. */
-::selection {
-	background-color: var(--primary);
-	color: var(--fg-on-primary);
+	background-color: var(--bg-canvas-subtle);
 }
 
 .tap-highlight-none {
 	-webkit-tap-highlight-color: transparent;
 }
-
-.section-label {
-	/* Was hardcoded text-slate-400 in both themes (2.48:1 on light canvas, failing WCAG AA)
-	   -- text-fg-muted is theme-aware and, with --fg-muted's light-mode value corrected
-	   above, now clears 4.5:1 in both themes. */
-	@apply text-fg-muted mb-4 block text-[9px] font-bold tracking-[0.3em] uppercase;
-}
-
-.zen-label {
-	/* Was text-fg-muted/50 (1.72:1 on light canvas at this token's old value, and opacity
-	   alone drops any color below AA regardless of the base -- dropped the opacity instead
-	   of chasing it with an ever-darker base color). */
-	@apply text-fg-muted text-[10px] font-bold tracking-[0.2em] uppercase;
-}
-
-.zen-code-block {
-	@apply bg-canvas-subtle/50 rounded-xl px-8 py-6 font-mono text-[12px] leading-relaxed;
-}
-
-/* Improved Syntax Highlighting */
-.zen-code-comment {
-	/* Was text-fg-muted/40 (well under 3:1) -- italic already differentiates comments from
-	   code without needing a contrast-failing opacity cut on top. */
-	@apply text-fg-muted italic;
-}
-
-.zen-code-keyword {
-	@apply text-primary-tint font-bold;
-}
-
-.zen-code-string {
-	@apply text-accent-gold;
-}
-
-.zen-code-func {
-	@apply text-fg-primary font-medium;
-}
-
-.glass {
-	@apply bg-canvas-glass backdrop-blur-md;
-}
-
-* {
-	transition-property: background-color, border-color, color, opacity;
-	transition-duration: 200ms;
-	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 button,
 a,
 [role='button'],
 label {
-	cursor: pointer;
-	touch-action: manipulation; /* Prevent 300ms delay and accidental zoom on Safari */
+	touch-action: manipulation; /* No 300ms delay or accidental zoom on Safari */
 }
-
 @media screen and (max-width: 768px) {
 	input,
 	textarea,
-	select,
-	input:focus,
-	textarea:focus,
-	select:focus {
-		/* Stop iOS Safari automatic zoom by ensuring font-size is at least 16px */
-		font-size: 16px !important;
-		/* Prevent layout shift during font scaling if any */
-		line-height: normal !important;
+	select {
+		/* Stop iOS Safari zooming into a field: its text is at least 16px. */
+		font-size: 16px;
 	}
-}
-
-/* Custom Slim Scrollbar - Universal for all elements */
-* {
-	scrollbar-width: thin;
-	scrollbar-color: color-mix(in srgb, var(--primary) 50%, transparent) transparent;
-}
-
-/* Chrome, Edge, Safari */
-*::-webkit-scrollbar {
-	width: 1px !important;
-	height: 1px !important;
-}
-
-*::-webkit-scrollbar-track {
-	background: transparent !important;
-}
-
-*::-webkit-scrollbar-thumb {
-	background: linear-gradient(
-		180deg,
-		color-mix(in srgb, var(--primary) 60%, transparent) 0%,
-		color-mix(in srgb, var(--primary) 30%, transparent) 100%
-	) !important;
-	border-radius: 10px !important;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-	background: color-mix(in srgb, var(--primary) 80%, transparent) !important;
-} /* Performance: Premium Shimmer Effect */
-@keyframes shimmer {
-	0% {
-		background-position: -200% 0;
-	}
-	100% {
-		background-position: 200% 0;
-	}
-}
-
-.shimmer {
-	background: linear-gradient(
-		90deg,
-		rgba(var(--color-border-raw), 0.1) 25%,
-		rgba(var(--color-border-raw), 0.4) 37%,
-		rgba(var(--color-border-raw), 0.1) 63%
-	);
-	background-size: 200% 100%;
-	animation: shimmer 1.5s infinite linear;
-	will-change: background-position;
 }

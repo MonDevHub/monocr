@@ -12,6 +12,8 @@ import { describe, expect, it } from 'vitest';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf-8');
 const css = read('../app.css');
+// quiet-ds owns the base layer, including reduced motion; the app adds only the Mon-script rules.
+const quietCss = read('./quiet/quiet.css');
 const page = read('../routes/+page.svelte');
 const layout = read('../routes/+layout.svelte');
 
@@ -30,7 +32,7 @@ describe('Mon-script interface font', () => {
 
 describe('motion', () => {
 	it('honours prefers-reduced-motion', () => {
-		expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)/);
+		expect(quietCss).toMatch(/@media \(prefers-reduced-motion: reduce\)/);
 	});
 });
 
