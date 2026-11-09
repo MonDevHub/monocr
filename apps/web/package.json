@@ -68,9 +68,9 @@
 		"wrangler": "^4.147.0"
 	},
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.1147.0",
-		"@aws-sdk/s3-request-presigner": "^3.1147.0",
-		"dexie": "^4.4.6",
+		"@aws-sdk/client-s3": "^3.1161.0",
+		"@aws-sdk/s3-request-presigner": "^3.1161.0",
+		"dexie": "^4.4.7",
 		"onnxruntime-web": "~1.24.3",
 		"pdfjs-dist": "^4.10.38"
 	},
