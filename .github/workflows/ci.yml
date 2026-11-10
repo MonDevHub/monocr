@@ -19,11 +19,10 @@
 #
 # That exclusion got more expensive on 2026-08-28. Android's suite went from 22
 # tests to 50: the printed-rule port added ten, PageNormalizer's newly-testable
-# internals fourteen, and the cv2 dilation fixture four. Six of those fifty are the
-# fixture tests, and they are the only automated check that this app's segmenter and
-# its page normaliser still agree with web and iOS, the two ports CI does run. The
-# three shared fixtures below are verified on every push, but nothing here verifies
-# that the Kotlin side still matches them.
+# internals fourteen, and the cv2 dilation fixture four. Some of those are the
+# fixture tests, the only automated check that this app's segmenter and page
+# normaliser still agree with web and iOS. The `android` job now runs them on every
+# push, alongside the web and iOS fixture checks.
 #
 # iOS is no longer excluded, but only its pure logic. `apps/ios/MonOcrCore` is a
 # Swift package over the Foundation-only files, so `swift test` needs no

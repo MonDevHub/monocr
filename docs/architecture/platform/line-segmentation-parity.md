@@ -56,9 +56,16 @@ surface at once.
 | Mode selection                        | **none**                | provenance + shape | provenance + shape | `--mode`, `auto`, `inspect` |
 | Polarity normalised before segmenting | yes                     | yes                | yes                | yes                         |
 | Printed-rule suppression              | yes                     | yes                | yes                | yes                         |
+| Background levelled before segmenting | **no**                  | yes                | yes                | **no**                      |
 
 The first three rows are all Android against the others; the fourth is web against
 the others. So no surface is the reference, and no two agree completely.
+
+The last row is `PageNormalizer`, which Android and iOS run before the segmenter
+(see the sixth divergence below). Web inverts a dark page and stops there:
+`normalizePagePolarity` in `segmentation.ts` says background levelling was not
+ported. The CLI's crate, `monocr` 0.5.0, likewise only corrects polarity before
+segmenting.
 
 Printed-rule suppression is on all four surfaces; see the fifth-divergence section
 for what the three ports (iOS, Android, and the CLI's via Rust) pinned.
@@ -87,9 +94,9 @@ line mode gets the same probe per crop in `preprocess_line`.
 
 **Web has no mode at all**, which is worth stating beside the rest: it is the one
 surface where a fused-block reading cannot be retried, because there is no other
-parameter set to retry with. Its `lineShaped` flag also stops at
-`console.warn`, because the worker posts a bare string, so a user sees fused text
-as ordinary output.
+parameter set to retry with. Its `lineShaped` flag does reach the user: the worker
+returns a `PageReading` carrying `fusedBandCount`, and `pageWarnings` in `reading.ts`
+turns it into a warning that `+page.svelte` shows beside the text.
 
 **Why it matters more than the numbers suggest.** The smoothing kernel is
 applied to the row-ink profile before bands are detected, so it decides directly
@@ -424,23 +431,24 @@ this model reads.
 
 Horizontal agrees at 11 everywhere. The ports agree with each other.
 
-### Capture quality exists in three different states
+### Capture quality: computed and shown on all three apps
 
-| surface | computed?                   | reaches the user?                     |
-| ------- | --------------------------- | ------------------------------------- |
-| web     | yes, sharpness and no-lines | no: `console.warn` inside the worker  |
-| iOS     | yes, sharpness only         | no: `isSoft` has no caller in the app |
-| Android | no                          | n/a                                   |
+| surface | computed?                   | reaches the user?                                                       |
+| ------- | --------------------------- | ----------------------------------------------------------------------- |
+| web     | yes, sharpness and no-lines | yes: `pageWarnings` in `reading.ts`, shown by `+page.svelte`            |
+| iOS     | yes, sharpness and no-lines | yes: `MonOcrEngine` calls `isSoft`; `ResultCardView` shows the warnings |
+| Android | yes, sharpness and no-lines | yes: `OcrRepository` calls `isSoft`; `HomeScreen` shows the warnings    |
 
-The one shared threshold matches exactly where both compute it. iOS's is dead code
-reached only by its own tests, and Android has no equivalent at all: it folds the
-zero-lines case into a whole-page fallback, so the case web reports as its
-highest-priority warning is the one Android cannot report.
+This table used to read web `console.warn` only, iOS `isSoft` with no caller and
+Android with no check at all. All three have since been wired through. iOS and
+Android report the no-lines case as "no regions detected" alongside their
+whole-page fallback, rather than as a capture warning, but the user sees it on
+every surface.
 
-The fused-block warning is a separate flag and is in better shape than the above:
-Android surfaces it in `HomeScreen` and iOS in `ResultCardView`. Only web stops at a
-`console.warn` the user never sees. The difference between "computed" and "reaches a
-user" is exactly what this table is for: check it before recording a surface as silent.
+The fused-block warning is a separate flag and also reaches the user everywhere:
+Android in `HomeScreen`, iOS in `ResultCardView`, web through `fusedBandCount`. The
+difference between "computed" and "reaches a user" is exactly what this table is
+for: check it before recording a surface as silent.
 
 ## What would close it
 
