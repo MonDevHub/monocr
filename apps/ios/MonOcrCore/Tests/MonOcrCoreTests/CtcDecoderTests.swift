@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import MonOcrCore
@@ -65,5 +66,19 @@ struct CtcDecoderTests {
         #expect(throws: ModelContractError.self) {
             try CtcDecoder.decode(logits: logits, timeSteps: 2, numClasses: 4, charset: "AB")
         }
+    }
+
+    /// The decoded text must never reach the log file: "Export Debug Logs" on the
+    /// About screen shares that file, and release builds used to append every
+    /// recognised line to it. Tests run as a DEBUG build, where debug and info lines
+    /// do reach the file, so this catches a decoder that logs its result at any level.
+    @Test func decodedTextIsNeverWrittenToTheLogFile() throws {
+        let charset = "QJXZVK"
+        let logits = buildLogits(timeSteps: 6, numClasses: 7, argmaxes: [1, 2, 3, 4, 5, 6])
+        let result = try CtcDecoder.decode(logits: logits, timeSteps: 6, numClasses: 7, charset: charset)
+        #expect(result == charset)
+        let logged = (try? String(contentsOf: MonLogger.logFileURL, encoding: .utf8)) ?? ""
+        #expect(!logged.contains(charset))
+        #expect(!logged.contains("[1:Q]"))
     }
 }
