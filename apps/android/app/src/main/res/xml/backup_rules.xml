@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Android 11 and older. Must back up what data_extraction_rules.xml lets
-  cloud-backup take on Android 12+, and nothing more: settings only. The
+  Android 7 and 8 (API 24 to 27). Must back up what data_extraction_rules.xml
+  lets cloud-backup take on Android 12+, and nothing more: settings only. The
   database and files hold scan history, recognised text and images, which stay
   on the device.
+
+  These versions cannot tell cloud backup from a device-to-device transfer
+  (requireFlags needs API 28), so scan history does not move to a new phone
+  here either. Android 9 to 11 use xml-v28/backup_rules.xml, which does.
 -->
 <full-backup-content>
     <include domain="sharedpref" path="." />
