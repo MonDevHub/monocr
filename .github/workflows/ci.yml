@@ -799,7 +799,6 @@ jobs:
           missing=0
           for f in apps/web/src/lib/config.ts \
                    apps/web/src/lib/monocr-onnx.ts \
-                   apps/web/functions/monocr.onnx.js \
                    apps/ios/monocr-ios/MonOcrEngine.swift \
                    apps/android/app/src/main/java/dev/janakhpon/monocr/engine/MonOcrEngine.kt; do
             grep -q "$pinned" "$f" || { echo "::error file=$f::does not mention the pinned revision $pinned"; missing=1; }
@@ -809,7 +808,6 @@ jobs:
           stale="$(grep -ln 'a51be11' \
             apps/web/src/lib/config.ts \
             apps/web/src/lib/monocr-onnx.ts \
-            apps/web/functions/monocr.onnx.js \
             apps/ios/monocr-ios/MonOcrEngine.swift \
             apps/android/app/src/main/java/dev/janakhpon/monocr/engine/MonOcrEngine.kt 2>/dev/null || true)"
           if [ -n "$stale" ]; then

@@ -12,9 +12,7 @@ export const CONFIG = {
 		// Local override for development. Put the model at `static/monocr.onnx`
 		// and every reload reads it off disk instead of pulling 46.2 MB from
 		// Hugging Face. Gitignored — see the README for the fetch command.
-		//
-		// The path is the same one `functions/monocr.onnx.js` proxies in
-		// production, so nothing about the request shape changes between the two.
+		// It is checked against the same MODEL_SHA256 as the pinned download.
 		RECOGNITION_LOCAL: '/monocr.onnx',
 
 		CHARSET: '/charset.txt'
