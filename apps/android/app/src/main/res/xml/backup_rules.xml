@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and older. Must back up what data_extraction_rules.xml lets
+  cloud-backup take on Android 12+, and nothing more: settings only. The
+  database and files hold scan history, recognised text and images, which stay
+  on the device.
+-->
 <full-backup-content>
-    <!-- Include essential data -->
-    <include domain="database" path="." />
     <include domain="sharedpref" path="." />
-    <include domain="file" path="." />
 </full-backup-content>
