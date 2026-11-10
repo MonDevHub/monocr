@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"crypto/subtle"
 	"log/slog"
 	"net/http"
 	"os"
@@ -19,7 +20,10 @@ func APIKeyMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if apiKey != expectedKey {
+		// Constant time, so response timing does not reveal how much of a guess
+		// matched. ConstantTimeCompare returns early only on a length mismatch,
+		// which leaks the key's length and nothing else.
+		if subtle.ConstantTimeCompare([]byte(apiKey), []byte(expectedKey)) != 1 {
 			slog.Warn("Unauthorized access attempt", "client_ip", c.ClientIP(), "user_agent", c.Request.UserAgent())
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: Invalid API Key"})
 			return
