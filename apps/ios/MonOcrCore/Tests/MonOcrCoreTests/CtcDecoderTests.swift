@@ -73,12 +73,16 @@ struct CtcDecoderTests {
     /// recognised line to it. Tests run as a DEBUG build, where debug and info lines
     /// do reach the file, so this catches a decoder that logs its result at any level.
     @Test func decodedTextIsNeverWrittenToTheLogFile() throws {
+        // Only what this decode appends is checked: the file outlives the run, so
+        // a line from an earlier build must not fail this one.
+        let before = (try? Data(contentsOf: MonLogger.logFileURL))?.count ?? 0
         let charset = "QJXZVK"
         let logits = buildLogits(timeSteps: 6, numClasses: 7, argmaxes: [1, 2, 3, 4, 5, 6])
         let result = try CtcDecoder.decode(logits: logits, timeSteps: 6, numClasses: 7, charset: charset)
         #expect(result == charset)
-        let logged = (try? String(contentsOf: MonLogger.logFileURL, encoding: .utf8)) ?? ""
-        #expect(!logged.contains(charset))
-        #expect(!logged.contains("[1:Q]"))
+        let data = (try? Data(contentsOf: MonLogger.logFileURL)) ?? Data()
+        let appended = String(decoding: data.dropFirst(data.count >= before ? before : 0), as: UTF8.self)
+        #expect(!appended.contains(charset))
+        #expect(!appended.contains("[1:Q]"))
     }
 }
