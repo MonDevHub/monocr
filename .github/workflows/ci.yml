@@ -785,6 +785,28 @@ jobs:
           done
           echo "charsets identical ($(wc -c < "$ref") bytes)"
 
+      - name: The bundled models are the pinned bytes
+        # Web checks the download against MODEL_SHA256 and Android checks its
+        # asset at load, but nothing checked the committed files themselves: a
+        # re-export or a bad merge could replace them and every test would still
+        # pass. Android's asset must match the hash both engines pin, read from the
+        # source so this list cannot drift from it. iOS pins no hash in its own
+        # source, so its Core ML files are pinned here to the bytes committed on
+        # 2026-11-10: changing the export means changing these lines with it.
+        run: |
+          set -euo pipefail
+          kt=apps/android/app/src/main/java/dev/janakhpon/monocr/engine/MonOcrEngine.kt
+          pinned="$(sed -n 's/.*MODEL_SHA256 = "\([0-9a-f]\{64\}\)".*/\1/p' "$kt")"
+          [ -n "$pinned" ] || { echo "::error file=$kt::no MODEL_SHA256 found"; exit 1; }
+          grep -q "MODEL_SHA256 = '$pinned'" apps/web/src/lib/monocr-onnx.ts \
+            || { echo "::error::web MODEL_SHA256 differs from Android's"; exit 1; }
+          sha256sum -c - <<EOF
+          $pinned  apps/android/app/src/main/assets/monocr.onnx
+          3d1158a654e93d5de50e9ab2a794fc574ef050a6160239d65f77fd8039f19f6d  apps/ios/monocr-ios/monocr.mlpackage/Manifest.json
+          b8ad3699faf4a4644812c58867ca214997e956f1522a485804c97cbe065fca11  apps/ios/monocr-ios/monocr.mlpackage/Data/com.apple.CoreML/model.mlmodel
+          aaa035c39c34753c2695e3e25766eb3d71d8bf291536244d48b4857206834698  apps/ios/monocr-ios/monocr.mlpackage/Data/com.apple.CoreML/weights/weight.bin
+          EOF
+
       - name: The charset keeps its leading U+0020
         # A bare trim() eats it and shifts every decoded index by one.
         run: |
