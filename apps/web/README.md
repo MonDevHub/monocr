@@ -78,7 +78,9 @@ curl -L -o static/monocr.onnx \
 falls back to the pinned URL otherwise, printing which one it chose; production never reads it.
 Fetch exactly that revision and keep it equal to `CONFIG.MODELS.RECOGNITION`: `static/charset.txt`
 is 276 characters, and the app refuses a model that does not match it with a `ModelContractError`
-at load rather than returning wrong text.
+at load rather than returning wrong text. Before that, every model download, local or remote, must
+hash to `MODEL_SHA256` in `src/lib/monocr-onnx.ts` or it is refused with a `ModelIntegrityError`
+and not cached.
 
 ## Test and check
 

@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createHash } from 'node:crypto';
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // onnxruntime-web is imported at module scope and pulls in WASM binaries. None of
 // it is exercised here: these tests drive the contract check against a stubbed
@@ -30,8 +32,14 @@ vi.mock('./segmentation', async (importOriginal) => {
 	return { ...actual, segmentLines: vi.fn(actual.segmentLines) };
 });
 
-const { MonOcrOnnx, ModelContractError, ModelOutputError, readLine } =
-	await import('./monocr-onnx');
+const {
+	MonOcrOnnx,
+	ModelContractError,
+	ModelIntegrityError,
+	ModelOutputError,
+	MODEL_SHA256,
+	readLine
+} = await import('./monocr-onnx');
 const { assemblePage } = await import('./reading');
 const { CONFIG, resolveRecognitionModel } = await import('./config');
 const { segmentLines } = await import('./segmentation');
@@ -671,5 +679,117 @@ describe('reading the model body', () => {
 		expect(seen.length).toBeLessThan(400);
 		// The last report must be the true total, or the bar stops short of 100%.
 		expect(seen.at(-1)).toBe(200_000);
+	});
+});
+
+describe('model integrity', () => {
+	type Fetcher = {
+		fetchAsset(u: string, p?: unknown, sha?: string): Promise<Uint8Array>;
+	};
+	const URL_ = 'https://example.test/monocr.onnx';
+	const GOOD = new Uint8Array([7, 7, 7, 7]);
+	const BAD = new Uint8Array([6, 6, 6, 6]);
+	const GOOD_SHA = createHash('sha256').update(GOOD).digest('hex');
+
+	function fetchReturning(...bodies: Uint8Array[]) {
+		const fn = vi.fn();
+		for (const body of bodies) {
+			fn.mockResolvedValueOnce(new Response(body.slice().buffer as ArrayBuffer, { status: 200 }));
+		}
+		vi.stubGlobal('fetch', fn);
+		return fn;
+	}
+
+	/** A one-entry Cache API, enough for fetchAsset's match/put/delete. */
+	function installCache(initial?: Uint8Array) {
+		const store = new Map<string, Uint8Array>();
+		if (initial) store.set(URL_, initial);
+		const cache = {
+			match: vi.fn(async (u: string) => {
+				const body = store.get(u);
+				return body ? new Response(body.slice().buffer as ArrayBuffer) : undefined;
+			}),
+			put: vi.fn(async (u: string, r: Response) => {
+				store.set(u, new Uint8Array(await r.arrayBuffer()));
+			}),
+			delete: vi.fn(async (u: string) => store.delete(u))
+		};
+		(globalThis as unknown as { caches: unknown }).caches = { open: async () => cache };
+		return { cache, store };
+	}
+
+	afterEach(() => {
+		delete (globalThis as unknown as { caches?: unknown }).caches;
+	});
+
+	it('pins the same bytes Android bundles', () => {
+		const kotlin = readFileSync(
+			fileURLToPath(
+				new URL(
+					'../../../android/app/src/main/java/dev/janakhpon/monocr/engine/MonOcrEngine.kt',
+					import.meta.url
+				)
+			),
+			'utf-8'
+		);
+		expect(kotlin).toContain(`MODEL_SHA256 = "${MODEL_SHA256}"`);
+	});
+
+	it('asks for the model to be checked against the pinned hash', async () => {
+		const engine = new MonOcrOnnx();
+		const fetchAsset = vi
+			.spyOn(engine as unknown as Fetcher, 'fetchAsset')
+			.mockImplementation(async (url: string) =>
+				url.endsWith('charset.txt') ? new TextEncoder().encode(CHARSET) : new Uint8Array([1])
+			);
+		createSession.mockResolvedValueOnce(fakeSession(V35.height, V35.classes));
+		await engine.initialize('/model.onnx', '/charset.txt');
+		expect(fetchAsset).toHaveBeenCalledWith('/model.onnx', undefined, MODEL_SHA256);
+	});
+
+	it('refuses a download that does not match, and caches nothing', async () => {
+		const { cache, store } = installCache();
+		const fetch = fetchReturning(BAD);
+		await expect(
+			(new MonOcrOnnx() as unknown as Fetcher).fetchAsset(URL_, undefined, GOOD_SHA)
+		).rejects.toThrow(ModelIntegrityError);
+		expect(cache.put).not.toHaveBeenCalled();
+		expect(store.has(URL_)).toBe(false);
+		// Not retried by the direct-fetch fallback.
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	it('refuses a mismatch on the no-cache path too, without a second download', async () => {
+		const fetch = fetchReturning(BAD, BAD);
+		await expect(
+			(new MonOcrOnnx() as unknown as Fetcher).fetchAsset(URL_, undefined, GOOD_SHA)
+		).rejects.toThrow(ModelIntegrityError);
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	it('evicts a cached copy that does not match and fetches the real one', async () => {
+		const { cache, store } = installCache(BAD);
+		const fetch = fetchReturning(GOOD);
+		const bytes = await (new MonOcrOnnx() as unknown as Fetcher).fetchAsset(
+			URL_,
+			undefined,
+			GOOD_SHA
+		);
+		expect(Array.from(bytes)).toEqual(Array.from(GOOD));
+		expect(cache.delete).toHaveBeenCalledWith(URL_);
+		expect(fetch).toHaveBeenCalledTimes(1);
+		expect(Array.from(store.get(URL_) ?? [])).toEqual(Array.from(GOOD));
+	});
+
+	it('serves a cached copy that matches without touching the network', async () => {
+		installCache(GOOD);
+		const fetch = fetchReturning();
+		const bytes = await (new MonOcrOnnx() as unknown as Fetcher).fetchAsset(
+			URL_,
+			undefined,
+			GOOD_SHA
+		);
+		expect(Array.from(bytes)).toEqual(Array.from(GOOD));
+		expect(fetch).not.toHaveBeenCalled();
 	});
 });
