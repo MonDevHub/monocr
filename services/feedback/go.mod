@@ -3,9 +3,10 @@ module ocr-feedback-service
 go 1.26.0
 
 // Pinned to the patch that carries the stdlib fixes govulncheck requires;
-// go1.26.5 is affected by 7 called vulnerabilities. Bump this with the scan,
-// not on a schedule.
-toolchain go1.26.9
+// go1.26.9 is affected by 2 called vulnerabilities (GO-2026-6859 in net/http,
+// GO-2026-6809 in crypto/x509), both fixed by go1.26.11. Bump this with the
+// scan, not on a schedule.
+toolchain go1.26.11
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.47.3
