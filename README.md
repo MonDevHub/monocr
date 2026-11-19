@@ -79,10 +79,10 @@ Android and iOS bundle it (46.2 MB and 46.3 MB respectively). The web app and th
 
 ## Limitations
 
-**Held-out CER 0.0100** on 150 unseen lines in a typeface the model never trained on (95% interval 0.0056 to 0.0147), measured 2026-08-16. The [model card](https://huggingface.co/janakhpon/monocr#evaluation) states its limits:
+**Held-out CER 0.0095** (95% interval 0.0079 to 0.0111) on 1,997 synthetic Mon lines (0.0061 over all 3,002 Mon, Burmese and English lines), in a typeface design the model never trained on, measured 2026-11-11. The [model card](https://huggingface.co/janakhpon/monocr#evaluation) states its limits:
 
-- **n = 150**, so the interval is wide.
-- **One typeface.** All 150 lines are Pyidaungsu, held out from training.
+- **Synthetic lines, not real pages.** It is not accuracy on photographed or scanned pages.
+- **One typeface design.** Every line is Pyidaungsu, Regular and Bold, held out from training.
 - **Unseen text, not an unseen renderer.** Training and test images came from the same generator, so the number says nothing yet about camera photographs of real pages.
 - **Disjointness is argued, not directly verified.**
 
