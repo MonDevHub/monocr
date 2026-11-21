@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 9 to 11 (API 28 to 30). Mirrors data_extraction_rules.xml:
+  cloud backup takes settings only, while a device-to-device transfer also
+  takes scan history, recognised text and images. requireFlags is honoured
+  from API 28, which is why this file lives in xml-v28; on API 24 to 27 the
+  flagged include would apply to cloud backup too.
+-->
+<full-backup-content>
+    <include domain="sharedpref" path="." />
+    <include domain="root" path="." requireFlags="deviceToDeviceTransfer" />
+</full-backup-content>

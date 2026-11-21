@@ -99,18 +99,19 @@ When adding a new column:
 
 ## Testing
 
-| Layer                             | Test Type                                     | Location                                       |
-| --------------------------------- | --------------------------------------------- | ---------------------------------------------- |
-| `CtcDecoder`                      | Unit                                          | `src/test/.../engine/CtcDecoderTest.kt`        |
-| `PageNormalizer`                  | Unit                                          | `src/test/.../engine/PageNormalizerTest.kt`    |
-| `PageNormalizer.dilate`           | Parity, against a cv2-generated fixture       | `src/test/.../engine/DilateFixtureTest.kt`     |
-| `LineSegmenter`                   | Unit                                          | `src/test/.../engine/LineSegmenterTest.kt`     |
-| `LineSegmenter.suppressPageRules` | Unit, paired line for line with the iOS suite | `src/test/.../engine/RuleSuppressionTest.kt`   |
-| `LineSegmenter.suppressPageRules` | Cross-platform parity                         | `src/test/.../engine/RuleFixtureTest.kt`       |
-| `LineTiler`                       | Unit, cross-platform parity                   | `src/test/.../engine/LineTilerFixtureTest.kt`  |
-| `SegmentationMode`                | Unit                                          | `src/test/.../engine/SegmentationModeTest.kt`  |
-| ViewModels                        | Unit (TODO)                                   | Use `TestCoroutineDispatcher` + in-memory Room |
-| Screens                           | UI (TODO)                                     | Compose test rules                             |
+| Layer                             | Test Type                                     | Location                                                                       |
+| --------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------ |
+| `CtcDecoder`                      | Unit                                          | `src/test/.../engine/CtcDecoderTest.kt`                                        |
+| `PageNormalizer`                  | Unit                                          | `src/test/.../engine/PageNormalizerTest.kt`                                    |
+| `PageNormalizer.dilate`           | Parity, against a cv2-generated fixture       | `src/test/.../engine/DilateFixtureTest.kt`                                     |
+| `LineSegmenter`                   | Unit                                          | `src/test/.../engine/LineSegmenterTest.kt`                                     |
+| `LineSegmenter.suppressPageRules` | Unit, paired line for line with the iOS suite | `src/test/.../engine/RuleSuppressionTest.kt`                                   |
+| `LineSegmenter.suppressPageRules` | Cross-platform parity                         | `src/test/.../engine/RuleFixtureTest.kt`                                       |
+| `LineTiler`                       | Unit, cross-platform parity                   | `src/test/.../engine/LineTilerFixtureTest.kt`                                  |
+| `SegmentationMode`                | Unit                                          | `src/test/.../engine/SegmentationModeTest.kt`                                  |
+| `MainViewModel`                   | Robolectric, against a fake pipeline          | `src/test/.../ui/OcrFailureTest.kt`, `ProgressTest.kt`, `ResultActionsTest.kt` |
+| Screens                           | Compose UI on Robolectric                     | `src/test/.../ui/` (navigation, consent, accessibility, share intent and more) |
+| Backup rules                      | Unit, legacy against Android 12+ cloud backup | `src/test/.../ui/BackupRulesTest.kt`                                           |
 
 ---
 
