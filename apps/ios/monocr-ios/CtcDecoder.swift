@@ -77,7 +77,6 @@ nonisolated enum CtcDecoder {
         // Step 2 & 3: CTC collapse — remove blanks (0) and consecutive duplicates
         let decoded = NSMutableString()
         var prevIdx = -1
-        var pathDescription = ""
         
         for idx in predictions {
             if idx != 0 && idx != prevIdx {
@@ -95,14 +94,14 @@ nonisolated enum CtcDecoder {
                 }
                 let char = String(Character(scalar))
                 decoded.append(char)
-                pathDescription += "[\(idx):\(char)] "
             }
             prevIdx = idx
         }
         
         let result = decoded as String
-        MonLogger.d("CTC Path: \(pathDescription)")
-        MonLogger.i("CTC Result: '\(result)'")
+        // A count, never the text: the log file can be exported from the About
+        // screen, and what a person scanned is theirs, not diagnostics.
+        MonLogger.d("CTC decoded \(result.count) characters")
         return result
     }
 }

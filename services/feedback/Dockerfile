@@ -1,5 +1,8 @@
 # https://hub.docker.com/_/golang
-FROM golang:1.26-alpine AS builder
+# The official image sets GOTOOLCHAIN=local, so the toolchain line in go.mod does
+# not apply here: the binary is compiled by whatever Go this tag carries. Keep the
+# patch equal to that toolchain line and bump the two together.
+FROM golang:1.26.11-alpine AS builder
 
 # Create and change to the app directory.
 WORKDIR /app

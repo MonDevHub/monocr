@@ -19,6 +19,44 @@ import { looksLikeALine, normalizePagePolarity, segmentLines, tileLine } from '.
 export const MODEL_VERSION = 'v3.5@d3d9d5e';
 
 /**
+ * SHA-256 of `onnx/monocr.onnx` at revision `d3d9d5e`: the same bytes Android
+ * bundles and checks against its own `MODEL_SHA256`. Bump it with the revision.
+ *
+ * A revision pin names the file, it does not prove what arrived. Without this the
+ * app cached whatever the network returned — a truncated body, a captive portal's
+ * page, a tampered copy — and served it from the cache on every reload after.
+ */
+export const MODEL_SHA256 = 'b95de1ea0e3dc99a5c31bea32e220835da801f683ed17091eaec9954c80a4c04';
+
+/**
+ * The downloaded model is not the pinned file. Never cached, never retried by
+ * the fallback fetch: a second download from the same source is no more
+ * trustworthy than the first.
+ */
+export class ModelIntegrityError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'ModelIntegrityError';
+	}
+}
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+	const digest = await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>);
+	return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Throw unless `bytes` hashes to `expected`; a no-op when nothing is expected. */
+async function assertSha256(url: string, bytes: Uint8Array, expected?: string): Promise<void> {
+	if (!expected) return;
+	const actual = await sha256Hex(bytes);
+	if (actual !== expected) {
+		throw new ModelIntegrityError(
+			`${url} has SHA-256 ${actual}, expected ${expected}; refusing to load it`
+		);
+	}
+}
+
+/**
  * The model and the charset disagree about what this model is.
  *
  * Its own class, because an execution-provider failure is retried on WASM and a
@@ -152,7 +190,7 @@ export class MonOcrOnnx {
 
 			// Load ONNX model with Caching strategy. The charset above is 556 bytes and
 			// needs no progress; this is the 46 MB one.
-			const modelBuffer = await this.fetchAsset(modelPath, onProgress);
+			const modelBuffer = await this.fetchAsset(modelPath, onProgress, MODEL_SHA256);
 
 			// Init session with buffer, with automatic fallback mapping
 			try {
@@ -198,10 +236,16 @@ export class MonOcrOnnx {
 	 * Fetch asset with caching (Cache API) for offline robustness.
 	 * Cache name matches the Workbox SW runtime cache so both paths
 	 * share a single store: Cache API reads → SW writes, and vice-versa.
+	 *
+	 * With `expectedSha256`, bytes are checked before they are used or cached. A
+	 * cached entry that fails is deleted and fetched again, since the service
+	 * worker writes this cache too and checks nothing; a download that fails is
+	 * refused with a ModelIntegrityError.
 	 */
 	private async fetchAsset(
 		url: string,
-		onProgress?: (received: number, total: number) => void
+		onProgress?: (received: number, total: number) => void,
+		expectedSha256?: string
 	): Promise<Uint8Array> {
 		const CACHE_NAME = 'monocr-models';
 		let cacheError: Error | null = null;
@@ -212,14 +256,27 @@ export class MonOcrOnnx {
 				const cachedResponse = await cache.match(url);
 
 				if (cachedResponse) {
-					const buffer = await cachedResponse.arrayBuffer();
-					return new Uint8Array(buffer);
+					const cached = new Uint8Array(await cachedResponse.arrayBuffer());
+					try {
+						await assertSha256(url, cached, expectedSha256);
+						return cached;
+					} catch (e) {
+						console.warn('[monocr-onnx] cached model failed its hash check; fetching again', e);
+						await cache.delete(url);
+					}
 				}
 
 				const response = await fetch(url);
 				if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
 
 				const bytes = await this.readWithProgress(response, onProgress);
+				try {
+					await assertSha256(url, bytes, expectedSha256);
+				} catch (e) {
+					// The service worker may already have stored this response.
+					await cache.delete(url).catch(() => false);
+					throw e;
+				}
 
 				// Cache the bytes we already have rather than a second copy of the
 				// stream. `cache.put(url, response.clone())` used to run before the
@@ -238,6 +295,7 @@ export class MonOcrOnnx {
 				return bytes;
 			}
 		} catch (e) {
+			if (e instanceof ModelIntegrityError) throw e;
 			cacheError = e instanceof Error ? e : new Error(String(e));
 		}
 
@@ -245,8 +303,11 @@ export class MonOcrOnnx {
 		try {
 			const response = await fetch(url);
 			if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
-			return await this.readWithProgress(response, onProgress);
+			const bytes = await this.readWithProgress(response, onProgress);
+			await assertSha256(url, bytes, expectedSha256);
+			return bytes;
 		} catch (networkError) {
+			if (networkError instanceof ModelIntegrityError) throw networkError;
 			if (cacheError) {
 				throw new Error(
 					`Offline — cache unavailable and network failed. Cache error: ${cacheError.message}. Network: ${networkError}`,
