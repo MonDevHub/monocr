@@ -439,8 +439,7 @@ Horizontal agrees at 11 everywhere. The ports agree with each other.
 | iOS     | yes, sharpness and no-lines | yes: `MonOcrEngine` calls `isSoft`; `ResultCardView` shows the warnings |
 | Android | yes, sharpness and no-lines | yes: `OcrRepository` calls `isSoft`; `HomeScreen` shows the warnings    |
 
-This table used to read web `console.warn` only, iOS `isSoft` with no caller and
-Android with no check at all. All three have since been wired through. iOS and
+All three surfaces compute the warning and show it to the person. iOS and
 Android report the no-lines case as "no regions detected" alongside their
 whole-page fallback, rather than as a capture warning, but the user sees it on
 every surface.
